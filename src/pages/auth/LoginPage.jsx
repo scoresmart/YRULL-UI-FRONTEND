@@ -1,4 +1,5 @@
 import { LoginForm } from '../../components/auth/LoginForm';
+import { LegalFooterLinks } from '../../components/legal/LegalFooterLinks';
 import { ENV } from '../../lib/env';
 
 export function LoginPage() {
@@ -30,8 +31,16 @@ export function LoginPage() {
         <div className="col-span-4 flex items-center justify-center p-10">
           <div className="w-full max-w-md rounded-xl border border-gray-100 bg-white p-8 shadow-sm fade-in">
             {!hasSupabaseConfig && !ENV.USE_MOCK && (
-              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                ⚠️ Supabase environment variables are not configured. Please check your .env file.
+              <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                <p>Sign-in is temporarily unavailable. Please try again later.</p>
+                {import.meta.env.DEV ? (
+                  <p className="mt-2 border-t border-slate-200 pt-2 text-xs text-slate-600">
+                    Dev only: set <code className="rounded bg-slate-100 px-1">VITE_SUPABASE_URL</code> and{' '}
+                    <code className="rounded bg-slate-100 px-1">VITE_SUPABASE_ANON_KEY</code> in{' '}
+                    <code className="rounded bg-slate-100 px-1">.env</code>, or use{' '}
+                    <code className="rounded bg-slate-100 px-1">VITE_USE_MOCK=true</code>.
+                  </p>
+                ) : null}
               </div>
             )}
             <div className="mb-6">
@@ -46,6 +55,7 @@ export function LoginPage() {
                 Sign up
               </a>
             </div>
+            <LegalFooterLinks />
           </div>
         </div>
       </div>

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff, Lock, Mail, User, Building2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { useAuthStore } from '../../store/authStore';
@@ -100,6 +100,18 @@ export function RegisterForm() {
         </div>
         {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
       </div>
+
+      <p className="text-center text-xs leading-relaxed text-gray-500">
+        By creating an account, you agree to our{' '}
+        <Link to="/terms" className="font-medium text-green-600 hover:text-green-700 hover:underline">
+          Terms of Service
+        </Link>{' '}
+        and{' '}
+        <Link to="/privacy" className="font-medium text-green-600 hover:text-green-700 hover:underline">
+          Privacy Policy
+        </Link>
+        .
+      </p>
 
       <Button type="submit" className="w-full" disabled={isSubmitting}>
         {isSubmitting ? 'Creating account…' : 'Create Account'}

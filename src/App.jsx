@@ -17,6 +17,8 @@ import { AutomationBuilderPage } from './pages/user/AutomationBuilder';
 import { SettingsPage } from './pages/user/Settings';
 import { IntegrationsPage } from './pages/user/Integrations';
 import { AdminDashboardPage } from './pages/admin/AdminDashboard';
+import { PrivacyPolicyPage } from './pages/legal/PrivacyPolicy';
+import { TermsOfServicePage } from './pages/legal/TermsOfService';
 import { useAuth } from './hooks/useAuth';
 import { Skeleton } from './components/ui/skeleton';
 
@@ -34,6 +36,8 @@ export default function App() {
       <Route path="/" element={<RootRedirect />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/privacy" element={<PrivacyPolicyPage />} />
+      <Route path="/terms" element={<TermsOfServicePage />} />
       <Route
         path="/onboarding"
         element={

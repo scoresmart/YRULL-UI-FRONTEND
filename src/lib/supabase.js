@@ -30,7 +30,8 @@ if (!hasSupabaseConfig) {
       async signInWithPassword() {
         return {
           data: { session: null },
-          error: new Error('Supabase environment variables are not configured.'),
+          // Generic copy: never expose backend vendor or config filenames in production UI
+          error: new Error('Sign-in is temporarily unavailable. Please try again later.'),
         };
       },
     },

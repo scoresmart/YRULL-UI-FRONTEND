@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { RegisterForm } from '../../components/auth/RegisterForm';
+import { LegalFooterLinks } from '../../components/legal/LegalFooterLinks';
 import { Instagram, MessageCircle, Workflow } from 'lucide-react';
 
 export function RegisterPage() {
@@ -46,6 +47,7 @@ export function RegisterPage() {
                 Sign in
               </Link>
             </div>
+            <LegalFooterLinks />
           </div>
         </div>
       </div>
