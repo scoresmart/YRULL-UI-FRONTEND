@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: #ffffff;
+    --sidebar: #0f0f0f;
+    --sidebar-text: #e5e5e5;
+    --border: #f0f0f0;
+    --text: #111111;
+    --text-muted: #6b7280;
+    --accent: #25d366;
+    --accent-2: #128c7e;
+    --input-bg: #f9fafb;
+  }
+
+  html,
+  body {
+    height: 100%;
+}
+
+body {
+    @apply font-sans bg-white text-[#111111] antialiased;
+}
+}
+
+@layer utilities {
+  .fade-in {
+    animation: fadeIn 150ms ease-out both;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+}
+    to {
+      opacity: 1;
+    }
+  }
+}
