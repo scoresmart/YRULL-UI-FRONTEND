@@ -1,4 +1,5 @@
 import { LoginForm } from '../../components/auth/LoginForm';
+import { BrandMark } from '../../components/brand/BrandMark';
 import { LegalFooterLinks } from '../../components/legal/LegalFooterLinks';
 import { ENV } from '../../lib/env';
 
@@ -12,7 +13,7 @@ export function LoginPage() {
           <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(to_right,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:48px_48px]" />
           <div className="relative flex h-full flex-col p-12">
             <div>
-              <div className="text-2xl font-bold tracking-tight">FlowDesk</div>
+              <BrandMark variant="dark" className="text-2xl" />
               <div className="mt-2 max-w-md text-lg text-white/70">
                 Connect all your messaging channels in one powerful platform.
               </div>
@@ -44,7 +45,7 @@ export function LoginPage() {
               </div>
             )}
             <div className="mb-6">
-              <div className="text-sm font-semibold text-gray-900">FlowDesk</div>
+              <BrandMark variant="light" className="text-sm font-semibold" />
               <div className="mt-3 text-2xl font-semibold text-gray-900">Welcome back</div>
               <div className="mt-1 text-sm text-gray-500">Sign in to your account</div>
             </div>

@@ -1,13 +1,14 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { BrandMark } from '../brand/BrandMark';
 
 export function LegalPageShell({ title, lastUpdated, children }) {
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4">
-          <Link to="/login" className="text-lg font-semibold text-slate-900">
-            FlowDesk
+          <Link to="/login" className="inline-flex items-center">
+            <BrandMark variant="light" className="text-lg" />
           </Link>
           <Link
             to="/login"

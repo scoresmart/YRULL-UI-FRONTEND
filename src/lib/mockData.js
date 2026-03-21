@@ -220,7 +220,7 @@ export const mockMessages = [
     'cv_003',
     [
       { direction: 'inbound', content: 'We run inbound WhatsApp at high volume.', minAgo: 210 },
-      { direction: 'outbound', content: 'FlowDesk is built for fast triage + assignment + templates.', minAgo: 205 },
+      { direction: 'outbound', content: 'Yrull is built for fast triage + assignment + templates.', minAgo: 205 },
       { direction: 'inbound', content: 'Do you have SLAs and audit logs?', minAgo: 196 },
       { direction: 'outbound', content: 'Yes — we track activity logs per workspace.', minAgo: 190 },
     ],

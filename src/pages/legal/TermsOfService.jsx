@@ -6,7 +6,7 @@ export function TermsOfServicePage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-slate-900">1. Agreement</h2>
         <p>
-          These Terms of Service (&quot;Terms&quot;) govern your access to and use of FlowDesk&apos;s website,
+          These Terms of Service (&quot;Terms&quot;) govern your access to and use of Yrull&apos;s website,
           applications, and related services (collectively, the &quot;Service&quot;). By creating an account or
           using the Service, you agree to these Terms. If you use the Service on behalf of an organization, you
           represent that you have authority to bind that organization.
@@ -16,7 +16,7 @@ export function TermsOfServicePage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-slate-900">2. The Service</h2>
         <p>
-          FlowDesk provides tools to help you manage messaging channels, automations, and related workflows.
+          Yrull provides tools to help you manage messaging channels, automations, and related workflows.
           Features may change over time. We may suspend or discontinue parts of the Service with reasonable
           notice where practicable.
         </p>
@@ -55,7 +55,7 @@ export function TermsOfServicePage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-slate-900">6. Intellectual property</h2>
         <p>
-          The Service, including its software, branding, and content we provide, is owned by FlowDesk or its
+          The Service, including its software, branding, and content we provide, is owned by Yrull or its
           licensors. We grant you a limited, non-exclusive, non-transferable license to use the Service in
           accordance with these Terms. You retain ownership of content you submit; you grant us a license to
           host and process that content as needed to operate the Service.
@@ -93,7 +93,7 @@ export function TermsOfServicePage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-slate-900">10. Indemnity</h2>
         <p>
-          You will defend and indemnify FlowDesk against claims arising from your use of the Service, your
+          You will defend and indemnify Yrull against claims arising from your use of the Service, your
           content, or your violation of these Terms, subject to applicable law.
         </p>
       </section>

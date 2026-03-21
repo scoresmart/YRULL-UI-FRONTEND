@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { Activity, LayoutDashboard, LogOut, Settings, Users } from 'lucide-react';
+import { BrandMark } from '../brand/BrandMark';
 import { cn } from '../../lib/utils';
 import { useAuthStore } from '../../store/authStore';
 
@@ -17,7 +18,7 @@ export function AdminSidebar() {
     <aside className="fixed left-0 top-0 h-screen w-[260px] bg-brand-sidebar text-brand-sidebarText">
       <div className="flex h-full flex-col">
         <div className="px-5 pt-6">
-          <div className="text-lg font-bold tracking-tight text-white">FlowDesk</div>
+          <BrandMark variant="dark" className="text-lg" />
           <div className="mt-1 text-xs text-gray-400">Admin</div>
         </div>
 

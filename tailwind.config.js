@@ -8,6 +8,8 @@ export default {
       },
       colors: {
         brand: {
+          wordmark: '#0d9488',
+          wordmarkOnDark: '#2dd4bf',
           sidebar: '#0F0F0F',
           sidebarText: '#E5E5E5',
           accent: '#25D366',

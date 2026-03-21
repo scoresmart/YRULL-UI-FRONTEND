@@ -7,7 +7,7 @@ export function DataDeletionPage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-slate-900">How to request deletion</h2>
         <p>
-          If you have a FlowDesk account and want your account and associated personal data deleted, you may
+          If you have a Yrull account and want your account and associated personal data deleted, you may
           request deletion by contacting us using the same email address you use for your account. We will
           process verified requests in line with applicable law and our{' '}
           <Link to="/privacy" className="font-medium text-green-700 underline underline-offset-2 hover:text-green-800">
@@ -16,7 +16,7 @@ export function DataDeletionPage() {
           .
         </p>
         <p>
-          If you connected third-party services (for example Meta or Instagram) through FlowDesk, you may also
+          If you connected third-party services (for example Meta or Instagram) through Yrull, you may also
           manage or revoke permissions in those services&apos; own settings.
         </p>
       </section>

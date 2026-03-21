@@ -6,7 +6,7 @@ export function PrivacyPolicyPage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-slate-900">1. Introduction</h2>
         <p>
-          FlowDesk (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) respects your privacy. This Privacy Policy
+          Yrull (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) respects your privacy. This Privacy Policy
           describes how we collect, use, disclose, and safeguard information when you use our website and
           services (the &quot;Service&quot;). Please read this policy carefully. If you do not agree with its
           terms, please do not use the Service.
@@ -24,7 +24,7 @@ export function PrivacyPolicyPage() {
           <li>
             <span className="font-medium text-slate-800">Service usage:</span> features you use, preferences,
             and communications you send or receive through integrated channels when you connect them to
-            FlowDesk.
+            Yrull.
           </li>
           <li>
             <span className="font-medium text-slate-800">Technical data:</span> device type, browser, IP address,

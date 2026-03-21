@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { BrandMark } from '../../components/brand/BrandMark';
 import { ChevronRight, ArrowRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
@@ -93,7 +94,7 @@ export function OnboardingPage() {
       <div className="grid min-h-screen grid-cols-2">
         {/* ── Left panel ── */}
         <div className="flex flex-col justify-between p-16">
-          <div className="text-xl font-bold tracking-tight text-gray-900">FlowDesk</div>
+          <BrandMark variant="light" className="text-xl" />
 
           <div className="max-w-md">
             <div className="mb-8">

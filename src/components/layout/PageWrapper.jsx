@@ -13,7 +13,7 @@ const TITLES = {
 
 export function usePageTitle() {
   const { pathname } = useLocation();
-  return useMemo(() => TITLES[pathname] ?? 'FlowDesk', [pathname]);
+  return useMemo(() => TITLES[pathname] ?? 'Yrull', [pathname]);
 }
 
 export function PageWrapper({ children }) {
