@@ -34,6 +34,12 @@ export function LegalPageShell({ title, lastUpdated, children }) {
           <Link to="/terms" className="font-medium text-slate-600 hover:text-green-600">
             Terms of Service
           </Link>
+          <span className="mx-2 text-slate-300" aria-hidden>
+            ·
+          </span>
+          <Link to="/data-deletion" className="font-medium text-slate-600 hover:text-green-600">
+            Data deletion
+          </Link>
         </div>
       </main>
     </div>

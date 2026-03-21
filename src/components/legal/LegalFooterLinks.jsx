@@ -12,6 +12,12 @@ export function LegalFooterLinks() {
       <Link to="/terms" className="font-medium text-gray-600 hover:text-green-600">
         Terms of Service
       </Link>
+      <span className="text-gray-300" aria-hidden>
+        ·
+      </span>
+      <Link to="/data-deletion" className="font-medium text-gray-600 hover:text-green-600">
+        Data deletion
+      </Link>
     </div>
   );
 }

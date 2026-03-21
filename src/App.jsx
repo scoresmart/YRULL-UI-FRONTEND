@@ -19,6 +19,7 @@ import { IntegrationsPage } from './pages/user/Integrations';
 import { AdminDashboardPage } from './pages/admin/AdminDashboard';
 import { PrivacyPolicyPage } from './pages/legal/PrivacyPolicy';
 import { TermsOfServicePage } from './pages/legal/TermsOfService';
+import { DataDeletionPage } from './pages/legal/DataDeletion';
 import { useAuth } from './hooks/useAuth';
 import { Skeleton } from './components/ui/skeleton';
 
@@ -38,6 +39,7 @@ export default function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/privacy" element={<PrivacyPolicyPage />} />
       <Route path="/terms" element={<TermsOfServicePage />} />
+      <Route path="/data-deletion" element={<DataDeletionPage />} />
       <Route
         path="/onboarding"
         element={
