@@ -13,6 +13,8 @@ const buttonVariants = cva(
         outline: 'border border-gray-200 bg-white text-gray-900 hover:bg-gray-50',
         ghost: 'bg-transparent text-gray-900 hover:bg-gray-100',
         destructive: 'bg-red-500 text-white hover:bg-red-600',
+        instagram:
+          'border-0 bg-gradient-to-r from-[#F58529] via-[#DD2A7B] to-[#8134AF] text-white shadow-md hover:opacity-90 focus-visible:ring-purple-400',
       },
       size: {
         default: 'h-10 px-4',

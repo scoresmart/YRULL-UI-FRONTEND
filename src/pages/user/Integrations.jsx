@@ -6,6 +6,7 @@ import { Badge } from '../../components/ui/badge';
 import { Eye, EyeOff, Save, Loader2, ExternalLink, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { integrationsApi } from '../../lib/api';
+import { ConnectFacebookButton } from '../../components/integrations/ConnectFacebookButton';
 
 // ── Integration definitions with SVG logos ────────────────────────────────
 
@@ -276,6 +277,11 @@ function IntegrationCard({ integration, serverConfig, onSave }) {
               {integration.category}
             </span>
           </div>
+          {integration.key === 'instagram' && (
+            <div className="mt-3">
+              <ConnectFacebookButton size="sm" />
+            </div>
+          )}
         </div>
 
         {/* Actions */}

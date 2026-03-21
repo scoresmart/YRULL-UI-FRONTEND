@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Instagram as InstagramIcon, ExternalLink, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '../../components/ui/button';
+import { ConnectFacebookButton } from '../../components/integrations/ConnectFacebookButton';
 import { IgConversationList } from '../../components/instagram/IgConversationList';
 import { IgChatWindow } from '../../components/instagram/IgChatWindow';
 import { useChatStore } from '../../store/chatStore';
@@ -22,15 +24,21 @@ function ConnectPrompt() {
         <p className="text-gray-500 mb-6">
           Connect your Instagram account to receive and reply to DMs, comments, and story replies — all from one place.
         </p>
-        <button
-          onClick={() => navigate('/integrations')}
-          className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#F58529] via-[#DD2A7B] to-[#8134AF] px-6 py-3 text-sm font-semibold text-white shadow-md hover:opacity-90 transition"
-        >
-          Go to Integrations
-          <ExternalLink className="h-4 w-4" />
-        </button>
+        <div className="flex flex-col items-center gap-3">
+          <ConnectFacebookButton size="lg" />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => navigate('/integrations')}
+          >
+            Or enter tokens manually
+            <ExternalLink className="h-4 w-4" />
+          </Button>
+        </div>
         <p className="mt-4 text-xs text-gray-400">
-          You'll need your Instagram Page ID and Page Access Token from Meta.
+          OAuth uses your backend; you can also add Page ID and token manually in Integrations.
         </p>
       </div>
     </div>
