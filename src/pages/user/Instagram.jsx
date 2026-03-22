@@ -13,10 +13,22 @@ import { instagramApi } from '../../lib/api';
 
 function ConnectPrompt() {
   const navigate = useNavigate();
+  const apiMissing = import.meta.env.PROD && !(ENV.API_BASE_URL || '').trim();
 
   return (
-    <div className="-mx-8 -my-8 h-[calc(100vh-64px)] flex items-center justify-center bg-gray-50">
-      <div className="text-center max-w-md px-6">
+    <div className="-mx-8 -my-8 min-h-[calc(100vh-4rem)] overflow-y-auto bg-gray-50 py-10">
+      <div className="relative z-10 mx-auto max-w-md px-6 text-center">
+        {apiMissing ? (
+          <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-left text-sm text-amber-950 shadow-sm">
+            <p className="font-semibold">Instagram connect needs your API URL</p>
+            <p className="mt-2 text-amber-900/90">
+              Add <code className="rounded bg-white/90 px-1.5 py-0.5 text-xs">VITE_API_BASE_URL</code> in Vercel (e.g.{' '}
+              <span className="whitespace-nowrap">https://api.your-domain.com</span>) pointing to the server that
+              implements <code className="rounded bg-white/90 px-1 text-xs">/oauth/instagram/authorize</code>, then
+              redeploy. A relative URL cannot reach your backend from this site.
+            </p>
+          </div>
+        ) : null}
         <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#F58529] via-[#DD2A7B] to-[#8134AF]">
           <InstagramIcon className="h-10 w-10 text-white" />
         </div>
@@ -24,8 +36,13 @@ function ConnectPrompt() {
         <p className="text-gray-500 mb-6">
           Connect your Instagram account to receive and reply to DMs, comments, and story replies — all from one place.
         </p>
-        <div className="flex flex-col items-center gap-3">
-          <ConnectFacebookButton size="lg" />
+        <div className="relative z-20 flex flex-col items-center gap-3">
+          <ConnectFacebookButton
+            className="min-h-[48px] min-w-[200px] w-full max-w-sm px-6 sm:w-auto"
+            size="lg"
+            whenNoWorkspace="toast"
+            noWorkspaceMessage="No workspace on your profile yet. Finish onboarding, or sign out and sign in again. You can also add tokens under Integrations."
+          />
           <Button
             type="button"
             variant="outline"

@@ -25,12 +25,19 @@ export default defineConfig(({ mode }) => {
   const useMockRaw = env.VITE_USE_MOCK ?? env.USE_MOCK ?? 'false';
   const useMock = String(useMockRaw).toLowerCase() === 'true' ? 'true' : 'false';
 
+  const apiBaseUrl = (
+    env.VITE_API_BASE_URL ||
+    env.API_BASE_URL ||
+    ''
+  ).trim();
+
   return {
     plugins: [react()],
     define: {
       'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(supabaseUrl),
       'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(supabaseAnon),
       'import.meta.env.VITE_USE_MOCK': JSON.stringify(useMock),
+      'import.meta.env.VITE_API_BASE_URL': JSON.stringify(apiBaseUrl),
     },
   };
 });

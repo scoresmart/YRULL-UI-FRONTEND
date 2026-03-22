@@ -279,7 +279,7 @@ function IntegrationCard({ integration, serverConfig, onSave }) {
           </div>
           {integration.key === 'instagram' && (
             <div className="mt-3">
-              <ConnectFacebookButton size="sm" />
+              <ConnectFacebookButton size="sm" whenNoWorkspace="toast" />
             </div>
           )}
         </div>

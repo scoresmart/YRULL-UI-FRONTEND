@@ -17,8 +17,8 @@ export function isMockAuthEnabled() {
   return import.meta.env.VITE_USE_MOCK === 'true' || import.meta.env.VITE_USE_MOCK === true;
 }
 
-/** Use real Supabase JS client (not the in-memory stub). */
-export function useRealSupabaseClient() {
+/** Whether to use the real Supabase JS client (not the in-memory stub). */
+export function isRealSupabaseClient() {
   return isSupabaseCredentialsPresent() && !isMockAuthEnabled();
 }
 

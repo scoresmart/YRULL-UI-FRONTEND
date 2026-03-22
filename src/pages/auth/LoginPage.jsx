@@ -66,10 +66,11 @@ export function LoginPage() {
               <ConnectFacebookButton
                 className="w-full"
                 size="lg"
-                whenNoWorkspace="toast"
+                intent="signInWithFacebook"
               />
               <p className="text-center text-xs text-gray-400">
-                After you sign in, this links your workspace. Tap now for a reminder if you&apos;re not signed in yet.
+                Sign in with Facebook. After you&apos;re in, link Instagram to your workspace from Integrations or the
+                Instagram page.
               </p>
             </div>
 

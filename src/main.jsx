@@ -7,11 +7,11 @@ import { Toaster } from 'react-hot-toast';
 import './index.css';
 import App from './App.jsx';
 import { queryClient } from './lib/queryClient';
-import { useRealSupabaseClient } from './lib/authConfig';
+import { isRealSupabaseClient } from './lib/authConfig';
 import { supabase } from './lib/supabase';
 import { useAuthStore } from './store/authStore';
 
-if (useRealSupabaseClient()) {
+if (isRealSupabaseClient()) {
   supabase.auth.onAuthStateChange((_event, session) => {
     useAuthStore.setState({
       session: session ?? null,

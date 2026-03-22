@@ -70,14 +70,65 @@ export const useAuthStore = create((set, get) => ({
           profile.workspace = workspace;
         }
       }
-      
+
       set({ profile });
+
+      // OAuth / third-party sign-in: profile row exists (DB trigger) but no workspace — email sign-up creates one in app code.
+      if (!ENV.USE_MOCK && !profile.workspace_id) {
+        const ensured = await get().ensureDefaultWorkspaceForUser(profile, userId);
+        if (ensured) return ensured;
+      }
+
       return profile;
     } catch (err) {
       console.error('Unexpected error in fetchProfile:', err);
       set({ profile: null });
       return null;
     }
+  },
+
+  /**
+   * Create a workspace and attach it to the profile when missing (e.g. Facebook OAuth users).
+   */
+  ensureDefaultWorkspaceForUser: async (profile, userId) => {
+    if (!profile || profile.workspace_id) return null;
+    const email = profile.email || '';
+    const localPart = email.split('@')[0] || 'account';
+    const workspaceName = profile.full_name?.trim()
+      ? `${profile.full_name.trim()}'s workspace`
+      : `${localPart}'s workspace`;
+
+    const slug = workspaceName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const { data: workspace, error: wsError } = await supabase
+      .from('workspaces')
+      .insert({ name: workspaceName, slug: `${slug}-${Date.now()}`, owner_id: userId })
+      .select()
+      .single();
+    if (wsError) {
+      console.error('ensureDefaultWorkspaceForUser: workspace insert failed', wsError);
+      return null;
+    }
+
+    const { error: upError } = await supabase
+      .from('profiles')
+      .update({ workspace_id: workspace.id })
+      .eq('id', userId);
+    if (upError) {
+      console.error('ensureDefaultWorkspaceForUser: profile update failed', upError);
+      return null;
+    }
+
+    const merged = {
+      ...profile,
+      workspace_id: workspace.id,
+      workspace: {
+        id: workspace.id,
+        name: workspace.name,
+        slug: workspace.slug,
+      },
+    };
+    set({ profile: merged });
+    return merged;
   },
 
   loginWithPassword: async ({ email, password }) => {
@@ -103,6 +154,34 @@ export const useAuthStore = create((set, get) => ({
     set({ session: data.session, status: 'authed' });
     const profile = await get().fetchProfile();
     return { profile };
+  },
+
+  /**
+   * Facebook Login via Supabase Auth (identity). Separate from Instagram Business OAuth on the API.
+   * Enable Authentication → Providers → Facebook in the Supabase project and add the redirect URL.
+   */
+  loginWithFacebook: async () => {
+    if (ENV.USE_MOCK) {
+      set({ status: 'guest' });
+      throw new Error('Facebook sign-in is not available in mock mode.');
+    }
+    set({ status: 'loading' });
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'facebook',
+      options: {
+        redirectTo: `${window.location.origin}/`,
+      },
+    });
+    if (error) {
+      set({ status: 'guest' });
+      throw error;
+    }
+    if (data?.url) {
+      window.location.assign(data.url);
+      return { profile: null };
+    }
+    set({ status: 'guest' });
+    throw new Error('Facebook sign-in did not return a redirect URL.');
   },
 
   signUp: async ({ email, password, fullName, workspaceName }) => {

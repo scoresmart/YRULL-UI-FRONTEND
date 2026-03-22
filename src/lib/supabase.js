@@ -3,12 +3,12 @@ import { ENV } from './env';
 import {
   getSupabaseCredentials,
   isSupabaseCredentialsPresent,
-  useRealSupabaseClient,
+  isRealSupabaseClient,
 } from './authConfig';
 
 let client;
 
-const useRealClient = useRealSupabaseClient();
+const useRealClient = isRealSupabaseClient();
 
 if (!useRealClient) {
   if (ENV.DEV) {
