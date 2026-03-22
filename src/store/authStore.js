@@ -93,6 +93,38 @@ export const useAuthStore = create((set, get) => ({
    */
   ensureDefaultWorkspaceForUser: async (profile, userId) => {
     if (!profile || profile.workspace_id) return null;
+
+    // Prefer DB RPC (SECURITY DEFINER) — bypasses RLS when client inserts are blocked.
+    const { data: rpcId, error: rpcError } = await supabase.rpc('ensure_workspace_for_current_user');
+    const rpcMissing =
+      rpcError &&
+      (String(rpcError.message || '').includes('Could not find the function') ||
+        String(rpcError.message || '').includes('function public.ensure_workspace_for_current_user') ||
+        rpcError.code === 'PGRST202');
+
+    if (!rpcError && rpcId) {
+      const { data: wsRow } = await supabase
+        .from('workspaces')
+        .select('id, name, slug')
+        .eq('id', rpcId)
+        .maybeSingle();
+      const merged = {
+        ...profile,
+        workspace_id: rpcId,
+        workspace: wsRow ?? { id: rpcId, name: profile.full_name || 'Workspace', slug: null },
+      };
+      set({ profile: merged });
+      return merged;
+    }
+
+    if (rpcError && !rpcMissing) {
+      console.error('ensureDefaultWorkspaceForUser: RPC failed', rpcError);
+      toast.error(`Could not create workspace (RPC): ${rpcError.message}. Run supabase/rpc_ensure_workspace.sql in SQL Editor.`, {
+        duration: 10000,
+      });
+      return null;
+    }
+
     const email = profile.email || '';
     const localPart = email.split('@')[0] || 'account';
     const workspaceName = profile.full_name?.trim()
@@ -108,8 +140,8 @@ export const useAuthStore = create((set, get) => ({
     if (wsError) {
       console.error('ensureDefaultWorkspaceForUser: workspace insert failed', wsError);
       toast.error(
-        `Could not create workspace: ${wsError.message}. If this persists, run supabase/rls_bootstrap_workspace.sql in the Supabase SQL editor (RLS may block inserts).`,
-        { duration: 9000 },
+        `Could not create workspace: ${wsError.message}. Run supabase/rpc_ensure_workspace.sql in Supabase SQL Editor (recommended), or fix RLS with supabase/rls_bootstrap_workspace.sql.`,
+        { duration: 10000 },
       );
       return null;
     }
