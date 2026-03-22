@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { useAuthStore } from '../../store/authStore';
+import { isAuthConfigured } from '../../lib/env';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -18,6 +19,7 @@ export function LoginForm() {
   const navigate = useNavigate();
   const loginWithPassword = useAuthStore((s) => s.loginWithPassword);
   const [show, setShow] = useState(false);
+  const authReady = isAuthConfigured();
 
   const {
     register,
@@ -30,6 +32,7 @@ export function LoginForm() {
 
   const onSubmit = useCallback(
     async (values) => {
+      if (!authReady) return;
       try {
         const { profile } = await loginWithPassword(values);
         if (profile?.role === 'admin') navigate('/admin', { replace: true });
@@ -38,7 +41,7 @@ export function LoginForm() {
         toast.error(e?.message ?? 'Unable to sign in');
       }
     },
-    [loginWithPassword, navigate],
+    [authReady, loginWithPassword, navigate],
   );
 
   const toggleIcon = useMemo(() => (show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />), [show]);
@@ -91,8 +94,8 @@ export function LoginForm() {
         {errors.password ? <p className="text-sm text-red-500">{errors.password.message}</p> : null}
       </div>
 
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? 'Signing in…' : 'Sign In'}
+      <Button type="submit" className="w-full" disabled={isSubmitting || !authReady}>
+        {!authReady ? 'Sign-in unavailable' : isSubmitting ? 'Signing in…' : 'Sign In'}
       </Button>
     </form>
   );

@@ -1,28 +1,33 @@
 import { createClient } from '@supabase/supabase-js';
 import { ENV } from './env';
+import {
+  getSupabaseCredentials,
+  isSupabaseCredentialsPresent,
+  useRealSupabaseClient,
+} from './authConfig';
 
 let client;
 
-// In mock mode we don't need a real Supabase instance, but other modules
-// import `supabase`, so provide a very small no-op client to avoid crashes
-// when env vars are not configured yet.
-// Check for both undefined and empty strings
-const hasSupabaseConfig = ENV.SUPABASE_URL && ENV.SUPABASE_ANON_KEY && 
-  ENV.SUPABASE_URL.trim() !== '' && ENV.SUPABASE_ANON_KEY.trim() !== '';
+const useRealClient = useRealSupabaseClient();
 
-if (!hasSupabaseConfig) {
-  // Debug: log what we're getting (only in dev)
+if (!useRealClient) {
   if (ENV.DEV) {
-    console.warn('⚠️ Supabase env vars:', {
-      SUPABASE_URL: ENV.SUPABASE_URL ? '✅ Set' : '❌ Missing',
-      SUPABASE_ANON_KEY: ENV.SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing',
+    console.warn('⚠️ Supabase client:', {
+      credentials: isSupabaseCredentialsPresent() ? '✅' : '❌',
       USE_MOCK: ENV.USE_MOCK,
+      mode: useRealClient ? 'live' : 'stub',
     });
+  }
+  function notConfiguredError() {
+    return new Error('Sign-in is temporarily unavailable. Please try again later.');
   }
   client = {
     auth: {
       async getSession() {
         return { data: { session: null }, error: null };
+      },
+      async getUser() {
+        return { data: { user: null }, error: null };
       },
       async signOut() {
         return { error: null };
@@ -30,8 +35,13 @@ if (!hasSupabaseConfig) {
       async signInWithPassword() {
         return {
           data: { session: null },
-          // Generic copy: never expose backend vendor or config filenames in production UI
-          error: new Error('Sign-in is temporarily unavailable. Please try again later.'),
+          error: notConfiguredError(),
+        };
+      },
+      async signUp() {
+        return {
+          data: { user: null, session: null },
+          error: notConfiguredError(),
         };
       },
     },
@@ -39,6 +49,12 @@ if (!hasSupabaseConfig) {
       return {
         select() {
           return Promise.resolve({ data: [], error: null });
+        },
+        insert() {
+          return Promise.resolve({ data: null, error: notConfiguredError() });
+        },
+        update() {
+          return Promise.resolve({ data: null, error: notConfiguredError() });
         },
       };
     },
@@ -57,7 +73,8 @@ if (!hasSupabaseConfig) {
     },
   };
 } else {
-  client = createClient(ENV.SUPABASE_URL.trim(), ENV.SUPABASE_ANON_KEY.trim(), {
+  const { url, anonKey } = getSupabaseCredentials();
+  client = createClient(url, anonKey, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
@@ -67,4 +84,3 @@ if (!hasSupabaseConfig) {
 }
 
 export const supabase = client;
-

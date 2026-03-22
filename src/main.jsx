@@ -7,6 +7,23 @@ import { Toaster } from 'react-hot-toast';
 import './index.css';
 import App from './App.jsx';
 import { queryClient } from './lib/queryClient';
+import { useRealSupabaseClient } from './lib/authConfig';
+import { supabase } from './lib/supabase';
+import { useAuthStore } from './store/authStore';
+
+if (useRealSupabaseClient()) {
+  supabase.auth.onAuthStateChange((_event, session) => {
+    useAuthStore.setState({
+      session: session ?? null,
+      status: session ? 'authed' : 'guest',
+    });
+    if (session) {
+      void useAuthStore.getState().fetchProfile();
+    } else {
+      useAuthStore.setState({ profile: null });
+    }
+  });
+}
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

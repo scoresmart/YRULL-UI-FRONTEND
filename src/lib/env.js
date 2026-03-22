@@ -17,3 +17,5 @@ export const ENV = {
   DEV: import.meta.env.DEV,
 };
 
+export { isAuthConfigured } from './authConfig';
+
