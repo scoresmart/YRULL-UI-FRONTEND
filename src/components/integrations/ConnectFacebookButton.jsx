@@ -11,6 +11,9 @@ const DEFAULT_NO_WORKSPACE_MSG =
  * - `linkWorkspace` (default): Instagram Business OAuth on the API — needs a logged-in workspace.
  * - `signInWithFacebook`: Supabase Auth Facebook Login — no workspace; use on /login or /register.
  */
+const LABEL_SIGN_IN = 'Continue with Facebook';
+const LABEL_LINK_INSTAGRAM = 'Connect to Facebook ✨';
+
 export function ConnectFacebookButton({
   className,
   size = 'default',
@@ -18,6 +21,8 @@ export function ConnectFacebookButton({
   intent = 'linkWorkspace',
   whenNoWorkspace = 'disabled',
   noWorkspaceMessage = DEFAULT_NO_WORKSPACE_MSG,
+  /** Override button label. Defaults depend on `intent` (sign-in vs Instagram/Railway OAuth). */
+  children,
 }) {
   const profile = useAuthStore((s) => s.profile);
   const loginWithFacebook = useAuthStore((s) => s.loginWithFacebook);
@@ -37,15 +42,19 @@ export function ConnectFacebookButton({
       return;
     }
 
-    if (!workspaceId) {
+    // Re-fetch profile + workspace bootstrap on click — UI state can be stale right after SQL/RLS fixes.
+    let effectiveWorkspaceId =
+      workspaceId ?? (await useAuthStore.getState().resolveWorkspaceIdForInstagram());
+
+    if (!effectiveWorkspaceId) {
       if (whenNoWorkspace === 'toast') {
-        toast(noWorkspaceMessage);
+        toast(noWorkspaceMessage, { id: 'yrull-no-workspace', duration: 5000 });
         return;
       }
-      toast.error('Workspace not found. Try signing in again.');
+      toast.error('Workspace not found. Try signing in again.', { id: 'yrull-no-workspace' });
       return;
     }
-    const url = getInstagramOAuthAuthorizeUrl(workspaceId);
+    const url = getInstagramOAuthAuthorizeUrl(effectiveWorkspaceId);
     if (!url) {
       toast.error(
         'Set VITE_API_BASE_URL in Vercel to your backend URL (the server that runs /oauth/instagram/authorize), then redeploy. Same-domain /oauth does not work on static hosting.',
@@ -56,6 +65,7 @@ export function ConnectFacebookButton({
     window.location.assign(url);
   };
 
+  // Allow click when workspace might exist after refresh (toast mode); only hard-disable when policy is disabled.
   const disableButton =
     intent === 'linkWorkspace' && !workspaceId && whenNoWorkspace === 'disabled';
 
@@ -77,7 +87,8 @@ export function ConnectFacebookButton({
         className,
       )}
     >
-      Connect to Facebook ✨
+      {children ??
+        (intent === 'signInWithFacebook' ? LABEL_SIGN_IN : LABEL_LINK_INSTAGRAM)}
     </Button>
   );
 }

@@ -10,10 +10,17 @@ import { useChatStore } from '../../store/chatStore';
 import { supabase } from '../../lib/supabase';
 import { ENV } from '../../lib/env';
 import { instagramApi } from '../../lib/api';
+import { useAuthStore } from '../../store/authStore';
 
 function ConnectPrompt() {
   const navigate = useNavigate();
   const apiMissing = import.meta.env.PROD && !(ENV.API_BASE_URL || '').trim();
+  const fetchProfile = useAuthStore((s) => s.fetchProfile);
+
+  // Re-run profile load (and server-side workspace bootstrap) when opening this screen — fixes stale state after deploy.
+  useEffect(() => {
+    void fetchProfile();
+  }, [fetchProfile]);
 
   return (
     <div className="-mx-8 -my-8 min-h-[calc(100vh-4rem)] overflow-y-auto bg-gray-50 py-10">
@@ -40,6 +47,7 @@ function ConnectPrompt() {
           <ConnectFacebookButton
             className="min-h-[48px] min-w-[200px] w-full max-w-sm px-6 sm:w-auto"
             size="lg"
+            intent="linkWorkspace"
             whenNoWorkspace="toast"
             noWorkspaceMessage="No workspace on your profile yet. Finish onboarding, or sign out and sign in again. You can also add tokens under Integrations."
           />

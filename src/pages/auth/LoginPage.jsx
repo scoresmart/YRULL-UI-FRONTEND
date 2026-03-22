@@ -62,15 +62,16 @@ export function LoginPage() {
 
             {/* Above the form so it stays visible without scrolling past long warnings */}
             <div className="mb-6 space-y-2">
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Instagram / Meta</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Sign in with Facebook</p>
               <ConnectFacebookButton
                 className="w-full"
                 size="lg"
                 intent="signInWithFacebook"
               />
               <p className="text-center text-xs text-gray-400">
-                Sign in with Facebook. After you&apos;re in, link Instagram to your workspace from Integrations or the
-                Instagram page.
+                This button signs you in via Supabase. To connect Instagram (Railway OAuth), log in first, then use
+                Instagram or Integrations — and set{' '}
+                <code className="rounded bg-gray-100 px-1 text-[11px]">VITE_API_BASE_URL</code> on Vercel.
               </p>
             </div>
 

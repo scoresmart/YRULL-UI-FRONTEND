@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { ENV } from '../lib/env';
 import { mockProfiles } from '../lib/mockData';
@@ -106,6 +107,10 @@ export const useAuthStore = create((set, get) => ({
       .single();
     if (wsError) {
       console.error('ensureDefaultWorkspaceForUser: workspace insert failed', wsError);
+      toast.error(
+        `Could not create workspace: ${wsError.message}. If this persists, run supabase/rls_bootstrap_workspace.sql in the Supabase SQL editor (RLS may block inserts).`,
+        { duration: 9000 },
+      );
       return null;
     }
 
@@ -115,6 +120,10 @@ export const useAuthStore = create((set, get) => ({
       .eq('id', userId);
     if (upError) {
       console.error('ensureDefaultWorkspaceForUser: profile update failed', upError);
+      toast.error(
+        `Could not link workspace to profile: ${upError.message}. Check RLS allows updating your own profile row.`,
+        { duration: 9000 },
+      );
       return null;
     }
 
@@ -129,6 +138,26 @@ export const useAuthStore = create((set, get) => ({
     };
     set({ profile: merged });
     return merged;
+  },
+
+  /**
+   * Refetch profile and run workspace bootstrap, then return workspace id for Instagram OAuth.
+   * Call this right before linking Instagram so RLS/SQL fixes apply without a full page reload.
+   */
+  resolveWorkspaceIdForInstagram: async () => {
+    if (ENV.USE_MOCK) {
+      const p = mockProfiles.find((x) => x.workspace_id) ?? mockProfiles[0];
+      return p?.workspace_id ?? null;
+    }
+    const p = await get().fetchProfile();
+    const fromState = get().profile;
+    return (
+      p?.workspace_id ??
+      p?.workspace?.id ??
+      fromState?.workspace_id ??
+      fromState?.workspace?.id ??
+      null
+    );
   },
 
   loginWithPassword: async ({ email, password }) => {
@@ -166,10 +195,16 @@ export const useAuthStore = create((set, get) => ({
       throw new Error('Facebook sign-in is not available in mock mode.');
     }
     set({ status: 'loading' });
+    // Space-separated Facebook Login permissions. Default `public_profile` only — if Meta shows
+    // "Invalid Scopes: email", your app doesn't have `email` enabled yet (Use Cases in Meta console).
+    // After enabling email, set VITE_FACEBOOK_OAUTH_SCOPES=public_profile email and redeploy.
+    const facebookScopes =
+      (import.meta.env.VITE_FACEBOOK_OAUTH_SCOPES || '').trim() || 'public_profile';
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'facebook',
       options: {
         redirectTo: `${window.location.origin}/`,
+        scopes: facebookScopes,
       },
     });
     if (error) {
