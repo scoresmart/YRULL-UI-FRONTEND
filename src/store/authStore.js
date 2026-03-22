@@ -4,6 +4,18 @@ import { supabase } from '../lib/supabase';
 import { ENV } from '../lib/env';
 import { mockProfiles } from '../lib/mockData';
 
+/** PostgREST / supabase-js sometimes returns scalar UUIDs in odd shapes — normalize for truthiness checks. */
+function normalizeRpcWorkspaceId(data) {
+  if (data == null) return null;
+  if (typeof data === 'string' && data.length > 0) return data;
+  if (Array.isArray(data) && data.length > 0) return normalizeRpcWorkspaceId(data[0]);
+  if (typeof data === 'object') {
+    const first = Object.values(data).find((v) => typeof v === 'string' && v.length > 0);
+    if (first) return first;
+  }
+  return null;
+}
+
 export const useAuthStore = create((set, get) => ({
   session: null,
   profile: null,
@@ -95,7 +107,8 @@ export const useAuthStore = create((set, get) => ({
     if (!profile || profile.workspace_id) return null;
 
     // Prefer DB RPC (SECURITY DEFINER) — bypasses RLS when client inserts are blocked.
-    const { data: rpcId, error: rpcError } = await supabase.rpc('ensure_workspace_for_current_user');
+    const { data: rpcRaw, error: rpcError } = await supabase.rpc('ensure_workspace_for_current_user');
+    const rpcId = normalizeRpcWorkspaceId(rpcRaw);
     const rpcMissing =
       rpcError &&
       (String(rpcError.message || '').includes('Could not find the function') ||
@@ -119,8 +132,9 @@ export const useAuthStore = create((set, get) => ({
 
     if (rpcError && !rpcMissing) {
       console.error('ensureDefaultWorkspaceForUser: RPC failed', rpcError);
-      toast.error(`Could not create workspace (RPC): ${rpcError.message}. Run supabase/rpc_ensure_workspace.sql in SQL Editor.`, {
+      toast.error(`Could not create workspace (RPC): ${rpcError.message}. Re-run supabase/rpc_ensure_workspace.sql in SQL Editor.`, {
         duration: 10000,
+        id: 'yrull-ws-rpc',
       });
       return null;
     }
@@ -181,6 +195,24 @@ export const useAuthStore = create((set, get) => ({
       const p = mockProfiles.find((x) => x.workspace_id) ?? mockProfiles[0];
       return p?.workspace_id ?? null;
     }
+
+    // Call RPC before fetchProfile so DB is updated first; avoids stale in-memory profile skipping bootstrap.
+    const { data: rpcRaw, error: rpcErr } = await supabase.rpc('ensure_workspace_for_current_user');
+    const rpcFirst = normalizeRpcWorkspaceId(rpcRaw);
+    if (!rpcErr && rpcFirst) {
+      await get().fetchProfile();
+      return get().profile?.workspace_id ?? rpcFirst;
+    }
+    if (rpcErr) {
+      const msg = String(rpcErr.message || '');
+      const missing =
+        msg.includes('Could not find the function') || msg.includes('ensure_workspace_for_current_user') || rpcErr.code === 'PGRST202';
+      if (!missing) {
+        console.error('resolveWorkspaceIdForInstagram RPC:', rpcErr);
+        toast.error(`Workspace setup: ${msg}`, { duration: 12000, id: 'yrull-ws-rpc' });
+      }
+    }
+
     const p = await get().fetchProfile();
     const fromState = get().profile;
     return (

@@ -1,8 +1,7 @@
--- Run in Supabase → SQL Editor (once). Creates a SECURITY DEFINER RPC so workspace bootstrap works
--- even when client-side RLS blocks INSERT into workspaces / UPDATE on profiles.
+-- Run in Supabase → SQL Editor (replace entire function if you already created it).
+-- SECURITY DEFINER bypasses RLS for workspace bootstrap.
 --
--- Requires: public.workspaces has columns: name (text), slug (text), owner_id (uuid → auth.users)
--- If your table differs, adjust the INSERT below to match your schema.
+-- Requires: public.workspaces (name, slug, owner_id) — align with your table.
 
 create or replace function public.ensure_workspace_for_current_user()
 returns uuid
@@ -16,12 +15,16 @@ declare
   new_id uuid;
   wname text;
   slug_part text;
+  updated_count int;
 begin
   if uid is null then
     raise exception 'Not authenticated';
   end if;
 
   select workspace_id into existing from public.profiles where id = uid;
+  if not found then
+    raise exception 'No profile row for this user. Auth trigger handle_new_user may be missing.';
+  end if;
   if existing is not null then
     return existing;
   end if;
@@ -47,6 +50,11 @@ begin
   update public.profiles
   set workspace_id = new_id
   where id = uid;
+
+  get diagnostics updated_count = row_count;
+  if updated_count <> 1 then
+    raise exception 'Failed to set workspace_id on profile (updated % rows)', updated_count;
+  end if;
 
   return new_id;
 end;
