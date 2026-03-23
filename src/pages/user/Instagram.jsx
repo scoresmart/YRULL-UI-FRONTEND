@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/button';
 import { ConnectFacebookButton } from '../../components/integrations/ConnectFacebookButton';
 import { IgConversationList } from '../../components/instagram/IgConversationList';
 import { IgChatWindow } from '../../components/instagram/IgChatWindow';
+import { InstagramChannelActions } from '../../components/instagram/InstagramChannelActions';
 import { useChatStore } from '../../store/chatStore';
 import { supabase } from '../../lib/supabase';
 import { ENV } from '../../lib/env';
@@ -17,7 +18,6 @@ function ConnectPrompt() {
   const apiMissing = import.meta.env.PROD && !(ENV.API_BASE_URL || '').trim();
   const fetchProfile = useAuthStore((s) => s.fetchProfile);
 
-  // Re-run profile load (and server-side workspace bootstrap) when opening this screen — fixes stale state after deploy.
   useEffect(() => {
     void fetchProfile();
   }, [fetchProfile]);
@@ -85,7 +85,6 @@ export function InstagramPage() {
     setSelectedIgUserId(null);
   }, [setSelectedIgUserId]);
 
-  // Real-time subscription for instagram_messages
   useEffect(() => {
     if (ENV.USE_MOCK) return;
     if (!supabase || typeof supabase.channel !== 'function') return;
@@ -131,8 +130,29 @@ export function InstagramPage() {
   }
 
   return (
-    <div className="-mx-8 -my-8 h-[calc(100vh-64px)]">
-      <div className="flex h-full">
+    <div className="-mx-8 -my-8 flex h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] flex-col">
+      <div className="sticky top-0 z-20 shrink-0 border-b border-gray-200 bg-white px-4 py-3 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-sm text-gray-800">
+              <InstagramIcon className="h-5 w-5 shrink-0 text-purple-600" />
+              <span className="font-semibold">Instagram channel</span>
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              {status?.name ? (
+                <>
+                  Connected as <span className="font-medium text-gray-700">{status.name}</span>
+                </>
+              ) : (
+                'Connected'
+              )}
+            </p>
+          </div>
+          <InstagramChannelActions compact showHelpText />
+        </div>
+      </div>
+
+      <div className="flex min-h-0 flex-1">
         <IgConversationList />
         <IgChatWindow />
       </div>

@@ -361,6 +361,15 @@ export const instagramApi = {
     return response.json();
   },
 
+  async disconnect() {
+    const response = await authFetch(`${ENV.API_BASE_URL}/oauth/instagram/disconnect`, {
+      method: 'POST',
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to disconnect');
+    return data;
+  },
+
   async replyToComment({ commentId, message }) {
     const response = await authFetch(`${ENV.API_BASE_URL}/instagram/comment/reply`, {
       method: 'POST',

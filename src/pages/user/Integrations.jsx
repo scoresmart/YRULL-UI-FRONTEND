@@ -7,6 +7,7 @@ import { Eye, EyeOff, Save, Loader2, ExternalLink, RefreshCw } from 'lucide-reac
 import toast from 'react-hot-toast';
 import { integrationsApi } from '../../lib/api';
 import { ConnectFacebookButton } from '../../components/integrations/ConnectFacebookButton';
+import { InstagramChannelActions } from '../../components/instagram/InstagramChannelActions';
 
 // ── Integration definitions with SVG logos ────────────────────────────────
 
@@ -278,8 +279,9 @@ function IntegrationCard({ integration, serverConfig, onSave }) {
             </span>
           </div>
           {integration.key === 'instagram' && (
-            <div className="mt-3">
+            <div className="mt-3 space-y-3">
               <ConnectFacebookButton intent="linkWorkspace" size="sm" whenNoWorkspace="toast" />
+              <InstagramChannelActions compact className="max-w-md" />
             </div>
           )}
         </div>
