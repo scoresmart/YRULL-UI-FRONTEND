@@ -1,7 +1,7 @@
 import { LoginForm } from '../../components/auth/LoginForm';
 import { BrandMark } from '../../components/brand/BrandMark';
 import { ConnectFacebookButton } from '../../components/integrations/ConnectFacebookButton';
-import { LegalFooterLinks } from '../../components/legal/LegalFooterLinks';
+import { Footer } from '../../components/layout/Footer';
 import { isAuthConfigured } from '../../lib/env';
 
 export function LoginPage() {
@@ -83,7 +83,7 @@ export function LoginPage() {
                 Sign up
               </a>
             </div>
-            <LegalFooterLinks />
+            <Footer />
           </div>
         </div>
       </div>

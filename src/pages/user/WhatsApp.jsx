@@ -1,71 +1,48 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { ConversationList } from '../../components/whatsapp/ConversationList';
 import { ChatWindow } from '../../components/whatsapp/ChatWindow';
 import { ContactInfoPanel } from '../../components/whatsapp/ContactInfoPanel';
 import { IncomingCallNotification } from '../../components/whatsapp/IncomingCallNotification';
+import { WhatsAppConnectionCard } from '../../components/whatsapp/WhatsAppConnectionCard';
 import { useRealtime } from '../../hooks/useRealtime';
+import { useWhatsAppIntegration } from '../../hooks/useWhatsAppIntegration';
 import { ENV } from '../../lib/env';
 import { useChatStore } from '../../store/chatStore';
+import { MessageSquare, Loader2 } from 'lucide-react';
 
 export function WhatsAppPage() {
   const queryClient = useQueryClient();
-  const processingMessages = useRef(new Set()); // Track messages being processed
+  const processingMessages = useRef(new Set());
   const setSelectedWaId = useChatStore((s) => s.setSelectedWaId);
+  const wa = useWhatsAppIntegration();
 
-  // Ensure no conversation is selected by default when page loads
   useEffect(() => {
     setSelectedWaId(null);
   }, [setSelectedWaId]);
 
-  // Subscribe to real-time message updates
   useRealtime({
-    enabled: !ENV.USE_MOCK,
+    enabled: !ENV.USE_MOCK && wa.connected,
     onMessage: (payload) => {
       try {
-        // Update cache directly to avoid duplicate messages
         if (payload.new?.wa_id) {
           const waId = payload.new.wa_id;
           const newMsg = payload.new;
-          
-          // Create a unique key for this message to prevent duplicate processing
+
           const msgKey = newMsg.id || `${newMsg.body}_${newMsg.created_at}_${newMsg.direction}_${newMsg.wa_id}`;
-          
-          // Skip if we're already processing this exact message
-          if (processingMessages.current.has(msgKey)) {
-            return;
-          }
-          
+
+          if (processingMessages.current.has(msgKey)) return;
+
           processingMessages.current.add(msgKey);
-          
-          // Remove from processing set after a short delay
           setTimeout(() => {
             processingMessages.current.delete(msgKey);
           }, 1000);
-          
-          // Debug logging (only shows in dev tools with verbose logging enabled)
-          console.debug('[Realtime] New message received:', {
-            id: newMsg.id,
-            wa_id: newMsg.wa_id,
-            direction: newMsg.direction,
-            body: newMsg.body?.substring(0, 50),
-            created_at: newMsg.created_at,
-            ai_intent: newMsg.ai_intent,
-            automated: newMsg.automated,
-            message_type: newMsg.message_type,
-          });
-          
+
           queryClient.setQueryData(['whatsapp_messages', waId], (oldData) => {
             if (!oldData) return [newMsg];
-            
-            // More aggressive deduplication: check by ID, or by content + timestamp + direction
-            // IMPORTANT: Don't filter out messages without body - automated messages might not have body initially
+
             const exists = oldData.some((msg) => {
-              // Primary check: same ID
               if (msg.id && newMsg.id && msg.id === newMsg.id) return true;
-              
-              // Fallback check: same content, timestamp, direction, and wa_id
-              // Use empty string for body comparison to handle messages without body
               const msgBody = msg.body || '';
               const newMsgBody = newMsg.body || '';
               if (
@@ -76,22 +53,15 @@ export function WhatsAppPage() {
               ) {
                 return true;
               }
-              
               return false;
             });
-            
-            if (exists) {
-              // Message already exists, return unchanged
-              console.debug('[Realtime] Message already exists, skipping:', newMsg.id || newMsg.body?.substring(0, 30));
-              return oldData;
-            }
-            
-            // Add new message and sort by created_at
+
+            if (exists) return oldData;
+
             const updated = [...oldData, newMsg].sort(
               (a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0)
             );
-            
-            // Final deduplication pass by ID
+
             const seenIds = new Set();
             const deduplicated = updated.filter((msg) => {
               if (msg.id) {
@@ -99,43 +69,27 @@ export function WhatsAppPage() {
                 seenIds.add(msg.id);
                 return true;
               }
-              return true; // Keep messages without IDs for now
+              return true;
             });
-            
-            // Additional deduplication by content + timestamp
-            // Use empty string for body to ensure messages without body are included
+
             const seenContent = new Set();
-            const final = deduplicated.filter((msg) => {
+            return deduplicated.filter((msg) => {
               const bodyKey = msg.body || '[no body]';
               const key = `${bodyKey}_${msg.created_at}_${msg.direction}_${msg.wa_id}`;
               if (seenContent.has(key)) return false;
               seenContent.add(key);
               return true;
             });
-            
-            // Debug logging (only shows in dev tools with verbose logging enabled)
-            console.debug(`[Realtime] Added message. Total: ${final.length}`);
-            return final;
           });
-          
-          // Invalidate contacts to refresh last message preview
+
           queryClient.invalidateQueries({ queryKey: ['whatsapp_contacts'] });
-          
-          // If it's an inbound message, trigger unread count refresh
-          // This will be handled by ConversationList's interval, but we can also invalidate
-          // to force immediate update
-          if (newMsg.direction === 'inbound') {
-            // Force refresh of unread counts in ConversationList
-            // The component will pick this up via its refresh interval
-          }
         }
       } catch (error) {
         console.error('Error processing real-time message:', error);
       }
     },
-    onContactUpdate: (payload) => {
+    onContactUpdate: () => {
       try {
-        // Invalidate contacts when they're updated (e.g., last_seen changes)
         queryClient.invalidateQueries({ queryKey: ['whatsapp_contacts'] });
       } catch (error) {
         console.error('Error processing contact update:', error);
@@ -143,15 +97,55 @@ export function WhatsAppPage() {
     },
   });
 
+  if (wa.loading) {
+    return (
+      <div className="-mx-8 -my-8 flex h-[calc(100vh-64px)] items-center justify-center bg-brand-chatBg">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          <span className="text-sm text-gray-500">Loading WhatsApp…</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!wa.connected) {
+    return (
+      <div className="-mx-8 -my-8 h-[calc(100vh-64px)]">
+        <div className="flex h-full">
+          {/* Empty sidebar */}
+          <div className="flex h-full w-[320px] flex-col border-r border-brand-border bg-white">
+            <div className="p-4">
+              <div className="text-xs font-medium uppercase tracking-wide text-gray-400">Conversations</div>
+            </div>
+            <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100">
+                <MessageSquare className="h-7 w-7 text-gray-400" />
+              </div>
+              <p className="mt-3 text-sm font-medium text-gray-500">No conversations</p>
+              <p className="mt-1 text-xs text-gray-400">Connect WhatsApp to start</p>
+            </div>
+          </div>
+
+          {/* Connection card center */}
+          <div className="flex flex-1 flex-col items-center justify-center bg-brand-chatBg px-6">
+            <WhatsAppConnectionCard wa={wa} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="-mx-8 -my-8 h-[calc(100vh-64px)]">
-      <div className="flex h-full">
+      {/* Connected banner */}
+      <WhatsAppConnectionCard wa={wa} compact />
+
+      <div className="flex" style={{ height: 'calc(100vh - 64px - 56px)' }}>
         <ConversationList />
-        <ChatWindow />
+        <ChatWindow connected={wa.connected} />
         <ContactInfoPanel />
       </div>
       <IncomingCallNotification />
     </div>
   );
 }
-

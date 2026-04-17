@@ -19,6 +19,35 @@ async function authFetch(url, options = {}) {
   return fetch(url, { ...options, headers });
 }
 
+// -- WhatsApp Integration (workspace-scoped) ----------------------------------
+
+export const whatsappIntegrationApi = {
+  async getStatus() {
+    const response = await authFetch(`${ENV.API_BASE_URL}/whatsapp/status`);
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to fetch WhatsApp status');
+    }
+    return response.json();
+  },
+
+  getAuthorizeUrl(workspaceId) {
+    const returnOrigin = window.location.origin;
+    return `${ENV.API_BASE_URL}/oauth/whatsapp/authorize?workspace_id=${encodeURIComponent(workspaceId)}&return_origin=${encodeURIComponent(returnOrigin)}`;
+  },
+
+  async disconnect() {
+    const response = await authFetch(`${ENV.API_BASE_URL}/oauth/whatsapp/disconnect`, {
+      method: 'POST',
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to disconnect WhatsApp');
+    }
+    return response.json();
+  },
+};
+
 // -- WhatsApp API -------------------------------------------------------------
 
 export const whatsappApi = {

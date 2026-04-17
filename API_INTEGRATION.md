@@ -1,6 +1,6 @@
 # Backend API Integration Guide
 
-This guide explains how to connect your WhatsApp backend API to the FlowDesk frontend.
+This guide explains how to connect your WhatsApp backend API to the Yrull frontend.
 
 ## 🔧 Configuration
 

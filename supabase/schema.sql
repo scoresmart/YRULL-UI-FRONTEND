@@ -1,4 +1,4 @@
--- FlowDesk Supabase Schema
+-- Yrull Supabase Schema
 -- Enable required extensions
 create extension if not exists "pgcrypto";
 

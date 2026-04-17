@@ -10,7 +10,9 @@ export function Badge({ className, variant = 'default', ...props }) {
           ? 'bg-red-50 text-red-700 ring-1 ring-red-200'
           : variant === 'muted'
             ? 'bg-gray-100 text-gray-700 ring-1 ring-gray-200'
-            : 'bg-green-50 text-green-700 ring-1 ring-green-200';
+            : variant === 'secondary'
+              ? 'bg-gray-100 text-gray-600 ring-1 ring-gray-200'
+              : 'bg-green-50 text-green-700 ring-1 ring-green-200';
   return (
     <span
       className={cn(

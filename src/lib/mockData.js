@@ -4,14 +4,14 @@ const hoursAgo = (h) => new Date(now - h * 3_600_000).toISOString();
 const daysAgo = (d) => new Date(now - d * 86_400_000).toISOString();
 
 export const mockWorkspaces = [
-  { id: 'ws_001', name: 'Acme Sales', created_at: daysAgo(120) },
+  { id: 'ws_001', name: 'Demo Workspace', created_at: daysAgo(120) },
 ];
 
 export const mockProfiles = [
   {
     id: 'user_admin_001',
     full_name: 'Ava Martinez',
-    email: 'ava@acme.com',
+    email: 'ava@example.com',
     role: 'admin',
     avatar_url: null,
     workspace_id: 'ws_001',
@@ -21,7 +21,7 @@ export const mockProfiles = [
   {
     id: 'user_001',
     full_name: 'Jordan Lee',
-    email: 'jordan@acme.com',
+    email: 'jordan@example.com',
     role: 'user',
     avatar_url: null,
     workspace_id: 'ws_001',
@@ -31,7 +31,7 @@ export const mockProfiles = [
   {
     id: 'user_002',
     full_name: 'Priya Shah',
-    email: 'priya@acme.com',
+    email: 'priya@example.com',
     role: 'user',
     avatar_url: null,
     workspace_id: 'ws_001',
@@ -41,7 +41,7 @@ export const mockProfiles = [
   {
     id: 'user_003',
     full_name: 'Noah Kim',
-    email: 'noah@acme.com',
+    email: 'noah@example.com',
     role: 'user',
     avatar_url: null,
     workspace_id: 'ws_001',
@@ -146,7 +146,7 @@ export const mockActivityLogs = [
   { id: 'act_011', workspace_id: 'ws_001', user_id: 'user_001', action: 'message_sent', description: 'Sent message to Chloe Dubois', created_at: hoursAgo(8) },
   { id: 'act_012', workspace_id: 'ws_001', user_id: 'user_002', action: 'audience_created', description: 'Audience created: Warm Pipeline', created_at: daysAgo(1) },
   { id: 'act_013', workspace_id: 'ws_001', user_id: 'user_001', action: 'contact_imported', description: 'Imported contacts from CSV', created_at: daysAgo(2) },
-  { id: 'act_014', workspace_id: 'ws_001', user_id: 'user_admin_001', action: 'user_invited', description: 'Invited team member: priya@acme.com', created_at: daysAgo(2) },
+  { id: 'act_014', workspace_id: 'ws_001', user_id: 'user_admin_001', action: 'user_invited', description: 'Invited team member: priya@example.com', created_at: daysAgo(2) },
   { id: 'act_015', workspace_id: 'ws_001', user_id: 'user_002', action: 'message_received', description: 'New inbound message from Oliver Reed', created_at: daysAgo(3) },
   { id: 'act_016', workspace_id: 'ws_001', user_id: 'user_001', action: 'conversation_resolved', description: 'Conversation resolved: Sophia Ng', created_at: daysAgo(3) },
   { id: 'act_017', workspace_id: 'ws_001', user_id: 'user_001', action: 'tag_created', description: 'Created tag: Warm', created_at: daysAgo(4) },

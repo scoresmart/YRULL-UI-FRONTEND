@@ -74,7 +74,7 @@ export function SettingsPage() {
               </div>
               <div className="col-span-2">
                 <div className="text-xs font-medium uppercase tracking-wide text-gray-400">Email</div>
-                <Input className="mt-2" defaultValue="jordan@acme.com" disabled />
+                <Input className="mt-2" defaultValue="jordan@example.com" disabled />
               </div>
               <div>
                 <div className="text-xs font-medium uppercase tracking-wide text-gray-400">Current Password</div>
@@ -100,7 +100,7 @@ export function SettingsPage() {
             <div className="mt-6 grid grid-cols-2 gap-4">
               <div className="col-span-2">
                 <div className="text-xs font-medium uppercase tracking-wide text-gray-400">Workspace name</div>
-                <Input className="mt-2" defaultValue="Acme Sales" />
+                <Input className="mt-2" defaultValue="My Workspace" />
               </div>
               <div>
                 <div className="text-xs font-medium uppercase tracking-wide text-gray-400">Timezone</div>
@@ -179,9 +179,9 @@ export function SettingsPage() {
             </div>
             <div className="mt-6 divide-y divide-gray-100 rounded-xl border border-gray-100">
               {[
-                { name: 'Jordan Lee', email: 'jordan@acme.com', role: 'user' },
-                { name: 'Priya Shah', email: 'priya@acme.com', role: 'user' },
-                { name: 'Ava Martinez', email: 'ava@acme.com', role: 'admin' },
+                { name: 'Jordan Lee', email: 'jordan@example.com', role: 'user' },
+                { name: 'Priya Shah', email: 'priya@example.com', role: 'user' },
+                { name: 'Ava Martinez', email: 'ava@example.com', role: 'admin' },
               ].map((m) => (
                 <div key={m.email} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50">
                   <div>

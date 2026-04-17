@@ -1,6 +1,6 @@
-## FlowDesk — WhatsApp Automation & Inbox (Frontend)
+## Yrull — Multi-Channel Conversation Automation Platform
 
-Professional, minimal SaaS UI for WhatsApp automation & inbox management (Linear.app meets WhatsApp Web).
+Yrull is a multi-channel conversation automation platform for businesses. Manage Instagram DMs, WhatsApp messages, Facebook Messenger, comments, and automations from one unified inbox.
 
 ### Tech
 - **React 18 + Vite**
@@ -43,3 +43,7 @@ npm run dev
 
 ### Supabase schema
 See `supabase/schema.sql`.
+
+### Company
+
+Yrull is a product of Prepsmart Pty Ltd, registered in Victoria, Australia.

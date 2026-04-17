@@ -1,4 +1,4 @@
-# FlowDesk Project Analysis & Integration Guide
+# Yrull Project Analysis & Integration Guide
 
 ## 📋 Answers to Integration Questions
 

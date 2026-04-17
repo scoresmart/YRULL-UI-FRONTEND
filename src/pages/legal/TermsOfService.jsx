@@ -2,11 +2,19 @@ import { LegalPageShell } from '../../components/legal/LegalPageShell';
 
 export function TermsOfServicePage() {
   return (
-    <LegalPageShell title="Terms of Service" lastUpdated="March 21, 2026">
+    <LegalPageShell title="Terms of Service" lastUpdated="April 17, 2026">
+      <section className="space-y-3">
+        <p>
+          These Terms of Service (&quot;Terms&quot;) constitute a legal agreement between you and
+          Prepsmart Pty Ltd, trading as Yrull, with registered office at 97 Waverly Street,
+          Moonee Ponds, Melbourne, Victoria 3039, Australia.
+        </p>
+      </section>
+
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-slate-900">1. Agreement</h2>
         <p>
-          These Terms of Service (&quot;Terms&quot;) govern your access to and use of Yrull&apos;s website,
+          These Terms govern your access to and use of Yrull&apos;s website,
           applications, and related services (collectively, the &quot;Service&quot;). By creating an account or
           using the Service, you agree to these Terms. If you use the Service on behalf of an organization, you
           represent that you have authority to bind that organization.
@@ -82,11 +90,11 @@ export function TermsOfServicePage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-slate-900">9. Limitation of liability</h2>
         <p>
-          TO THE MAXIMUM EXTENT PERMITTED BY LAW, FLOWDESK AND ITS AFFILIATES WILL NOT BE LIABLE FOR ANY
+          TO THE MAXIMUM EXTENT PERMITTED BY LAW, YRULL AND ITS AFFILIATES WILL NOT BE LIABLE FOR ANY
           INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, DATA, OR
           GOODWILL. OUR TOTAL LIABILITY FOR ANY CLAIM ARISING OUT OF THESE TERMS OR THE SERVICE WILL NOT EXCEED
           THE GREATER OF THE AMOUNTS YOU PAID US FOR THE SERVICE IN THE TWELVE MONTHS BEFORE THE CLAIM OR ONE
-          HUNDRED DOLLARS (USD), UNLESS APPLICABLE LAW REQUIRES OTHERWISE.
+          HUNDRED DOLLARS (AUD), UNLESS APPLICABLE LAW REQUIRES OTHERWISE.
         </p>
       </section>
 
@@ -110,9 +118,9 @@ export function TermsOfServicePage() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-slate-900">12. Governing law</h2>
         <p>
-          These Terms are governed by the laws of the jurisdiction we designate for our business operations,
-          without regard to conflict-of-law principles, unless mandatory consumer protections in your country
-          apply.
+          These Terms are governed by and construed in accordance with the laws of the State of Victoria,
+          Australia. You agree to submit to the exclusive jurisdiction of the courts of Victoria, Australia,
+          unless mandatory consumer protections in your country require otherwise.
         </p>
       </section>
 
@@ -127,9 +135,16 @@ export function TermsOfServicePage() {
 
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-slate-900">14. Contact</h2>
-        <p>
-          For questions about these Terms, contact us using the support information provided on our website.
-        </p>
+        <p>For questions about these Terms, contact us at:</p>
+        <ul className="list-none space-y-1 pl-0">
+          <li><span className="font-medium text-slate-800">Email:</span>{' '}
+            <a href="mailto:support@yrull.com" className="font-medium text-green-700 underline underline-offset-2 hover:text-green-800">support@yrull.com</a>
+          </li>
+          <li><span className="font-medium text-slate-800">Postal:</span> Prepsmart Pty Ltd, 97 Waverly Street, Moonee Ponds, Melbourne, Victoria 3039, Australia</li>
+          <li><span className="font-medium text-slate-800">Website:</span>{' '}
+            <a href="https://yrull.com" className="font-medium text-green-700 underline underline-offset-2 hover:text-green-800" target="_blank" rel="noopener noreferrer">https://yrull.com</a>
+          </li>
+        </ul>
       </section>
     </LegalPageShell>
   );

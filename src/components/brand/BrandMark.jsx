@@ -1,7 +1,7 @@
 import { cn } from '../../lib/utils';
 
 /**
- * Yrull wordmark — neutral styling like the original FlowDesk: soft white on dark UI, charcoal on light UI.
+ * Yrull wordmark — soft white on dark UI, charcoal on light UI.
  */
 export function BrandMark({ className, variant = 'light' }) {
   const variantClass =

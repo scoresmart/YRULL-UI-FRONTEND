@@ -64,7 +64,7 @@ export function RegisterForm() {
         <div className="text-xs font-medium uppercase tracking-wide text-gray-400">Company Name</div>
         <div className="relative">
           <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input placeholder="Acme Inc" className="pl-9" {...register('workspaceName')} />
+          <Input placeholder="Your Company" className="pl-9" {...register('workspaceName')} />
         </div>
         {errors.workspaceName && <p className="text-sm text-red-500">{errors.workspaceName.message}</p>}
       </div>
