@@ -1,10 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
-import { MoreHorizontal, Search } from 'lucide-react';
+import { MoreHorizontal, Search, Users } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Skeleton } from '../../components/ui/skeleton';
+import { EmptyState } from '../../components/EmptyState';
+import { ErrorState } from '../../components/ErrorState';
 import { AddEditContactModal } from '../../components/contacts/AddEditContactModal';
 import { ContactSidePanel } from '../../components/contacts/ContactSidePanel';
 import { useContactStore } from '../../store/contactStore';
@@ -82,13 +84,28 @@ export function ContactsPage() {
         </div>
       </div>
 
+      {contactsQ.error && (
+        <ErrorState title="Failed to load contacts" onRetry={() => contactsQ.refetch()} />
+      )}
+
       <Card className={selectedContactId ? 'pr-[420px]' : ''}>
         {contactsQ.isLoading ? (
           <div className="space-y-3">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
+            {[1,2,3,4,5].map((i) => (
+              <div key={i} className="flex items-center gap-4 px-4 py-3">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-40 ml-auto" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+            ))}
           </div>
+        ) : !contactsQ.error && (contactsQ.data ?? []).length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title="Your contact list is empty"
+            description="Contacts appear here when customers message you via WhatsApp or Instagram."
+          />
         ) : (
           <>
             <div className="overflow-hidden rounded-xl border border-gray-100">

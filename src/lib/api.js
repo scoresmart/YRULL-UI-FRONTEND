@@ -312,6 +312,119 @@ export const notificationPrefsApi = {
   },
 };
 
+// -- Analytics API ------------------------------------------------------------
+
+export const analyticsApi = {
+  // TODO: backend endpoint — GET /api/analytics/dashboard
+  async getDashboard() {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/analytics/dashboard`);
+    if (!response.ok) throw new Error('Failed to fetch dashboard analytics');
+    return response.json();
+  },
+};
+
+// -- Broadcasts API -----------------------------------------------------------
+
+export const broadcastsApi = {
+  async list({ status } = {}) {
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/broadcasts?${params}`);
+    if (!response.ok) throw new Error('Failed to fetch broadcasts');
+    return response.json();
+  },
+
+  async get(id) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/broadcasts/${id}`);
+    if (!response.ok) throw new Error('Failed to fetch broadcast');
+    return response.json();
+  },
+
+  async create(data) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/broadcasts`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to create broadcast');
+    return response.json();
+  },
+
+  async update(id, data) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/broadcasts/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update broadcast');
+    return response.json();
+  },
+
+  async delete(id) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/broadcasts/${id}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to delete broadcast');
+    return response.json();
+  },
+
+  async send(id) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/broadcasts/${id}/send`, {
+      method: 'POST',
+    });
+    if (!response.ok) throw new Error('Failed to send broadcast');
+    return response.json();
+  },
+
+  async cancel(id) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/broadcasts/${id}/cancel`, {
+      method: 'POST',
+    });
+    if (!response.ok) throw new Error('Failed to cancel broadcast');
+    return response.json();
+  },
+
+  async estimateAudience(filter) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/broadcasts/estimate`, {
+      method: 'POST',
+      body: JSON.stringify(filter),
+    });
+    if (!response.ok) throw new Error('Failed to estimate audience');
+    return response.json();
+  },
+};
+
+// -- WhatsApp Templates API ---------------------------------------------------
+
+export const templatesApi = {
+  async list() {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/whatsapp/templates`);
+    if (!response.ok) throw new Error('Failed to fetch templates');
+    return response.json();
+  },
+
+  async get(id) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/whatsapp/templates/${id}`);
+    if (!response.ok) throw new Error('Failed to fetch template');
+    return response.json();
+  },
+
+  async create(data) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/whatsapp/templates`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to create template');
+    return response.json();
+  },
+
+  async delete(id) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/whatsapp/templates/${id}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to delete template');
+    return response.json();
+  },
+};
+
 // -- Account API --------------------------------------------------------------
 
 export const accountApi = {

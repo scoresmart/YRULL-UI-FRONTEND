@@ -23,6 +23,11 @@ import { AutomationBuilderPage } from './pages/user/AutomationBuilder';
 import { SettingsPage } from './pages/user/Settings';
 import { IntegrationsPage } from './pages/user/Integrations';
 import { CommentsPage } from './pages/user/Comments';
+import { BroadcastsPage } from './pages/user/Broadcasts';
+import { BroadcastComposerPage } from './pages/user/BroadcastComposer';
+import { BroadcastDetailPage } from './pages/user/BroadcastDetail';
+import { WhatsAppTemplatesPage } from './pages/user/WhatsAppTemplates';
+import { WhatsAppTemplateComposerPage } from './pages/user/WhatsAppTemplateComposer';
 import { AdminDashboardPage } from './pages/admin/AdminDashboard';
 import { PrivacyPolicyPage } from './pages/legal/PrivacyPolicy';
 import { TermsOfServicePage } from './pages/legal/TermsOfService';
@@ -98,6 +103,11 @@ export default function App() {
           <Route path="/audiences" element={<AudiencesPage />} />
           <Route path="/automations" element={<AutomationsPage />} />
           <Route path="/automations/:id" element={<AutomationBuilderPage />} />
+          <Route path="/broadcasts" element={<BroadcastsPage />} />
+          <Route path="/broadcasts/new" element={<BroadcastComposerPage />} />
+          <Route path="/broadcasts/templates" element={<WhatsAppTemplatesPage />} />
+          <Route path="/broadcasts/templates/new" element={<WhatsAppTemplateComposerPage />} />
+          <Route path="/broadcasts/:id" element={<BroadcastDetailPage />} />
           <Route path="/integrations" element={<IntegrationsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>

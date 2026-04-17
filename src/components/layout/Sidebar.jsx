@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, MessageCircle, MessageSquare, Users, Tags, Target, Settings, LogOut, Phone, Workflow, Plug, Instagram, Loader2 } from 'lucide-react';
+import { LayoutDashboard, MessageCircle, MessageSquare, Users, Tags, Target, Settings, LogOut, Phone, Workflow, Plug, Instagram, Loader2, Megaphone } from 'lucide-react';
 import { BrandMark } from '../brand/BrandMark';
 import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import { cn, initialsFromName, pastelClassFromString } from '../../lib/utils';
@@ -16,6 +16,7 @@ const nav = [
   { to: '/tags', label: 'Tags', icon: Tags },
   { to: '/audiences', label: 'Audiences', icon: Target },
   { to: '/automations', label: 'Automations', icon: Workflow },
+  { to: '/broadcasts', label: 'Broadcasts', icon: Megaphone },
   { to: '/integrations', label: 'Integrations', icon: Plug },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];

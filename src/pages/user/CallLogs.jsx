@@ -7,6 +7,7 @@ import { formatPhone, formatRelativeTime, cn, initialsFromName, pastelClassFromS
 import { Badge } from '../../components/ui/badge';
 import { Skeleton } from '../../components/ui/skeleton';
 import { Button } from '../../components/ui/button';
+import { EmptyState } from '../../components/EmptyState';
 
 const CALL_TYPES = {
   all: 'All Calls',
@@ -118,12 +119,12 @@ export function CallLogsPage() {
             <Skeleton className="h-12 w-full" />
           </div>
         ) : filteredCalls.length === 0 ? (
-          <div className="p-12 text-center">
-            <Phone className="mx-auto h-12 w-12 text-gray-300" />
-            <div className="mt-4 text-sm font-medium text-gray-900">No calls found</div>
-            <div className="mt-1 text-sm text-gray-500">
-              {filter === 'all' ? 'No call history available' : `No ${CALL_TYPES[filter].toLowerCase()} calls`}
-            </div>
+          <div className="p-4">
+            <EmptyState
+              icon={Phone}
+              title={filter === 'all' ? 'No calls yet' : `No ${CALL_TYPES[filter].toLowerCase()} calls`}
+              description="WhatsApp call logs will appear here when customers call your business number."
+            />
           </div>
         ) : (
           <div className="overflow-x-auto">

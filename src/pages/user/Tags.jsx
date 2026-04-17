@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Tags } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { Skeleton } from '../../components/ui/skeleton';
+import { EmptyState } from '../../components/EmptyState';
 import { TagModal } from '../../components/tags/TagModal';
 import { useContacts, useContactTags, useTags } from '../../lib/dataHooks';
 import { tagsApi } from '../../lib/api';
@@ -67,6 +68,13 @@ export function TagsPage() {
           <Skeleton className="h-32" />
           <Skeleton className="h-32" />
         </div>
+      ) : (tagsQ.data ?? []).length === 0 ? (
+        <EmptyState
+          icon={Tags}
+          title="Create tags to organize your contacts and conversations"
+          description="Tags help you categorize contacts, filter conversations, and target broadcasts."
+          actionLabel="Create first tag"
+        />
       ) : (
         <div className="grid grid-cols-3 gap-6">
           {(tagsQ.data ?? []).map((t) => {
