@@ -17,6 +17,7 @@ import { AutomationsPage } from './pages/user/Automations';
 import { AutomationBuilderPage } from './pages/user/AutomationBuilder';
 import { SettingsPage } from './pages/user/Settings';
 import { IntegrationsPage } from './pages/user/Integrations';
+import { CommentsPage } from './pages/user/Comments';
 import { AdminDashboardPage } from './pages/admin/AdminDashboard';
 import { PrivacyPolicyPage } from './pages/legal/PrivacyPolicy';
 import { TermsOfServicePage } from './pages/legal/TermsOfService';
@@ -79,6 +80,7 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/whatsapp" element={<WhatsAppPage />} />
         <Route path="/instagram" element={<InstagramPage />} />
+        <Route path="/comments" element={<CommentsPage />} />
         <Route path="/call-logs" element={<CallLogsPage />} />
         <Route path="/contacts" element={<ContactsPage />} />
         <Route path="/tags" element={<TagsPage />} />

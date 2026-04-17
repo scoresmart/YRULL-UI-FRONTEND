@@ -409,4 +409,88 @@ export const instagramApi = {
     if (!response.ok) throw new Error(data.error || 'Failed to reply to comment');
     return data;
   },
+
+  // TODO: backend endpoint — GET /instagram/comments
+  async listComments({ post_id, status, cursor } = {}) {
+    const params = new URLSearchParams();
+    if (post_id) params.set('post_id', post_id);
+    if (status) params.set('status', status);
+    if (cursor) params.set('cursor', cursor);
+    const response = await authFetch(`${ENV.API_BASE_URL}/instagram/comments?${params}`);
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to fetch comments');
+    }
+    return response.json();
+  },
+
+  // TODO: backend endpoint — GET /instagram/comments/:id
+  async getComment(commentId) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/instagram/comments/${commentId}`);
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to fetch comment');
+    }
+    return response.json();
+  },
+
+  // TODO: backend endpoint — POST /instagram/comments/:id/hide
+  async hideComment(commentId) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/instagram/comments/${commentId}/hide`, {
+      method: 'POST',
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to hide comment');
+    }
+    return response.json();
+  },
+
+  // TODO: backend endpoint — POST /instagram/comments/:id/unhide
+  async unhideComment(commentId) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/instagram/comments/${commentId}/unhide`, {
+      method: 'POST',
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to unhide comment');
+    }
+    return response.json();
+  },
+
+  // TODO: backend endpoint — DELETE /instagram/comments/:id
+  async deleteComment(commentId) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/instagram/comments/${commentId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to delete comment');
+    }
+    return response.json();
+  },
+
+  // TODO: backend endpoint — GET /instagram/mentions
+  async listMentions({ cursor } = {}) {
+    const params = new URLSearchParams();
+    if (cursor) params.set('cursor', cursor);
+    const response = await authFetch(`${ENV.API_BASE_URL}/instagram/mentions?${params}`);
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to fetch mentions');
+    }
+    return response.json();
+  },
+
+  // TODO: backend endpoint — GET /instagram/media
+  async listPosts({ cursor } = {}) {
+    const params = new URLSearchParams();
+    if (cursor) params.set('cursor', cursor);
+    const response = await authFetch(`${ENV.API_BASE_URL}/instagram/media?${params}`);
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to fetch posts');
+    }
+    return response.json();
+  },
 };

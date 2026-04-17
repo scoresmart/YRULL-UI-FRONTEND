@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, MessageCircle, Users, Tags, Target, Settings, LogOut, Phone, Workflow, Plug, Instagram } from 'lucide-react';
+import { LayoutDashboard, MessageCircle, MessageSquare, Users, Tags, Target, Settings, LogOut, Phone, Workflow, Plug, Instagram } from 'lucide-react';
 import { BrandMark } from '../brand/BrandMark';
 import { cn, initialsFromName, pastelClassFromString } from '../../lib/utils';
 import { useAuthStore } from '../../store/authStore';
@@ -8,6 +8,7 @@ const nav = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/whatsapp', label: 'WhatsApp', icon: MessageCircle },
   { to: '/instagram', label: 'Instagram', icon: Instagram },
+  { to: '/comments', label: 'Comments', icon: MessageSquare },
   { to: '/call-logs', label: 'Call Logs', icon: Phone },
   { to: '/contacts', label: 'Contacts', icon: Users },
   { to: '/tags', label: 'Tags', icon: Tags },

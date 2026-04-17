@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { ENV } from './env';
 import { supabase } from './supabase';
 import { mockDb } from './mockData';
@@ -168,6 +169,94 @@ export function useInstagramMessages(igUserId) {
       if (ENV.USE_MOCK) return [];
       return instagramApi.getMessages(igUserId);
     },
+  });
+}
+
+// -- Instagram Comments hooks -------------------------------------------------
+
+export function useComments({ postId, status } = {}) {
+  return useQuery({
+    queryKey: ['instagram_comments', postId, status],
+    staleTime: 15000,
+    refetchInterval: 60000,
+    queryFn: async () => {
+      if (ENV.USE_MOCK) return [];
+      const result = await instagramApi.listComments({ post_id: postId, status });
+      return Array.isArray(result) ? result : result?.data ?? [];
+    },
+  });
+}
+
+export function useMentions() {
+  return useQuery({
+    queryKey: ['instagram_mentions'],
+    staleTime: 15000,
+    refetchInterval: 60000,
+    queryFn: async () => {
+      if (ENV.USE_MOCK) return [];
+      const result = await instagramApi.listMentions();
+      return Array.isArray(result) ? result : result?.data ?? [];
+    },
+  });
+}
+
+export function useInstagramPosts() {
+  return useQuery({
+    queryKey: ['instagram_posts'],
+    staleTime: 60000,
+    queryFn: async () => {
+      if (ENV.USE_MOCK) return [];
+      const result = await instagramApi.listPosts();
+      return Array.isArray(result) ? result : result?.data ?? [];
+    },
+  });
+}
+
+export function useReplyToComment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ commentId, message }) => instagramApi.replyToComment({ commentId, message }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['instagram_comments'] });
+      toast.success('Reply sent');
+    },
+    onError: (err) => toast.error(err.message || 'Failed to send reply'),
+  });
+}
+
+export function useHideComment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (commentId) => instagramApi.hideComment(commentId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['instagram_comments'] });
+      toast.success('Comment hidden');
+    },
+    onError: (err) => toast.error(err.message || 'Failed to hide comment'),
+  });
+}
+
+export function useUnhideComment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (commentId) => instagramApi.unhideComment(commentId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['instagram_comments'] });
+      toast.success('Comment unhidden');
+    },
+    onError: (err) => toast.error(err.message || 'Failed to unhide comment'),
+  });
+}
+
+export function useDeleteComment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (commentId) => instagramApi.deleteComment(commentId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['instagram_comments'] });
+      toast.success('Comment deleted');
+    },
+    onError: (err) => toast.error(err.message || 'Failed to delete comment'),
   });
 }
 
