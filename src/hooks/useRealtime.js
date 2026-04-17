@@ -1,68 +1,33 @@
 import { useEffect } from 'react';
-import { ENV } from '../lib/env';
-import { supabase } from '../lib/supabase';
+import { useAuthStore } from '../store/authStore';
+import { subscribeToTableMulti } from '../lib/realtime';
 
-// Realtime hook for whatsapp_messages and whatsapp_contacts
 export function useRealtime({ enabled, onMessage, onContactUpdate }) {
+  const workspaceId = useAuthStore((s) => s.profile?.workspace_id);
+
   useEffect(() => {
-    if (!enabled || ENV.USE_MOCK) return;
-    
-    // Check if supabase has channel method (might not exist in mock mode)
-    if (!supabase || typeof supabase.channel !== 'function') {
-      console.warn('Supabase channel method not available, skipping real-time subscription');
-      return;
-    }
-    
-    try {
-      const channel = supabase
-        .channel('whatsapp-messages')
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'whatsapp_messages' },
-          (payload) => {
-            try {
-              onMessage?.(payload);
-            } catch (error) {
-              console.error('Error in onMessage callback:', error);
-            }
-          },
-        )
-        .on(
-          'postgres_changes',
-          { event: 'UPDATE', schema: 'public', table: 'whatsapp_contacts' },
-          (payload) => {
-            try {
-              onContactUpdate?.(payload);
-            } catch (error) {
-              console.error('Error in onContactUpdate callback:', error);
-            }
-          },
-        )
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'whatsapp_contacts' },
-          (payload) => {
-            try {
-              onContactUpdate?.(payload);
-            } catch (error) {
-              console.error('Error in onContactUpdate callback:', error);
-            }
-          },
-        )
-        .subscribe();
+    if (!enabled || !workspaceId) return;
 
-      return () => {
-        try {
-          if (supabase && typeof supabase.removeChannel === 'function') {
-            supabase.removeChannel(channel);
-          }
-        } catch (error) {
-          console.error('Error removing channel:', error);
-        }
-      };
-    } catch (error) {
-      console.error('Error setting up real-time subscription:', error);
-    }
-  }, [enabled, onMessage, onContactUpdate]);
+    const cleanupMessages = subscribeToTableMulti({
+      table: 'whatsapp_messages',
+      workspaceId,
+      listeners: [
+        { event: 'INSERT', callback: (payload) => onMessage?.(payload) },
+      ],
+    });
+
+    const cleanupContacts = subscribeToTableMulti({
+      table: 'whatsapp_contacts',
+      workspaceId,
+      listeners: [
+        { event: 'INSERT', callback: (payload) => onContactUpdate?.(payload) },
+        { event: 'UPDATE', callback: (payload) => onContactUpdate?.(payload) },
+      ],
+    });
+
+    return () => {
+      cleanupMessages();
+      cleanupContacts();
+    };
+  }, [enabled, workspaceId, onMessage, onContactUpdate]);
 }
-

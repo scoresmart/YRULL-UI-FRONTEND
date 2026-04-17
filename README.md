@@ -10,7 +10,6 @@ Yrull is a multi-channel conversation automation platform for businesses. Manage
 - **Zustand**
 - **Supabase**
 - **TanStack Query**
-- **Axios**
 - **React Hook Form + Zod**
 - **Lucide icons**
 - **react-hot-toast**
@@ -43,6 +42,15 @@ npm run dev
 
 ### Supabase schema
 See `supabase/schema.sql`.
+
+### Security considerations
+
+- **Auth tokens**: Supabase stores session tokens in `localStorage` (standard for SPAs). For sensitive environments, consider configuring `httpOnly` cookie-based auth at the Supabase project level.
+- **Realtime channels**: All Supabase Realtime subscriptions are workspace-scoped using `filter: workspace_id=eq.${id}` to prevent cross-tenant data leakage. The centralized helper at `src/lib/realtime.js` enforces this pattern.
+- **Environment variables**: All `VITE_*` variables are bundled into the client. Never store server-side secrets with the `VITE_` prefix. See `.env.example` for the complete list.
+- **Security headers**: `vercel.json` sets `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Permissions-Policy` to block camera/mic/geolocation access.
+- **XSS**: No use of `dangerouslySetInnerHTML` in the codebase. All user-generated content is rendered via React text nodes (auto-escaped).
+- **Error monitoring**: If `VITE_SENTRY_DSN` is set, uncaught errors are reported to Sentry. No PII (email, name) is sent — only user ID and workspace ID.
 
 ### Company
 

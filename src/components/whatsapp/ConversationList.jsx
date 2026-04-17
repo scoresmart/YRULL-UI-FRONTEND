@@ -8,6 +8,7 @@ import { Badge } from '../ui/badge';
 import { useChatStore } from '../../store/chatStore';
 import { useContacts, useMessages, useTags, useContactTags } from '../../lib/dataHooks';
 import { supabase } from '../../lib/supabase';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useQueryClient } from '@tanstack/react-query';
 
 // Get unread count for a contact (client-side)
@@ -145,6 +146,7 @@ const ConversationRow = memo(function ConversationRow({ contact, lastMessage, un
 
 export function ConversationList() {
   const search = useChatStore((s) => s.search);
+  const debouncedSearch = useDebouncedValue(search, 300);
   const setSearch = useChatStore((s) => s.setSearch);
   const filter = useChatStore((s) => s.conversationFilter);
   const selectedWaId = useChatStore((s) => s.selectedWaId);
@@ -226,13 +228,12 @@ export function ConversationList() {
   const items = useMemo(() => {
     let list = [...(contactsQ.data ?? [])];
     
-    // Filter by search
-    if (search) {
-      const searchLower = search.toLowerCase();
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
       list = list.filter((c) => {
         const name = (c.name || '').toLowerCase();
         const phone = formatPhone(c.wa_id || c.phone || '').toLowerCase();
-        return name.includes(searchLower) || phone.includes(searchLower);
+        return name.includes(q) || phone.includes(q);
       });
     }
     
@@ -265,7 +266,7 @@ export function ConversationList() {
     });
     
     return list;
-  }, [contactsQ.data, search, filter, unreadCounts, lastMessages]);
+  }, [contactsQ.data, debouncedSearch, filter, unreadCounts, lastMessages]);
 
   const onSelect = useCallback((waId) => {
     setSelectedWaId(waId);

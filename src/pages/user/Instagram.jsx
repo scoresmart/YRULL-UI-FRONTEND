@@ -8,10 +8,10 @@ import { IgConversationList } from '../../components/instagram/IgConversationLis
 import { IgChatWindow } from '../../components/instagram/IgChatWindow';
 import { InstagramChannelActions } from '../../components/instagram/InstagramChannelActions';
 import { useChatStore } from '../../store/chatStore';
-import { supabase } from '../../lib/supabase';
 import { ENV } from '../../lib/env';
 import { instagramApi } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
+import { subscribeToTableMulti } from '../../lib/realtime';
 
 function ConnectPrompt() {
   const navigate = useNavigate();
@@ -85,37 +85,40 @@ export function InstagramPage() {
     setSelectedIgUserId(null);
   }, [setSelectedIgUserId]);
 
-  useEffect(() => {
-    if (ENV.USE_MOCK) return;
-    if (!supabase || typeof supabase.channel !== 'function') return;
+  const workspaceId = useAuthStore((s) => s.profile?.workspace_id);
 
-    const channel = supabase
-      .channel('instagram-messages')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'instagram_messages' },
-        (payload) => {
-          if (payload.new?.ig_user_id) {
-            queryClient.invalidateQueries({ queryKey: ['instagram_messages', payload.new.ig_user_id] });
-            queryClient.invalidateQueries({ queryKey: ['instagram_contacts'] });
-          }
+  useEffect(() => {
+    if (!workspaceId) return;
+
+    const cleanupMessages = subscribeToTableMulti({
+      table: 'instagram_messages',
+      workspaceId,
+      listeners: [
+        {
+          event: 'INSERT',
+          callback: (payload) => {
+            if (payload.new?.ig_user_id) {
+              queryClient.invalidateQueries({ queryKey: ['instagram_messages', payload.new.ig_user_id] });
+              queryClient.invalidateQueries({ queryKey: ['instagram_contacts'] });
+            }
+          },
         },
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'instagram_contacts' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['instagram_contacts'] });
-        },
-      )
-      .subscribe();
+      ],
+    });
+
+    const cleanupContacts = subscribeToTableMulti({
+      table: 'instagram_contacts',
+      workspaceId,
+      listeners: [
+        { event: '*', callback: () => queryClient.invalidateQueries({ queryKey: ['instagram_contacts'] }) },
+      ],
+    });
 
     return () => {
-      if (supabase && typeof supabase.removeChannel === 'function') {
-        supabase.removeChannel(channel);
-      }
+      cleanupMessages();
+      cleanupContacts();
     };
-  }, [queryClient]);
+  }, [workspaceId, queryClient]);
 
   if (isLoading) {
     return (

@@ -18,6 +18,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import { CommentCard } from '../../components/comments/CommentCard';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { PostSelector } from '../../components/comments/PostSelector';
 import { ConnectFacebookButton } from '../../components/integrations/ConnectFacebookButton';
 import { instagramApi } from '../../lib/api';
@@ -154,6 +155,7 @@ export function CommentsPage() {
   const [postId, setPostId] = useState(null);
   const [dateRange, setDateRange] = useState('all');
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [showSidebar, setShowSidebar] = useState(true);
 
   const { data: igStatus, isLoading: statusLoading } = useQuery({
@@ -188,15 +190,15 @@ export function CommentsPage() {
     if (dateRange !== 'all') {
       items = items.filter((c) => isInDateRange(c.timestamp || c.created_at, dateRange));
     }
-    if (search.trim()) {
-      const q = search.toLowerCase();
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase();
       items = items.filter((c) =>
         (c.text || '').toLowerCase().includes(q) ||
         (c.username || c.from?.username || '').toLowerCase().includes(q),
       );
     }
     return items;
-  }, [tab, comments, mentions, dateRange, search]);
+  }, [tab, comments, mentions, dateRange, debouncedSearch]);
 
   const isLoading = statusLoading || (tab === 'mentions' ? mentionsLoading : commentsLoading);
   const hasFilters = Boolean(search.trim() || postId || dateRange !== 'all');
