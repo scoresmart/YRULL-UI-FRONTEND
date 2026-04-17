@@ -38,4 +38,13 @@ body {
       opacity: 1;
     }
   }
+
+  .animate-in {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
 }

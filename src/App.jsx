@@ -5,6 +5,7 @@ import { RegisterPage } from './pages/auth/RegisterPage';
 import { OnboardingPage } from './pages/auth/OnboardingPage';
 import { UserLayout } from './components/layout/UserLayout';
 import { AdminLayout } from './components/layout/AdminLayout';
+import { PublicLayout } from './components/layout/PublicLayout';
 import { DashboardPage } from './pages/user/Dashboard';
 import { WhatsAppPage } from './pages/user/WhatsApp';
 import { InstagramPage } from './pages/user/Instagram';
@@ -20,13 +21,18 @@ import { AdminDashboardPage } from './pages/admin/AdminDashboard';
 import { PrivacyPolicyPage } from './pages/legal/PrivacyPolicy';
 import { TermsOfServicePage } from './pages/legal/TermsOfService';
 import { DataDeletionPage } from './pages/legal/DataDeletion';
+import { HomePage } from './pages/marketing/HomePage';
+import { FeaturesPage } from './pages/marketing/FeaturesPage';
+import { PricingPage } from './pages/marketing/PricingPage';
+import { AboutPage } from './pages/marketing/AboutPage';
+import { ContactPage } from './pages/marketing/ContactPage';
 import { useAuth } from './hooks/useAuth';
 import { Skeleton } from './components/ui/skeleton';
 
 function RootRedirect() {
   const { status, session, profile } = useAuth();
   if (status === 'loading') return <div className="p-6"><Skeleton className="h-6 w-48" /></div>;
-  if (!session) return <Navigate to="/login" replace />;
+  if (!session) return <HomePage />;
   if (profile?.role === 'admin') return <Navigate to="/admin" replace />;
   return <Navigate to="/dashboard" replace />;
 }
@@ -34,12 +40,25 @@ function RootRedirect() {
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<RootRedirect />} />
+      {/* Public marketing pages wrapped in PublicLayout */}
+      <Route element={<PublicLayout />}>
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="/features" element={<FeaturesPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+      </Route>
+
+      {/* Auth pages */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+
+      {/* Legal pages */}
       <Route path="/privacy" element={<PrivacyPolicyPage />} />
       <Route path="/terms" element={<TermsOfServicePage />} />
       <Route path="/data-deletion" element={<DataDeletionPage />} />
+
+      {/* Onboarding */}
       <Route
         path="/onboarding"
         element={
@@ -49,6 +68,7 @@ export default function App() {
         }
       />
 
+      {/* Authenticated app */}
       <Route
         element={
           <ProtectedRoute requiredRole="user">
@@ -69,6 +89,7 @@ export default function App() {
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
 
+      {/* Admin */}
       <Route
         element={
           <ProtectedRoute requiredRole="admin">
