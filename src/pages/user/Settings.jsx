@@ -857,8 +857,9 @@ export function SettingsPage() {
   const [tab, setTab] = useState(tabs[0]?.key || 'profile');
 
   return (
-    <div className="grid grid-cols-12 gap-6">
-      <Card className="col-span-12 p-3 lg:col-span-3">
+    <div className="space-y-6 lg:grid lg:grid-cols-12 lg:gap-6 lg:space-y-0">
+      {/* Desktop: sidebar tabs */}
+      <Card className="hidden p-3 lg:col-span-3 lg:block">
         <div className="px-3 py-3">
           <div className="text-sm font-semibold text-gray-900">Settings</div>
           <div className="mt-1 text-xs text-gray-500">Manage your workspace.</div>
@@ -884,9 +885,31 @@ export function SettingsPage() {
         </div>
       </Card>
 
-      <div className="col-span-12 space-y-6 lg:col-span-9">
+      {/* Mobile/Tablet: horizontal scrolling tabs */}
+      <div className="flex gap-1 overflow-x-auto border-b border-gray-200 pb-px lg:hidden">
+        {tabs.map((t) => {
+          const Icon = t.icon;
+          const active = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className={cn(
+                'flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors',
+                active ? 'border-green-600 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700',
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="space-y-6 lg:col-span-9">
         <div>
-          <div className="text-2xl font-semibold text-gray-900">{tabs.find((t) => t.key === tab)?.label}</div>
+          <div className="text-xl font-semibold text-gray-900 sm:text-2xl">{tabs.find((t) => t.key === tab)?.label}</div>
           <div className="mt-1 text-sm text-gray-500">Keep everything up to date for a smooth workflow.</div>
         </div>
 

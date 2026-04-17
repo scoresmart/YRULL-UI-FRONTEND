@@ -27,6 +27,12 @@ export default {
         150: '150ms',
         200: '200ms',
       },
+      padding: {
+        safe: 'env(safe-area-inset-bottom, 0px)',
+      },
+      margin: {
+        safe: 'env(safe-area-inset-bottom, 0px)',
+      },
     },
   },
   plugins: [require('@tailwindcss/forms')],

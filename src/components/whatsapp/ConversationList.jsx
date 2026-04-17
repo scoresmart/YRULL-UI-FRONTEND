@@ -144,7 +144,7 @@ const ConversationRow = memo(function ConversationRow({ contact, lastMessage, un
   );
 });
 
-export function ConversationList() {
+export function ConversationList({ className }) {
   const search = useChatStore((s) => s.search);
   const debouncedSearch = useDebouncedValue(search, 300);
   const setSearch = useChatStore((s) => s.setSearch);
@@ -301,7 +301,7 @@ export function ConversationList() {
   );
 
   return (
-    <div className="flex h-full w-[320px] flex-col border-r border-brand-border bg-white">
+    <div className={cn('flex h-full flex-col border-r border-brand-border bg-white', className || 'w-[320px]')}>
       <div className="p-4">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />

@@ -71,7 +71,7 @@ function isInDateRange(timestamp, range) {
 
 function ConnectPrompt() {
   return (
-    <div className="-mx-8 -my-8 flex min-h-[calc(100vh-4rem)] items-center justify-center bg-gray-50">
+    <div className="-mx-4 -my-4 flex min-h-[calc(100vh-56px)] items-center justify-center bg-gray-50 sm:-mx-6 sm:-my-6 sm:min-h-[calc(100vh-4rem)] lg:-mx-8 lg:-my-8">
       <div className="mx-auto max-w-md px-6 text-center">
         <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#F58529] via-[#DD2A7B] to-[#8134AF]">
           <Instagram className="h-10 w-10 text-white" />
@@ -205,7 +205,7 @@ export function CommentsPage() {
 
   if (statusLoading) {
     return (
-      <div className="-mx-8 -my-8 flex h-[calc(100vh-64px)] items-center justify-center">
+      <div className="-mx-4 -my-4 flex h-[calc(100vh-56px)] items-center justify-center sm:-mx-6 sm:-my-6 sm:h-[calc(100vh-64px)] lg:-mx-8 lg:-my-8">
         <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
       </div>
     );
@@ -216,9 +216,9 @@ export function CommentsPage() {
   }
 
   return (
-    <div className="-mx-8 -my-8 flex h-[calc(100vh-4rem)] flex-col bg-gray-50">
+    <div className="-mx-4 -my-4 flex h-[calc(100vh-56px)] flex-col bg-gray-50 sm:-mx-6 sm:-my-6 sm:h-[calc(100vh-4rem)] lg:-mx-8 lg:-my-8">
       {/* Header */}
-      <div className="shrink-0 border-b border-gray-200 bg-white px-6 py-4">
+      <div className="shrink-0 border-b border-gray-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
         {tokenExpired && <div className="mb-4"><TokenExpiredBanner /></div>}
 
         <div className="flex items-center justify-between">
@@ -314,7 +314,7 @@ export function CommentsPage() {
         </aside>
 
         {/* Main content */}
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4">
           {commentsError && (
             <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               <AlertTriangle className="h-4 w-4 flex-shrink-0" />

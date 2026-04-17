@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo, useRef, useState, useEffect } from 'react';
-import { Paperclip, Send, Smile, Tag, UserPlus, Archive, Phone, PhoneOutgoing, PhoneIncoming, PhoneMissed } from 'lucide-react';
+import { Paperclip, Send, Smile, Tag, UserPlus, Archive, Phone, PhoneOutgoing, PhoneIncoming, PhoneMissed, ArrowLeft, Info } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn, formatRelativeTime, initialsFromName, pastelClassFromString } from '../../lib/utils';
 import { Button } from '../ui/button';
@@ -72,7 +72,7 @@ const MessageBubble = memo(function MessageBubble({ msg }) {
     <div className={cn('flex w-full', inbound ? 'justify-start' : 'justify-end')}>
       <div
         className={cn(
-          'max-w-[62%] rounded-xl px-4 py-2 text-sm shadow-sm',
+          'max-w-[85%] rounded-xl px-4 py-2 text-sm shadow-sm sm:max-w-[62%]',
           inbound 
             ? 'rounded-tl-sm bg-white text-gray-800' 
             : 'rounded-tr-sm bg-brand-sentBubble text-gray-900',
@@ -150,7 +150,7 @@ function DateSeparator({ label }) {
   );
 }
 
-export function ChatWindow({ connected = true }) {
+export function ChatWindow({ connected = true, onBack, onToggleInfo, className }) {
   const selectedWaId = useChatStore((s) => s.selectedWaId);
   const contactsQ = useContacts();
   const messagesQ = useMessages(selectedWaId);
@@ -348,19 +348,24 @@ export function ChatWindow({ connected = true }) {
 
   if (!selectedWaId) {
     return (
-      <div className="flex h-full flex-1 items-center justify-center bg-brand-chatBg">
-        <div className="text-center">
-          <div className="text-lg font-semibold text-gray-900">Select a conversation</div>
-          <div className="mt-1 text-sm text-gray-500">Choose a contact on the left to start replying.</div>
+      <div className={cn('flex h-full flex-1 items-center justify-center bg-brand-chatBg', className)}>
+        <div className="text-center px-6">
+          <div className="text-base font-semibold text-gray-900 sm:text-lg">Select a conversation</div>
+          <div className="mt-1 text-sm text-gray-500">Choose a contact to start replying.</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full flex-1 flex-col bg-brand-chatBg">
-      <div className="flex h-16 items-center justify-between border-b border-brand-border bg-white px-5">
-        <div className="flex items-center gap-3">
+    <div className={cn('flex h-full flex-1 flex-col bg-brand-chatBg', className)}>
+      <div className="flex h-14 items-center justify-between border-b border-brand-border bg-white px-3 sm:h-16 sm:px-5">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {onBack && (
+            <button type="button" onClick={onBack} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100" aria-label="Back">
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+          )}
           <div className={cn('flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold', avatarCls)}>
             {initialsFromName(name)}
           </div>
@@ -403,13 +408,18 @@ export function ChatWindow({ connected = true }) {
           <button className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900" type="button" aria-label="Assign">
             <UserPlus className="h-4 w-4" />
           </button>
-          <button className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900" type="button" aria-label="Archive">
+          <button className="hidden rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 sm:block" type="button" aria-label="Archive">
             <Archive className="h-4 w-4" />
           </button>
+          {onToggleInfo && (
+            <button className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900" type="button" aria-label="Contact info" onClick={onToggleInfo}>
+              <Info className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 
-      <div ref={listRef} className="flex-1 overflow-auto px-6 py-4">
+      <div ref={listRef} className="flex-1 overflow-auto px-3 py-3 sm:px-6 sm:py-4">
         {messagesQ.isLoading ? (
           <div className="space-y-3">
             <Skeleton className="h-10 w-[55%]" />

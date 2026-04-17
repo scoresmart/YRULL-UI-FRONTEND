@@ -23,7 +23,7 @@ function ConnectPrompt() {
   }, [fetchProfile]);
 
   return (
-    <div className="-mx-8 -my-8 min-h-[calc(100vh-4rem)] overflow-y-auto bg-gray-50 py-10">
+    <div className="-mx-4 -my-4 min-h-[calc(100vh-56px)] overflow-y-auto bg-gray-50 py-10 sm:-mx-6 sm:-my-6 sm:min-h-[calc(100vh-4rem)] lg:-mx-8 lg:-my-8">
       <div className="relative z-10 mx-auto max-w-md px-6 text-center">
         {apiMissing ? (
           <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-left text-sm text-amber-950 shadow-sm">
@@ -122,7 +122,7 @@ export function InstagramPage() {
 
   if (isLoading) {
     return (
-      <div className="-mx-8 -my-8 h-[calc(100vh-64px)] flex items-center justify-center">
+      <div className="-mx-4 -my-4 flex h-[calc(100vh-56px)] items-center justify-center sm:-mx-6 sm:-my-6 sm:h-[calc(100vh-64px)] lg:-mx-8 lg:-my-8">
         <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
       </div>
     );
@@ -133,9 +133,9 @@ export function InstagramPage() {
   }
 
   return (
-    <div className="-mx-8 -my-8 flex h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] flex-col">
-      <div className="sticky top-0 z-20 shrink-0 border-b border-gray-200 bg-white px-4 py-3 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <div className="-mx-4 -my-4 flex h-[calc(100vh-56px)] max-h-[calc(100vh-56px)] flex-col sm:-mx-6 sm:-my-6 sm:h-[calc(100vh-4rem)] sm:max-h-[calc(100vh-4rem)] lg:-mx-8 lg:-my-8">
+      <div className="sticky top-0 z-20 shrink-0 border-b border-gray-200 bg-white px-3 py-2 shadow-sm sm:px-4 sm:py-3">
+        <div className="flex flex-col gap-2 sm:gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-sm text-gray-800">
               <InstagramIcon className="h-5 w-5 shrink-0 text-purple-600" />

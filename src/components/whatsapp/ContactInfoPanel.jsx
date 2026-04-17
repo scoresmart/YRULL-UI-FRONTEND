@@ -28,7 +28,7 @@ const Section = memo(function Section({ title, children, defaultOpen = true }) {
   );
 });
 
-export function ContactInfoPanel() {
+export function ContactInfoPanel({ onClose }) {
   const selectedWaId = useChatStore((s) => s.selectedWaId);
   const setSelectedContactId = useContactStore((s) => s.setSelectedContactId);
 
@@ -154,7 +154,7 @@ export function ContactInfoPanel() {
   }, [selectedWaId, queryClient]);
 
   return (
-    <div className="flex h-full w-[300px] flex-col border-l border-brand-border bg-white">
+    <div className="flex h-full w-[300px] flex-shrink-0 flex-col border-l border-brand-border bg-white">
       <div className="h-16 border-b border-brand-border px-5 py-4">
         <div className="text-sm font-semibold text-gray-900">Contact</div>
       </div>

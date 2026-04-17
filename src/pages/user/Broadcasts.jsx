@@ -125,14 +125,14 @@ export function BroadcastsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Broadcasts</h1>
+          <h1 className="text-xl font-semibold text-gray-900 sm:text-2xl">Broadcasts</h1>
           <p className="mt-1 text-sm text-gray-500">Send messages to lists of contacts across channels</p>
         </div>
         <div className="flex items-center gap-2">
           <Link to="/broadcasts/templates">
-            <Button variant="outline" className="gap-1.5"><FileText className="h-4 w-4" /> Templates</Button>
+            <Button variant="outline" className="gap-1.5"><FileText className="h-4 w-4" /> <span className="hidden sm:inline">Templates</span></Button>
           </Link>
           <Link to="/broadcasts/new">
             <Button className="gap-1.5"><Plus className="h-4 w-4" /> New broadcast</Button>
@@ -186,19 +186,19 @@ export function BroadcastsPage() {
         />
       ) : (
         <Card>
-          <div className="overflow-hidden rounded-xl">
-            <table className="w-full text-left">
+          <div className="overflow-x-auto rounded-xl">
+            <table className="w-full min-w-[700px] text-left">
               <thead className="bg-gray-50/50">
                 <tr className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                  <th className="px-4 py-3">Name</th>
-                  <th className="px-4 py-3">Channel</th>
-                  <th className="px-4 py-3">Audience</th>
-                  <th className="px-4 py-3">Scheduled</th>
-                  <th className="px-4 py-3">Sent</th>
-                  <th className="px-4 py-3">Delivered</th>
-                  <th className="px-4 py-3">Read</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3" />
+                  <th className="px-3 py-3 sm:px-4">Name</th>
+                  <th className="px-3 py-3 sm:px-4">Channel</th>
+                  <th className="px-3 py-3 sm:px-4">Audience</th>
+                  <th className="hidden px-4 py-3 md:table-cell">Scheduled</th>
+                  <th className="px-3 py-3 sm:px-4">Sent</th>
+                  <th className="hidden px-4 py-3 lg:table-cell">Delivered</th>
+                  <th className="hidden px-4 py-3 lg:table-cell">Read</th>
+                  <th className="px-3 py-3 sm:px-4">Status</th>
+                  <th className="px-3 py-3 sm:px-4" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -206,20 +206,20 @@ export function BroadcastsPage() {
                   const ChIcon = CHANNEL_ICON[b.channel] || MessageCircle;
                   return (
                     <tr key={b.id} className="cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => navigate(`/broadcasts/${b.id}`)}>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3 sm:px-4">
                         <div className="text-sm font-medium text-gray-900">{b.name}</div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3 sm:px-4">
                         <div className="flex items-center gap-1.5 text-sm text-gray-600">
                           <ChIcon className="h-3.5 w-3.5" /> {b.channel}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{(b.audience_size ?? 0).toLocaleString()}</td>
-                      <td className="px-4 py-3 text-sm text-gray-500">{b.scheduled_at ? formatRelativeTime(b.scheduled_at) : '—'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{b.sent_count ?? '—'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{b.delivered_count ?? '—'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{b.read_count ?? '—'}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3 text-sm text-gray-600 sm:px-4">{(b.audience_size ?? 0).toLocaleString()}</td>
+                      <td className="hidden px-4 py-3 text-sm text-gray-500 md:table-cell">{b.scheduled_at ? formatRelativeTime(b.scheduled_at) : '—'}</td>
+                      <td className="px-3 py-3 text-sm text-gray-600 sm:px-4">{b.sent_count ?? '—'}</td>
+                      <td className="hidden px-4 py-3 text-sm text-gray-600 lg:table-cell">{b.delivered_count ?? '—'}</td>
+                      <td className="hidden px-4 py-3 text-sm text-gray-600 lg:table-cell">{b.read_count ?? '—'}</td>
+                      <td className="px-3 py-3 sm:px-4">
                         <Badge variant={STATUS_VARIANT[b.status] || 'muted'}>{b.status}</Badge>
                       </td>
                       <td className="px-4 py-3">

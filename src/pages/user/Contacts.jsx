@@ -68,18 +68,18 @@ export function ContactsPage() {
 
   return (
     <div className="relative">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-4 space-y-3 sm:mb-6 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="text-2xl font-semibold text-gray-900">Contacts</div>
-          <Badge variant="muted">{filtered.length.toLocaleString()} contacts</Badge>
+          <div className="text-xl font-semibold text-gray-900 sm:text-2xl">Contacts</div>
+          <Badge variant="muted">{filtered.length.toLocaleString()}</Badge>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative w-72">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative w-full sm:w-60 lg:w-72">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" placeholder="Search contacts..." />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 text-[16px] sm:text-sm" placeholder="Search contacts..." />
           </div>
-          <Button variant="outline">Filter</Button>
-          <Button variant="outline">Import CSV</Button>
+          <Button variant="outline" className="hidden sm:inline-flex">Filter</Button>
+          <Button variant="outline" className="hidden lg:inline-flex">Import CSV</Button>
           <AddEditContactModal trigger={<Button>Add Contact</Button>} />
         </div>
       </div>
@@ -112,11 +112,11 @@ export function ContactsPage() {
               <table className="w-full text-left">
                 <thead className="bg-white">
                   <tr className="border-b border-gray-100 text-xs font-medium uppercase tracking-wide text-gray-400">
-                    <th className="px-4 py-3">Name</th>
-                    <th className="px-4 py-3">Email</th>
-                    <th className="px-4 py-3">Tags</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Actions</th>
+                    <th className="px-3 py-3 sm:px-4">Name</th>
+                    <th className="hidden px-4 py-3 md:table-cell">Email</th>
+                    <th className="hidden px-4 py-3 lg:table-cell">Tags</th>
+                    <th className="px-3 py-3 sm:px-4">Status</th>
+                    <th className="px-3 py-3 sm:px-4">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -129,12 +129,12 @@ export function ContactsPage() {
                         className="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
                         onClick={() => openContact(c.id)}
                       >
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-3 sm:px-4">
                           <div className="text-sm font-medium text-gray-900">{name}</div>
-                          <div className="text-sm text-gray-500">{c.phone}</div>
+                          <div className="text-xs text-gray-500 sm:text-sm">{c.phone}</div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-500">{c.email ?? '—'}</td>
-                        <td className="px-4 py-3">
+                        <td className="hidden px-4 py-3 text-sm text-gray-500 md:table-cell">{c.email ?? '—'}</td>
+                        <td className="hidden px-4 py-3 lg:table-cell">
                           <div className="flex flex-wrap gap-1">
                             {tags.slice(0, 3).map((t) => (
                               <span key={t.id} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
@@ -144,10 +144,10 @@ export function ContactsPage() {
                             {tags.length > 3 ? <span className="text-xs text-gray-400">+{tags.length - 3}</span> : null}
                           </div>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-3 sm:px-4">
                           <Badge variant={c.status === 'active' ? 'success' : 'danger'}>{c.status}</Badge>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-3 sm:px-4">
                           <button
                             type="button"
                             className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"

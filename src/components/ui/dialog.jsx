@@ -26,13 +26,17 @@ const DialogContent = React.forwardRef(({ className, children, ...props }, ref) 
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl border border-gray-100 bg-white p-6 shadow-sm outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
+        'fixed z-50 w-full bg-white p-5 shadow-sm outline-none sm:p-6',
+        'inset-x-0 bottom-0 rounded-t-2xl sm:inset-auto sm:left-1/2 sm:top-1/2 sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:border sm:border-gray-100',
+        'max-h-[90vh] overflow-y-auto',
+        'data-[state=open]:animate-in data-[state=open]:fade-in-0 sm:data-[state=open]:zoom-in-95',
+        'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 sm:data-[state=closed]:zoom-out-95',
         className,
       )}
       {...props}
     >
       {children}
-      <DialogClose className="absolute right-4 top-4 rounded-md p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-accent">
+      <DialogClose className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-accent sm:right-4 sm:top-4 sm:h-7 sm:w-7">
         <X className="h-4 w-4" />
       </DialogClose>
     </DialogPrimitive.Content>
@@ -54,4 +58,3 @@ const DialogDescription = React.forwardRef(({ className, ...props }, ref) => (
 DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
 export { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription };
-

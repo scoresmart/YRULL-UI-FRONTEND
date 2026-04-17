@@ -63,7 +63,7 @@ function ChannelStep({ selected, onSelect }) {
         <h2 className="text-lg font-semibold text-gray-900">Choose a channel</h2>
         <p className="mt-1 text-sm text-gray-500">Select the platform you want to send this broadcast on.</p>
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
         {CHANNELS.map((ch) => {
           const Icon = ch.icon;
           const isSelected = selected === ch.id;
