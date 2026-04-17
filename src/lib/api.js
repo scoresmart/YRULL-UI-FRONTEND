@@ -233,6 +233,99 @@ export const integrationsApi = {
   },
 };
 
+// -- Workspace Members API ----------------------------------------------------
+
+export const workspaceMembersApi = {
+  // TODO: backend endpoint — GET /api/workspace/members
+  async list() {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/workspace/members`);
+    if (!response.ok) throw new Error('Failed to fetch members');
+    return response.json();
+  },
+
+  // TODO: backend endpoint — POST /api/workspace/invites
+  async invite({ email, role }) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/workspace/invites`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, role }),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to send invite');
+    }
+    return response.json();
+  },
+
+  // TODO: backend endpoint — DELETE /api/workspace/invites/:id
+  async revokeInvite(inviteId) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/workspace/invites/${inviteId}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error('Failed to revoke invite');
+    return response.json();
+  },
+
+  // TODO: backend endpoint — POST /api/workspace/invites/:id/resend
+  async resendInvite(inviteId) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/workspace/invites/${inviteId}/resend`, { method: 'POST' });
+    if (!response.ok) throw new Error('Failed to resend invite');
+    return response.json();
+  },
+
+  // TODO: backend endpoint — PATCH /api/workspace/members/:id/role
+  async changeRole(memberId, role) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/workspace/members/${memberId}/role`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role }),
+    });
+    if (!response.ok) throw new Error('Failed to change role');
+    return response.json();
+  },
+
+  // TODO: backend endpoint — DELETE /api/workspace/members/:id
+  async removeMember(memberId) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/workspace/members/${memberId}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error('Failed to remove member');
+    return response.json();
+  },
+};
+
+// -- Notification Preferences API ---------------------------------------------
+
+export const notificationPrefsApi = {
+  // TODO: backend endpoint — GET /api/notification-preferences
+  async get() {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/notification-preferences`);
+    if (!response.ok) throw new Error('Failed to fetch notification preferences');
+    return response.json();
+  },
+
+  // TODO: backend endpoint — PUT /api/notification-preferences
+  async update(key, enabled) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/notification-preferences`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, enabled }),
+    });
+    if (!response.ok) throw new Error('Failed to update notification preferences');
+    return response.json();
+  },
+};
+
+// -- Account API --------------------------------------------------------------
+
+export const accountApi = {
+  // TODO: backend endpoint — DELETE /auth/account
+  async deleteAccount() {
+    const response = await authFetch(`${ENV.API_BASE_URL}/auth/account`, { method: 'DELETE' });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to delete account');
+    }
+    return response.json();
+  },
+};
+
 // -- Workspace Integrations API (multi-tenant) --------------------------------
 
 export const workspaceIntegrationsApi = {
