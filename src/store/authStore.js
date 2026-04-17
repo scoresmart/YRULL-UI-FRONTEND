@@ -20,6 +20,8 @@ export const useAuthStore = create((set, get) => ({
   session: null,
   profile: null,
   status: 'idle', // idle | loading | authed | guest
+  workspaces: [],
+  activeWorkspaceId: null,
 
   hydrate: async () => {
     if (ENV.USE_MOCK) {
@@ -333,11 +335,72 @@ export const useAuthStore = create((set, get) => ({
     return { profile, workspace };
   },
 
+  fetchWorkspaces: async () => {
+    if (ENV.USE_MOCK) {
+      const p = get().profile;
+      const ws = p?.workspace ? [p.workspace] : [];
+      set({ workspaces: ws, activeWorkspaceId: p?.workspace_id ?? null });
+      return ws;
+    }
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      const userId = user?.user?.id;
+      if (!userId) return [];
+      // Fetch workspaces user owns or is a member of
+      const { data: ownedWs } = await supabase.from('workspaces').select('id, name, slug').eq('owner_id', userId);
+      const { data: memberRows } = await supabase.from('workspace_members').select('workspace_id').eq('user_id', userId);
+      const memberWsIds = (memberRows || []).map((r) => r.workspace_id).filter(Boolean);
+      let memberWs = [];
+      if (memberWsIds.length > 0) {
+        const { data } = await supabase.from('workspaces').select('id, name, slug').in('id', memberWsIds);
+        memberWs = data || [];
+      }
+      const map = new Map();
+      for (const w of [...(ownedWs || []), ...memberWs]) map.set(w.id, w);
+      const all = [...map.values()];
+      set({ workspaces: all, activeWorkspaceId: get().profile?.workspace_id ?? null });
+      return all;
+    } catch (err) {
+      console.error('fetchWorkspaces failed:', err);
+      return [];
+    }
+  },
+
+  setActiveWorkspace: async (workspaceId) => {
+    if (ENV.USE_MOCK) {
+      const ws = get().workspaces.find((w) => w.id === workspaceId);
+      set((s) => ({
+        activeWorkspaceId: workspaceId,
+        profile: s.profile ? { ...s.profile, workspace_id: workspaceId, workspace: ws ?? s.profile.workspace } : null,
+      }));
+      return;
+    }
+    try {
+      const userId = get().profile?.id;
+      if (!userId) return;
+      await supabase.from('profiles').update({ workspace_id: workspaceId }).eq('id', userId);
+      set({ activeWorkspaceId: workspaceId });
+      await get().fetchProfile();
+      // Invalidate all query caches so data refetches for new workspace
+      try {
+        const { queryClient } = await import('../lib/queryClient');
+        queryClient.invalidateQueries();
+      } catch { /* queryClient may not be ready */ }
+    } catch (err) {
+      console.error('setActiveWorkspace failed:', err);
+      toast.error('Failed to switch workspace');
+    }
+  },
+
   logout: async () => {
     if (!ENV.USE_MOCK) await supabase.auth.signOut();
-    set({ session: null, profile: null, status: 'guest' });
+    set({ session: null, profile: null, status: 'guest', workspaces: [], activeWorkspaceId: null });
     const { useChatStore } = await import('./chatStore');
     useChatStore.getState().reset();
+    try {
+      const { queryClient } = await import('../lib/queryClient');
+      queryClient.clear();
+    } catch { /* ignore */ }
   },
 }));
 

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { useAuthStore } from '../../store/authStore';
@@ -65,13 +65,9 @@ export function LoginForm() {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="text-xs font-medium uppercase tracking-wide text-gray-400">Password</div>
-          <button
-            type="button"
-            className="text-sm text-gray-500 hover:text-gray-900"
-            onClick={() => toast('Password reset will be added soon.')}
-          >
+          <Link to="/forgot-password" className="text-sm text-gray-500 hover:text-gray-900">
             Forgot password?
-          </button>
+          </Link>
         </div>
         <div className="relative">
           <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />

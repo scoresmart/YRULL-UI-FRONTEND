@@ -1,6 +1,8 @@
-import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, MessageCircle, MessageSquare, Users, Tags, Target, Settings, LogOut, Phone, Workflow, Plug, Instagram } from 'lucide-react';
+import { useState } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, MessageCircle, MessageSquare, Users, Tags, Target, Settings, LogOut, Phone, Workflow, Plug, Instagram, Loader2 } from 'lucide-react';
 import { BrandMark } from '../brand/BrandMark';
+import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import { cn, initialsFromName, pastelClassFromString } from '../../lib/utils';
 import { useAuthStore } from '../../store/authStore';
 
@@ -21,6 +23,14 @@ const nav = [
 export function Sidebar() {
   const profile = useAuthStore((s) => s.profile);
   const logout = useAuthStore((s) => s.logout);
+  const navigate = useNavigate();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  async function handleLogout() {
+    setLoggingOut(true);
+    await logout();
+    navigate('/login', { replace: true });
+  }
 
   const name = profile?.full_name ?? 'Team Member';
   const email = profile?.email ?? 'user@company.com';
@@ -31,7 +41,9 @@ export function Sidebar() {
       <div className="flex h-full flex-col">
         <div className="px-5 pt-6">
           <BrandMark variant="dark" className="text-lg" />
-          <div className="mt-1 text-xs text-gray-400">{profile?.workspace?.name ?? 'My Workspace'}</div>
+        </div>
+        <div className="mt-2 px-2">
+          <WorkspaceSwitcher />
         </div>
 
         <nav className="mt-6 flex-1 space-y-1 px-2">
@@ -75,12 +87,13 @@ export function Sidebar() {
               <div className="truncate text-xs text-gray-400">{email}</div>
             </div>
             <button
-              onClick={logout}
-              className="rounded-lg p-2 text-gray-300 transition-colors hover:bg-[#1A1A1A] hover:text-red-400"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="rounded-lg p-2 text-gray-300 transition-colors hover:bg-[#1A1A1A] hover:text-red-400 disabled:opacity-50"
               aria-label="Logout"
               type="button"
             >
-              <LogOut className="h-4 w-4" />
+              {loggingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
             </button>
           </div>
         </div>

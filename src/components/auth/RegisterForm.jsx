@@ -35,8 +35,7 @@ export function RegisterForm() {
       try {
         const result = await signUp(values);
         if (result?.needsConfirmation) {
-          toast.success('Check your email to confirm your account.');
-          navigate('/login', { replace: true });
+          navigate(`/verify-email?email=${encodeURIComponent(values.email)}`, { replace: true });
         } else {
           navigate('/onboarding', { replace: true });
         }

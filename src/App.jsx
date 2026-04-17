@@ -1,8 +1,13 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { SessionExpiredModal } from './components/auth/SessionExpiredModal';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
 import { OnboardingPage } from './pages/auth/OnboardingPage';
+import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
+import { VerifyEmailPage } from './pages/auth/VerifyEmailPage';
+import { AcceptInvitePage } from './pages/auth/AcceptInvitePage';
 import { UserLayout } from './components/layout/UserLayout';
 import { AdminLayout } from './components/layout/AdminLayout';
 import { PublicLayout } from './components/layout/PublicLayout';
@@ -40,69 +45,76 @@ function RootRedirect() {
 
 export default function App() {
   return (
-    <Routes>
-      {/* Public marketing pages wrapped in PublicLayout */}
-      <Route element={<PublicLayout />}>
-        <Route path="/" element={<RootRedirect />} />
-        <Route path="/features" element={<FeaturesPage />} />
-        <Route path="/pricing" element={<PricingPage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/contact" element={<ContactPage />} />
-      </Route>
+    <>
+      <SessionExpiredModal />
+      <Routes>
+        {/* Public marketing pages wrapped in PublicLayout */}
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<RootRedirect />} />
+          <Route path="/features" element={<FeaturesPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+        </Route>
 
-      {/* Auth pages */}
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
+        {/* Auth pages */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/accept-invite" element={<AcceptInvitePage />} />
 
-      {/* Legal pages */}
-      <Route path="/privacy" element={<PrivacyPolicyPage />} />
-      <Route path="/terms" element={<TermsOfServicePage />} />
-      <Route path="/data-deletion" element={<DataDeletionPage />} />
+        {/* Legal pages */}
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms" element={<TermsOfServicePage />} />
+        <Route path="/data-deletion" element={<DataDeletionPage />} />
 
-      {/* Onboarding */}
-      <Route
-        path="/onboarding"
-        element={
-          <ProtectedRoute requiredRole="user">
-            <OnboardingPage />
-          </ProtectedRoute>
-        }
-      />
+        {/* Onboarding */}
+        <Route
+          path="/onboarding"
+          element={
+            <ProtectedRoute requiredRole="user">
+              <OnboardingPage />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Authenticated app */}
-      <Route
-        element={
-          <ProtectedRoute requiredRole="user">
-            <UserLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/whatsapp" element={<WhatsAppPage />} />
-        <Route path="/instagram" element={<InstagramPage />} />
-        <Route path="/comments" element={<CommentsPage />} />
-        <Route path="/call-logs" element={<CallLogsPage />} />
-        <Route path="/contacts" element={<ContactsPage />} />
-        <Route path="/tags" element={<TagsPage />} />
-        <Route path="/audiences" element={<AudiencesPage />} />
-        <Route path="/automations" element={<AutomationsPage />} />
-        <Route path="/automations/:id" element={<AutomationBuilderPage />} />
-        <Route path="/integrations" element={<IntegrationsPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-      </Route>
+        {/* Authenticated app */}
+        <Route
+          element={
+            <ProtectedRoute requiredRole="user">
+              <UserLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/whatsapp" element={<WhatsAppPage />} />
+          <Route path="/instagram" element={<InstagramPage />} />
+          <Route path="/comments" element={<CommentsPage />} />
+          <Route path="/call-logs" element={<CallLogsPage />} />
+          <Route path="/contacts" element={<ContactsPage />} />
+          <Route path="/tags" element={<TagsPage />} />
+          <Route path="/audiences" element={<AudiencesPage />} />
+          <Route path="/automations" element={<AutomationsPage />} />
+          <Route path="/automations/:id" element={<AutomationBuilderPage />} />
+          <Route path="/integrations" element={<IntegrationsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Route>
 
-      {/* Admin */}
-      <Route
-        element={
-          <ProtectedRoute requiredRole="admin">
-            <AdminLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route path="/admin" element={<AdminDashboardPage />} />
-      </Route>
+        {/* Admin */}
+        <Route
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/admin" element={<AdminDashboardPage />} />
+        </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 }
