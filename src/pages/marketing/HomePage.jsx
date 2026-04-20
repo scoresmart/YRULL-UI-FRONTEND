@@ -92,11 +92,7 @@ const AUDIENCES = [
   {
     icon: Megaphone,
     title: 'Marketing agencies',
-    bullets: [
-      'Manage multiple client channels',
-      'Workspace isolation per client',
-      'White-label conversation flows',
-    ],
+    bullets: ['Manage multiple client channels', 'Workspace isolation per client', 'White-label conversation flows'],
   },
 ];
 
@@ -106,7 +102,12 @@ function AnimatedSection({ children, className = '' }) {
     const el = ref.current;
     if (!el) return;
     const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { el.classList.add('animate-in'); obs.unobserve(el); } },
+      ([e]) => {
+        if (e.isIntersecting) {
+          el.classList.add('animate-in');
+          obs.unobserve(el);
+        }
+      },
       { threshold: 0.15 },
     );
     obs.observe(el);
@@ -144,8 +145,8 @@ export function HomePage() {
               .
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gray-400">
-              Yrull helps businesses respond instantly, capture more leads, and never miss a message.
-              Built for teams who care about every customer.
+              Yrull helps businesses respond instantly, capture more leads, and never miss a message. Built for teams
+              who care about every customer.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link to="/register">
@@ -154,7 +155,11 @@ export function HomePage() {
                 </Button>
               </Link>
               <a href="#features">
-                <Button variant="outline" size="lg" className="h-12 border-white/20 bg-transparent px-8 text-base text-white hover:bg-white/10 hover:text-white">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="h-12 border-white/20 bg-transparent px-8 text-base text-white hover:bg-white/10 hover:text-white"
+                >
                   See how it works
                 </Button>
               </a>

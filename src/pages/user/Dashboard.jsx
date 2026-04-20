@@ -2,9 +2,22 @@ import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  MessageCircle, Zap, BarChart3, Users, ArrowUpRight, ArrowDownRight,
-  Plug, Reply, Workflow, UserPlus, CheckCircle2, Circle, Instagram,
-  Phone, ExternalLink, TrendingUp,
+  MessageCircle,
+  Zap,
+  BarChart3,
+  Users,
+  ArrowUpRight,
+  ArrowDownRight,
+  Plug,
+  Reply,
+  Workflow,
+  UserPlus,
+  CheckCircle2,
+  Circle,
+  Instagram,
+  Phone,
+  ExternalLink,
+  TrendingUp,
 } from 'lucide-react';
 import { Card } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
@@ -109,10 +122,15 @@ function GettingStartedChecklist({ contacts, automations, profile }) {
     <Card className="p-5">
       <div className="flex items-center justify-between">
         <div className="text-sm font-semibold text-gray-900">Getting started</div>
-        <Badge variant="muted">{completed}/{items.length}</Badge>
+        <Badge variant="muted">
+          {completed}/{items.length}
+        </Badge>
       </div>
       <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-        <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${(completed / items.length) * 100}%` }} />
+        <div
+          className="h-full rounded-full bg-green-500 transition-all"
+          style={{ width: `${(completed / items.length) * 100}%` }}
+        />
       </div>
       <div className="mt-4 space-y-1">
         {items.map((item) => {
@@ -132,9 +150,7 @@ function GettingStartedChecklist({ contacts, automations, profile }) {
                 <Circle className="h-4 w-4 flex-shrink-0 text-gray-300" />
               )}
               <span className={item.done ? 'line-through' : ''}>{item.label}</span>
-              {!item.done && (
-                <span className="ml-auto text-xs font-medium text-green-600">Do it now</span>
-              )}
+              {!item.done && <span className="ml-auto text-xs font-medium text-green-600">Do it now</span>}
             </Link>
           );
         })}
@@ -154,16 +170,17 @@ export function DashboardPage() {
 
   const dashQ = useQuery({
     queryKey: ['dashboard_analytics'],
-    queryFn: () => ENV.USE_MOCK
-      ? {
-          conversations_today: contactsQ.data?.length ?? 0,
-          messages_today: 0,
-          active_automations: (automationsQ.data ?? []).filter((a) => a.is_active).length,
-          response_rate: 0,
-          delta_conversations: 0,
-          delta_messages: 0,
-        }
-      : analyticsApi.getDashboard().catch(() => null),
+    queryFn: () =>
+      ENV.USE_MOCK
+        ? {
+            conversations_today: contactsQ.data?.length ?? 0,
+            messages_today: 0,
+            active_automations: (automationsQ.data ?? []).filter((a) => a.is_active).length,
+            response_rate: 0,
+            delta_conversations: 0,
+            delta_messages: 0,
+          }
+        : analyticsApi.getDashboard().catch(() => null),
     staleTime: 60_000,
   });
 
@@ -182,9 +199,7 @@ export function DashboardPage() {
   }, [dashQ.data, contactsQ.data, automationsQ.data]);
 
   const topAutomations = useMemo(() => {
-    return (automationsQ.data ?? [])
-      .filter((a) => a.is_active)
-      .slice(0, 5);
+    return (automationsQ.data ?? []).filter((a) => a.is_active).slice(0, 5);
   }, [automationsQ.data]);
 
   const isLoading = contactsQ.isLoading && automationsQ.isLoading;
@@ -192,7 +207,16 @@ export function DashboardPage() {
   const isNew = (contactsQ.data?.length ?? 0) < 3;
 
   if (contactsQ.error && automationsQ.error) {
-    return <ErrorState title="Failed to load dashboard" description="We couldn't fetch your data." onRetry={() => { contactsQ.refetch(); automationsQ.refetch(); }} />;
+    return (
+      <ErrorState
+        title="Failed to load dashboard"
+        description="We couldn't fetch your data."
+        onRetry={() => {
+          contactsQ.refetch();
+          automationsQ.refetch();
+        }}
+      />
+    );
   }
 
   if (!isLoading && !hasData) {
@@ -215,29 +239,36 @@ export function DashboardPage() {
       {/* Stat cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {isLoading ? (
-          <>{[1,2,3,4].map((i) => <StatCardSkeleton key={i} />)}</>
+          <>
+            {[1, 2, 3, 4].map((i) => (
+              <StatCardSkeleton key={i} />
+            ))}
+          </>
         ) : (
           <>
             <StatCard
               label="Conversations today"
               value={stats.conversations_today}
               delta={stats.delta_conversations}
-              deltaLabel={stats.delta_conversations ? `${stats.delta_conversations > 0 ? '+' : ''}${stats.delta_conversations} vs yesterday` : 'vs yesterday'}
+              deltaLabel={
+                stats.delta_conversations
+                  ? `${stats.delta_conversations > 0 ? '+' : ''}${stats.delta_conversations} vs yesterday`
+                  : 'vs yesterday'
+              }
               icon={MessageCircle}
             />
             <StatCard
               label="Messages sent today"
               value={stats.messages_today}
               delta={stats.delta_messages}
-              deltaLabel={stats.delta_messages ? `${stats.delta_messages > 0 ? '+' : ''}${stats.delta_messages}% vs yesterday` : 'vs yesterday'}
+              deltaLabel={
+                stats.delta_messages
+                  ? `${stats.delta_messages > 0 ? '+' : ''}${stats.delta_messages}% vs yesterday`
+                  : 'vs yesterday'
+              }
               icon={TrendingUp}
             />
-            <StatCard
-              label="Active automations"
-              value={stats.active_automations}
-              icon={Zap}
-              accent
-            />
+            <StatCard label="Active automations" value={stats.active_automations} icon={Zap} accent />
             <StatCard
               label="Response rate (7d)"
               value={stats.response_rate ? `${stats.response_rate}%` : '—'}
@@ -259,10 +290,16 @@ export function DashboardPage() {
           <Card className="p-5">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold text-gray-900">Top Automations</div>
-              <Link to="/automations" className="text-xs font-medium text-green-600 hover:text-green-700">View all</Link>
+              <Link to="/automations" className="text-xs font-medium text-green-600 hover:text-green-700">
+                View all
+              </Link>
             </div>
             {automationsQ.isLoading ? (
-              <div className="mt-4 space-y-3">{[1,2,3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+              <div className="mt-4 space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
             ) : topAutomations.length === 0 ? (
               <div className="mt-4">
                 <EmptyState
@@ -309,7 +346,11 @@ export function DashboardPage() {
             <div className="mt-1 text-xs text-gray-400">Latest events in your workspace</div>
 
             {activityQ.isLoading ? (
-              <div className="mt-4 space-y-3">{[1,2,3,4,5].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+              <div className="mt-4 space-y-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton key={i} className="h-10 w-full" />
+                ))}
+              </div>
             ) : !activityQ.data?.length ? (
               <div className="mt-4 rounded-lg border border-dashed border-gray-200 p-6 text-center">
                 <Circle className="mx-auto h-6 w-6 text-gray-300" />

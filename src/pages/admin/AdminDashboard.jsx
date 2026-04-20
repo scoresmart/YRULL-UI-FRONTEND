@@ -76,7 +76,11 @@ export function AdminDashboardPage() {
                         {u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}
                       </td>
                       <td className="px-4 py-3">
-                        <button className="rounded-lg p-2 text-gray-500 hover:bg-gray-100" type="button" aria-label="Actions">
+                        <button
+                          className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                          type="button"
+                          aria-label="Actions"
+                        >
                           <MoreHorizontal className="h-4 w-4" />
                         </button>
                       </td>
@@ -95,4 +99,3 @@ export function AdminDashboardPage() {
     </div>
   );
 }
-

@@ -63,11 +63,7 @@ export function LoginPage() {
             {/* Above the form so it stays visible without scrolling past long warnings */}
             <div className="mb-6 space-y-2">
               <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Sign in with Facebook</p>
-              <ConnectFacebookButton
-                className="w-full"
-                size="lg"
-                intent="signInWithFacebook"
-              />
+              <ConnectFacebookButton className="w-full" size="lg" intent="signInWithFacebook" />
               <p className="text-center text-xs text-gray-400">
                 This button signs you in via Supabase. To connect Instagram (Railway OAuth), log in first, then use
                 Instagram or Integrations — and set{' '}

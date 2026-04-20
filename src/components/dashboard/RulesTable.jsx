@@ -14,7 +14,9 @@ const Row = memo(function Row({ item, onEdit, onDelete }) {
       </td>
       <td className="px-4 py-3 text-sm text-gray-500">{item.action?.type ? `${item.action.type}` : '—'}</td>
       <td className="px-4 py-3">
-        <Badge variant={item.status === 'active' ? 'success' : 'muted'}>{item.status === 'active' ? 'Active' : 'Paused'}</Badge>
+        <Badge variant={item.status === 'active' ? 'success' : 'muted'}>
+          {item.status === 'active' ? 'Active' : 'Paused'}
+        </Badge>
       </td>
       <td className="px-4 py-3 text-sm text-gray-900">{item.triggered_count}</td>
       <td className="px-4 py-3">
@@ -96,4 +98,3 @@ export function RulesTable({ data, isLoading }) {
     </Card>
   );
 }
-

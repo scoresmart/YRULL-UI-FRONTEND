@@ -51,13 +51,7 @@ function ConnectPrompt() {
             whenNoWorkspace="toast"
             noWorkspaceMessage="No workspace on your profile yet. Finish onboarding, or sign out and sign in again. You can also add tokens under Integrations."
           />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => navigate('/integrations')}
-          >
+          <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => navigate('/integrations')}>
             Or enter tokens manually
             <ExternalLink className="h-4 w-4" />
           </Button>
@@ -109,9 +103,7 @@ export function InstagramPage() {
     const cleanupContacts = subscribeToTableMulti({
       table: 'instagram_contacts',
       workspaceId,
-      listeners: [
-        { event: '*', callback: () => queryClient.invalidateQueries({ queryKey: ['instagram_contacts'] }) },
-      ],
+      listeners: [{ event: '*', callback: () => queryClient.invalidateQueries({ queryKey: ['instagram_contacts'] }) }],
     });
 
     return () => {

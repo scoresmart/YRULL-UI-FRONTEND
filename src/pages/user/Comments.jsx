@@ -81,11 +81,7 @@ function ConnectPrompt() {
           Connect your Instagram Business account to view, reply to, hide, and delete comments on your posts.
         </p>
         <div className="mt-6 flex flex-col items-center gap-3">
-          <ConnectFacebookButton
-            className="min-h-[48px] w-full max-w-sm px-6"
-            size="lg"
-            intent="linkWorkspace"
-          />
+          <ConnectFacebookButton className="min-h-[48px] w-full max-w-sm px-6" size="lg" intent="linkWorkspace" />
           <Link to="/integrations">
             <Button variant="outline" size="sm" className="gap-2">
               Or configure in Integrations <ExternalLink className="h-4 w-4" />
@@ -129,9 +125,9 @@ function EmptyState({ tab, hasFilters }) {
 
   const config = {
     all: { title: 'No comments yet', desc: 'Comments from your Instagram posts will appear here.' },
-    mentions: { title: 'No mentions yet', desc: 'Posts and comments where you\'re @mentioned will appear here.' },
-    hidden: { title: 'No hidden comments', desc: 'You haven\'t hidden any comments yet.' },
-    replied: { title: 'No replies yet', desc: 'Comments you\'ve replied to will appear here.' },
+    mentions: { title: 'No mentions yet', desc: "Posts and comments where you're @mentioned will appear here." },
+    hidden: { title: 'No hidden comments', desc: "You haven't hidden any comments yet." },
+    replied: { title: 'No replies yet', desc: "Comments you've replied to will appear here." },
   }[tab] || { title: 'No comments', desc: '' };
 
   return (
@@ -169,7 +165,11 @@ export function CommentsPage() {
   const tokenExpired = igStatus?.error === 'token_expired' || igStatus?.status === 'expired';
 
   const statusFilter = tab === 'hidden' ? 'hidden' : tab === 'replied' ? 'replied' : undefined;
-  const { data: comments = [], isLoading: commentsLoading, error: commentsError } = useComments({
+  const {
+    data: comments = [],
+    isLoading: commentsLoading,
+    error: commentsError,
+  } = useComments({
     postId,
     status: statusFilter,
   });
@@ -192,9 +192,9 @@ export function CommentsPage() {
     }
     if (debouncedSearch.trim()) {
       const q = debouncedSearch.toLowerCase();
-      items = items.filter((c) =>
-        (c.text || '').toLowerCase().includes(q) ||
-        (c.username || c.from?.username || '').toLowerCase().includes(q),
+      items = items.filter(
+        (c) =>
+          (c.text || '').toLowerCase().includes(q) || (c.username || c.from?.username || '').toLowerCase().includes(q),
       );
     }
     return items;
@@ -219,7 +219,11 @@ export function CommentsPage() {
     <div className="-mx-4 -my-4 flex h-[calc(100vh-56px)] flex-col bg-gray-50 sm:-mx-6 sm:-my-6 sm:h-[calc(100vh-4rem)] lg:-mx-8 lg:-my-8">
       {/* Header */}
       <div className="shrink-0 border-b border-gray-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
-        {tokenExpired && <div className="mb-4"><TokenExpiredBanner /></div>}
+        {tokenExpired && (
+          <div className="mb-4">
+            <TokenExpiredBanner />
+          </div>
+        )}
 
         <div className="flex items-center justify-between">
           <div>
@@ -243,9 +247,7 @@ export function CommentsPage() {
               key={t.key}
               onClick={() => setTab(t.key)}
               className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                tab === t.key
-                  ? 'bg-gray-900 text-white'
-                  : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                tab === t.key ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
               }`}
             >
               <t.icon className="h-3.5 w-3.5" />
@@ -257,7 +259,9 @@ export function CommentsPage() {
 
       <div className="flex min-h-0 flex-1">
         {/* Sidebar filters */}
-        <aside className={`w-60 shrink-0 border-r border-gray-200 bg-white p-4 ${showSidebar ? 'block' : 'hidden lg:block'}`}>
+        <aside
+          className={`w-60 shrink-0 border-r border-gray-200 bg-white p-4 ${showSidebar ? 'block' : 'hidden lg:block'}`}
+        >
           <div className="space-y-5">
             {/* Search */}
             <div>
@@ -292,9 +296,7 @@ export function CommentsPage() {
                     key={d.key}
                     onClick={() => setDateRange(d.key)}
                     className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
-                      dateRange === d.key
-                        ? 'bg-gray-900 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      dateRange === d.key ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                   >
                     {d.label}

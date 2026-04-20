@@ -75,7 +75,8 @@ function FullCard({ wa }) {
           </div>
           <h2 className="mt-5 text-xl font-semibold text-gray-900">Connect your WhatsApp Business account</h2>
           <p className="mt-2 max-w-sm text-sm text-gray-500">
-            Each workspace connects its own WhatsApp number. Messages are completely isolated per workspace — no data is shared.
+            Each workspace connects its own WhatsApp number. Messages are completely isolated per workspace — no data is
+            shared.
           </p>
 
           {wa.error && (

@@ -7,10 +7,7 @@ import { Mail, MapPin, Phone, Send, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export function ContactPage() {
-  useDocumentTitle(
-    'Contact',
-    'Get in touch with Yrull. Reach us at support@yrull.com or fill out the contact form.',
-  );
+  useDocumentTitle('Contact', 'Get in touch with Yrull. Reach us at support@yrull.com or fill out the contact form.');
 
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
@@ -66,7 +63,9 @@ export function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900">General inquiries</h3>
-                  <a href="mailto:support@yrull.com" className="mt-1 text-sm text-brand-accent hover:underline">support@yrull.com</a>
+                  <a href="mailto:support@yrull.com" className="mt-1 text-sm text-brand-accent hover:underline">
+                    support@yrull.com
+                  </a>
                 </div>
               </div>
 
@@ -76,7 +75,9 @@ export function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900">Privacy & data</h3>
-                  <a href="mailto:privacy@yrull.com" className="mt-1 text-sm text-brand-accent hover:underline">privacy@yrull.com</a>
+                  <a href="mailto:privacy@yrull.com" className="mt-1 text-sm text-brand-accent hover:underline">
+                    privacy@yrull.com
+                  </a>
                 </div>
               </div>
 
@@ -87,8 +88,10 @@ export function ContactPage() {
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900">Office</h3>
                   <p className="mt-1 text-sm text-gray-500">
-                    Prepsmart Pty Ltd<br />
-                    97 Waverly Street, Moonee Ponds<br />
+                    Prepsmart Pty Ltd
+                    <br />
+                    97 Waverly Street, Moonee Ponds
+                    <br />
                     Melbourne, Victoria 3039, Australia
                   </p>
                 </div>
@@ -104,7 +107,9 @@ export function ContactPage() {
                   <CheckCircle2 className="h-7 w-7 text-brand-accent" />
                 </div>
                 <h3 className="mt-4 text-lg font-semibold text-gray-900">Thank you!</h3>
-                <p className="mt-2 text-sm text-gray-500">We&apos;ve received your message and will get back to you shortly.</p>
+                <p className="mt-2 text-sm text-gray-500">
+                  We&apos;ve received your message and will get back to you shortly.
+                </p>
                 <Button className="mt-6" variant="outline" onClick={() => setSubmitted(false)}>
                   Send another message
                 </Button>
@@ -113,20 +118,28 @@ export function ContactPage() {
               <form onSubmit={handleSubmit} className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <label htmlFor="name" className="text-xs font-medium uppercase tracking-wide text-gray-400">Name *</label>
+                    <label htmlFor="name" className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                      Name *
+                    </label>
                     <Input id="name" name="name" placeholder="Your name" required />
                   </div>
                   <div className="space-y-1.5">
-                    <label htmlFor="email" className="text-xs font-medium uppercase tracking-wide text-gray-400">Email *</label>
+                    <label htmlFor="email" className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                      Email *
+                    </label>
                     <Input id="email" name="email" type="email" placeholder="you@company.com" required />
                   </div>
                 </div>
                 <div className="mt-5 space-y-1.5">
-                  <label htmlFor="subject" className="text-xs font-medium uppercase tracking-wide text-gray-400">Subject</label>
+                  <label htmlFor="subject" className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                    Subject
+                  </label>
                   <Input id="subject" name="subject" placeholder="What's this about?" />
                 </div>
                 <div className="mt-5 space-y-1.5">
-                  <label htmlFor="message" className="text-xs font-medium uppercase tracking-wide text-gray-400">Message *</label>
+                  <label htmlFor="message" className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                    Message *
+                  </label>
                   <Textarea id="message" name="message" placeholder="Tell us more..." rows={5} required />
                 </div>
                 <Button type="submit" className="mt-6 w-full sm:w-auto" size="lg" disabled={sending}>

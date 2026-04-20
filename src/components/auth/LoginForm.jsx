@@ -52,12 +52,7 @@ export function LoginForm() {
         <div className="text-xs font-medium uppercase tracking-wide text-gray-400">Email</div>
         <div className="relative">
           <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input
-            placeholder="you@company.com"
-            className="pl-9"
-            autoComplete="email"
-            {...register('email')}
-          />
+          <Input placeholder="you@company.com" className="pl-9" autoComplete="email" {...register('email')} />
         </div>
         {errors.email ? <p className="text-sm text-red-500">{errors.email.message}</p> : null}
       </div>
@@ -96,4 +91,3 @@ export function LoginForm() {
     </form>
   );
 }
-

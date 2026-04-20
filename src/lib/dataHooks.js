@@ -15,7 +15,8 @@ async function fromSupabase(table, opts = {}) {
 export function useProfiles({ limit } = {}) {
   return useQuery({
     queryKey: ['profiles', limit],
-    queryFn: async () => (ENV.USE_MOCK ? mockDb.profiles.slice(0, limit ?? mockDb.profiles.length) : fromSupabase('profiles', { limit })),
+    queryFn: async () =>
+      ENV.USE_MOCK ? mockDb.profiles.slice(0, limit ?? mockDb.profiles.length) : fromSupabase('profiles', { limit }),
   });
 }
 
@@ -94,7 +95,7 @@ export function useMessages(waId) {
     queryFn: async () => {
       if (!waId) return [];
       if (ENV.USE_MOCK) return mockDb.messages.filter((m) => m.wa_id === waId);
-      
+
       // Fetch ALL messages for this contact (both inbound and outbound, including automated)
       // No direction filter - we want to see all messages sent/received/automated
       // Also fetch messages that might have different direction values (automated, system, etc.)
@@ -107,33 +108,31 @@ export function useMessages(waId) {
         console.error('Error fetching messages:', error);
         throw error;
       }
-      
 
-      
       // Ultra-aggressive deduplication: handle backend sending duplicates
       if (!data) return [];
-      
+
       // Use a Map to track all possible duplicate keys
       const seen = new Map();
       const result = [];
-      
+
       data.forEach((msg) => {
         // Include ALL messages - don't filter out automated messages or messages without body
         // Some automated messages might not have a body initially, or might have different structure
-        
+
         // Create multiple keys to catch duplicates even if IDs differ
         const idKey = msg.id ? `id:${msg.id}` : null;
         // Use empty string for body if null/undefined to ensure messages without body are still included
         const bodyContent = (msg.body || '').trim() || '[no body]';
         const contentKey = `content:${bodyContent}_${msg.created_at}_${msg.direction}_${msg.wa_id}`;
         const timestampKey = `time:${msg.created_at}_${bodyContent}_${msg.direction}_${msg.wa_id}`;
-        
+
         // Check if we've seen this message by any key
         let isDuplicate = false;
         if (idKey && seen.has(idKey)) isDuplicate = true;
         if (!isDuplicate && seen.has(contentKey)) isDuplicate = true;
         if (!isDuplicate && seen.has(timestampKey)) isDuplicate = true;
-        
+
         if (!isDuplicate) {
           // Mark all keys as seen
           if (idKey) seen.set(idKey, msg);
@@ -142,7 +141,7 @@ export function useMessages(waId) {
           result.push(msg);
         }
       });
-      
+
       return result;
     },
   });
@@ -182,7 +181,7 @@ export function useComments({ postId, status } = {}) {
     queryFn: async () => {
       if (ENV.USE_MOCK) return [];
       const result = await instagramApi.listComments({ post_id: postId, status });
-      return Array.isArray(result) ? result : result?.data ?? [];
+      return Array.isArray(result) ? result : (result?.data ?? []);
     },
   });
 }
@@ -195,7 +194,7 @@ export function useMentions() {
     queryFn: async () => {
       if (ENV.USE_MOCK) return [];
       const result = await instagramApi.listMentions();
-      return Array.isArray(result) ? result : result?.data ?? [];
+      return Array.isArray(result) ? result : (result?.data ?? []);
     },
   });
 }
@@ -207,7 +206,7 @@ export function useInstagramPosts() {
     queryFn: async () => {
       if (ENV.USE_MOCK) return [];
       const result = await instagramApi.listPosts();
-      return Array.isArray(result) ? result : result?.data ?? [];
+      return Array.isArray(result) ? result : (result?.data ?? []);
     },
   });
 }
@@ -259,4 +258,3 @@ export function useDeleteComment() {
     onError: (err) => toast.error(err.message || 'Failed to delete comment'),
   });
 }
-

@@ -1,6 +1,22 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, MessageCircle, MessageSquare, Users, Tags, Target, Settings, LogOut, Phone, Workflow, Plug, Instagram, Loader2, Megaphone, X } from 'lucide-react';
+import {
+  LayoutDashboard,
+  MessageCircle,
+  MessageSquare,
+  Users,
+  Tags,
+  Target,
+  Settings,
+  LogOut,
+  Phone,
+  Workflow,
+  Plug,
+  Instagram,
+  Loader2,
+  Megaphone,
+  X,
+} from 'lucide-react';
 import { BrandMark } from '../brand/BrandMark';
 import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import { useSidebar } from './SidebarContext';
@@ -51,7 +67,12 @@ export function Sidebar() {
       <div className="flex items-center justify-between px-5 pt-6">
         <BrandMark variant="dark" className="text-lg" />
         {!isDesktop && (
-          <button type="button" onClick={close} className="rounded-lg p-2 text-gray-400 hover:bg-[#1A1A1A] hover:text-white lg:hidden" aria-label="Close menu">
+          <button
+            type="button"
+            onClick={close}
+            className="rounded-lg p-2 text-gray-400 hover:bg-[#1A1A1A] hover:text-white lg:hidden"
+            aria-label="Close menu"
+          >
             <X className="h-5 w-5" />
           </button>
         )}
@@ -67,7 +88,9 @@ export function Sidebar() {
             <NavLink
               key={item.to}
               to={item.to}
-              onClick={() => { if (!isDesktop) close(); }}
+              onClick={() => {
+                if (!isDesktop) close();
+              }}
               className={({ isActive }) =>
                 cn(
                   'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#E5E5E5] transition-colors duration-150 hover:bg-[#1A1A1A]',
@@ -94,7 +117,9 @@ export function Sidebar() {
 
       <div className="border-t border-white/10 p-4">
         <div className="flex items-center gap-3">
-          <div className={cn('flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold', avatarCls)}>
+          <div
+            className={cn('flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold', avatarCls)}
+          >
             {initialsFromName(name)}
           </div>
           <div className="min-w-0 flex-1">
@@ -125,9 +150,7 @@ export function Sidebar() {
 
   return (
     <>
-      {open && (
-        <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity" onClick={close} />
-      )}
+      {open && <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity" onClick={close} />}
       <aside
         className={cn(
           'fixed left-0 top-0 z-50 h-screen w-[280px] bg-brand-sidebar text-brand-sidebarText transition-transform duration-300 ease-in-out',

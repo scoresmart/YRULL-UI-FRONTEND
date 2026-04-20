@@ -32,7 +32,7 @@ export function IncomingCallNotification() {
   const cleanupCall = useCallback(() => {
     // Debug logging only (not shown by default in console)
     console.debug('[Call] Cleaning up call resources');
-    
+
     // Close peer connection
     if (peerConnectionRef.current) {
       try {
@@ -42,7 +42,7 @@ export function IncomingCallNotification() {
       }
       peerConnectionRef.current = null;
     }
-    
+
     // Stop local stream tracks
     if (localStreamRef.current) {
       try {
@@ -55,19 +55,19 @@ export function IncomingCallNotification() {
       }
       localStreamRef.current = null;
     }
-    
+
     // Clear call timer
     if (callTimerRef.current) {
       clearInterval(callTimerRef.current);
       callTimerRef.current = null;
     }
-    
+
     // Reset call duration
     setCallDuration(0);
-    
+
     // Reset mute state
     setIsMuted(false);
-    
+
     // Clear remote audio
     if (remoteAudioRef.current) {
       try {
@@ -109,8 +109,7 @@ export function IncomingCallNotification() {
     const pending = pendingCallsQ.data?.pending || [];
     const pendingCall = pending.find((c) => {
       // Only show if not dismissed and is actually incoming
-      return !dismissedCallIds.has(c.call_id) && 
-             (c.direction === 'USER_INITIATED' || c.direction === 'inbound');
+      return !dismissedCallIds.has(c.call_id) && (c.direction === 'USER_INITIATED' || c.direction === 'inbound');
     });
     if (pendingCall) {
       return {
@@ -133,23 +132,24 @@ export function IncomingCallNotification() {
       .filter((call) => {
         const callTime = new Date(call.created_at || call.timestamp || 0).getTime();
         const isRecent = callTime > now - 30000; // Last 30 seconds (more lenient)
-        
+
         // Check if call is actually ringing (not completed/ended)
         const status = (call.status || '').toUpperCase();
         const event = (call.event || '').toLowerCase();
-        
+
         // Definitely ringing states
         const isRinging = status === 'RINGING' || event === 'ringing' || event === 'initiate';
-        
+
         // Definitely ended states - exclude these
-        const isEnded = status === 'COMPLETED' || 
-                       status === 'ENDED' || 
-                       status === 'MISSED' ||
-                       event === 'disconnect' || 
-                       event === 'end' || 
-                       event === 'missed' ||
-                       event === 'connect'; // 'connect' means call was answered, not ringing
-        
+        const isEnded =
+          status === 'COMPLETED' ||
+          status === 'ENDED' ||
+          status === 'MISSED' ||
+          event === 'disconnect' ||
+          event === 'end' ||
+          event === 'missed' ||
+          event === 'connect'; // 'connect' means call was answered, not ringing
+
         return (
           call.direction === 'USER_INITIATED' &&
           isRinging &&
@@ -204,7 +204,7 @@ export function IncomingCallNotification() {
     }
 
     const currentCallId = incomingCall?.call_id || incomingCall?.id;
-    
+
     // If we already have this call active, don't change state (prevents flickering)
     if (currentCallId === lastCallIdRef.current && callState === 'ringing') {
       return;
@@ -213,22 +213,23 @@ export function IncomingCallNotification() {
     if (incomingCall && callState === 'idle') {
       // Double-check that this is actually a ringing call, not a completed one
       const callStatus = incomingCall.status || incomingCall.event || '';
-      const isActuallyRinging = 
-        callStatus === 'RINGING' || 
-        callStatus === 'ringing' || 
+      const isActuallyRinging =
+        callStatus === 'RINGING' ||
+        callStatus === 'ringing' ||
         callStatus === 'initiate' ||
         incomingCall.source === 'pending'; // Pending calls are definitely ringing
-      
+
       // Make sure it's NOT completed/ended
-      const isNotEnded = callStatus !== 'COMPLETED' && 
-                        callStatus !== 'ENDED' && 
-                        callStatus !== 'MISSED' &&
-                        callStatus !== 'ACCEPTED' &&
-                        callStatus !== 'connect' &&
-                        callStatus !== 'disconnect' &&
-                        callStatus !== 'end' &&
-                        callStatus !== 'missed';
-      
+      const isNotEnded =
+        callStatus !== 'COMPLETED' &&
+        callStatus !== 'ENDED' &&
+        callStatus !== 'MISSED' &&
+        callStatus !== 'ACCEPTED' &&
+        callStatus !== 'connect' &&
+        callStatus !== 'disconnect' &&
+        callStatus !== 'end' &&
+        callStatus !== 'missed';
+
       if (isActuallyRinging && isNotEnded) {
         // Set state immediately for pending calls (they're definitely real), debounce for history calls
         if (incomingCall.source === 'pending') {
@@ -274,17 +275,21 @@ export function IncomingCallNotification() {
   // Use a ref to track if we've already dismissed to prevent flickering
   const dismissedInThisCycleRef = useRef(new Set());
   const activeCallIdRef = useRef(null);
-  
+
   // Track the active call ID
   useEffect(() => {
     if (activeCallId) {
       activeCallIdRef.current = activeCallId;
     }
   }, [activeCallId]);
-  
+
   useEffect(() => {
     // Check for ended calls when ringing OR active
-    if ((callState === 'ringing' || callState === 'active' || callState === 'connecting') && activeCallIdRef.current && callHistoryQ.data) {
+    if (
+      (callState === 'ringing' || callState === 'active' || callState === 'connecting') &&
+      activeCallIdRef.current &&
+      callHistoryQ.data
+    ) {
       // Check if the active call has ended by looking for calls from the same number
       const recentCallsFromNumber = callHistoryQ.data.filter((call) => {
         const callFrom = call.from_number || call.from;
@@ -294,44 +299,45 @@ export function IncomingCallNotification() {
 
       // Check the most recent call from this number
       const mostRecentCall = recentCallsFromNumber.sort(
-        (a, b) => new Date(b.created_at || b.timestamp || 0) - new Date(a.created_at || a.timestamp || 0)
+        (a, b) => new Date(b.created_at || b.timestamp || 0) - new Date(a.created_at || a.timestamp || 0),
       )[0];
 
       if (mostRecentCall) {
         const callId = mostRecentCall.call_id || mostRecentCall.id;
         const status = (mostRecentCall.status || '').toUpperCase();
         const event = (mostRecentCall.event || '').toLowerCase();
-        
+
         // Skip if we've already dismissed this call in this cycle
         if (callId && dismissedInThisCycleRef.current.has(callId)) {
           return;
         }
 
         // Check if call has ended
-        const isEnded = status === 'COMPLETED' || 
-                       status === 'ENDED' || 
-                       status === 'MISSED' ||
-                       event === 'disconnect' ||
-                       event === 'end' ||
-                       event === 'missed' ||
-                       event === 'hangup';
+        const isEnded =
+          status === 'COMPLETED' ||
+          status === 'ENDED' ||
+          status === 'MISSED' ||
+          event === 'disconnect' ||
+          event === 'end' ||
+          event === 'missed' ||
+          event === 'hangup';
 
         if (isEnded && callState !== 'ended' && callState !== 'idle') {
           // Call has ended, clean up and dismiss
           console.debug('[Call] Detected call end from history:', { callId, status, event });
-          
+
           if (callId) {
             dismissedInThisCycleRef.current.add(callId);
             setDismissedCallIds((prev) => new Set([...prev, callId]));
           }
-          
+
           cleanupCall();
           setCallState('ended');
           setActiveCallId(null);
           activeCallIdRef.current = null;
           lastCallIdRef.current = null;
           waCallIdRef.current = null;
-          
+
           // Auto-dismiss after 2 seconds
           setTimeout(() => {
             setCallState('idle');
@@ -363,10 +369,13 @@ export function IncomingCallNotification() {
 
         // Ring pattern: 1s on, 2s off
         let ringing = true;
-        const interval = setInterval(() => {
-          ringing = !ringing;
-          gain.gain.value = ringing ? 0.1 : 0;
-        }, ringing ? 1000 : 2000);
+        const interval = setInterval(
+          () => {
+            ringing = !ringing;
+            gain.gain.value = ringing ? 0.1 : 0;
+          },
+          ringing ? 1000 : 2000,
+        );
 
         ringtoneRef.current = { ctx, osc, interval };
       } catch (e) {
@@ -439,10 +448,7 @@ export function IncomingCallNotification() {
 
       // 2. Create WebRTC peer connection
       const pc = new RTCPeerConnection({
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' },
-        ],
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }],
       });
       peerConnectionRef.current = pc;
 
@@ -474,7 +480,7 @@ export function IncomingCallNotification() {
           }, 2000);
         }
       };
-      
+
       // Also listen for connection state changes
       pc.onconnectionstatechange = () => {
         const state = pc.connectionState;
@@ -495,10 +501,12 @@ export function IncomingCallNotification() {
       };
 
       // 5. Set remote SDP offer
-      await pc.setRemoteDescription(new RTCSessionDescription({
-        type: incomingCall.sdp_type || 'offer',
-        sdp: incomingCall.sdp,
-      }));
+      await pc.setRemoteDescription(
+        new RTCSessionDescription({
+          type: incomingCall.sdp_type || 'offer',
+          sdp: incomingCall.sdp,
+        }),
+      );
 
       // 6. Create SDP answer
       const answer = await pc.createAnswer();
@@ -562,7 +570,7 @@ export function IncomingCallNotification() {
     // Use the stored WA call_id first (NOT the phone number from activeCallId)
     const callId = waCallIdRef.current || incomingCall?.call_id || lastCallIdRef.current;
     console.debug('[Call] Hangup call_id:', callId);
-    
+
     // Clean up immediately
     cleanupCall();
     setCallState('ended');
@@ -570,7 +578,7 @@ export function IncomingCallNotification() {
     activeCallIdRef.current = null;
     lastCallIdRef.current = null;
     waCallIdRef.current = null;
-    
+
     // Try to hangup via API if we have a call ID
     if (callId) {
       try {
@@ -585,7 +593,7 @@ export function IncomingCallNotification() {
     } else {
       toast('Call ended');
     }
-    
+
     // Auto-dismiss after a short delay
     setTimeout(() => {
       setCallState('idle');
@@ -607,14 +615,14 @@ export function IncomingCallNotification() {
     if (localStreamRef.current) {
       const tracks = localStreamRef.current.getAudioTracks();
       const newMutedState = !isMuted;
-      
+
       tracks.forEach((track) => {
         track.enabled = !newMutedState; // enabled = true means unmuted
         console.debug('[Call] Track enabled:', track.enabled, 'muted:', newMutedState);
       });
-      
+
       setIsMuted(newMutedState);
-      
+
       if (newMutedState) {
         toast('Microphone muted', { icon: '🔇', duration: 2000 });
       } else {
@@ -628,7 +636,9 @@ export function IncomingCallNotification() {
   }, [isMuted]);
 
   const formatDuration = (seconds) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const m = Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, '0');
     const s = (seconds % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   };
@@ -673,11 +683,13 @@ export function IncomingCallNotification() {
             <div className="flex-1">
               {/* Caller info */}
               <div className="mb-4 flex items-center gap-4">
-                <div className={cn(
-                  'flex h-16 w-16 items-center justify-center rounded-full text-xl font-semibold',
-                  avatarCls,
-                  callState === 'ringing' && 'animate-pulse ring-4 ring-green-300',
-                )}>
+                <div
+                  className={cn(
+                    'flex h-16 w-16 items-center justify-center rounded-full text-xl font-semibold',
+                    avatarCls,
+                    callState === 'ringing' && 'animate-pulse ring-4 ring-green-300',
+                  )}
+                >
                   {initialsFromName(callerName)}
                 </div>
                 <div className="flex-1">
@@ -722,10 +734,7 @@ export function IncomingCallNotification() {
                       <Button
                         onClick={toggleMute}
                         variant="outline"
-                        className={cn(
-                          'flex-1',
-                          isMuted && 'border-orange-200 bg-orange-50 text-orange-600',
-                        )}
+                        className={cn('flex-1', isMuted && 'border-orange-200 bg-orange-50 text-orange-600')}
                       >
                         {isMuted ? <MicOff className="mr-2 h-4 w-4" /> : <Mic className="mr-2 h-4 w-4" />}
                         {isMuted ? 'Unmute' : 'Mute'}
@@ -733,10 +742,7 @@ export function IncomingCallNotification() {
                     )}
                     <Button
                       onClick={handleHangup}
-                      className={cn(
-                        'flex-1 bg-red-500 hover:bg-red-600',
-                        callState === 'connecting' && 'w-full'
-                      )}
+                      className={cn('flex-1 bg-red-500 hover:bg-red-600', callState === 'connecting' && 'w-full')}
                       disabled={callState === 'connecting'}
                     >
                       <PhoneOff className="mr-2 h-4 w-4" />
@@ -745,7 +751,13 @@ export function IncomingCallNotification() {
                   </>
                 )}
                 {callState === 'ended' && (
-                  <Button onClick={() => { setCallState('idle'); }} variant="outline" className="flex-1">
+                  <Button
+                    onClick={() => {
+                      setCallState('idle');
+                    }}
+                    variant="outline"
+                    className="flex-1"
+                  >
                     Close
                   </Button>
                 )}

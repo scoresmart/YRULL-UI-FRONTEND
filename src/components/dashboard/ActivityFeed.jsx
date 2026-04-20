@@ -51,4 +51,3 @@ export function ActivityFeed({ data, isLoading }) {
     </Card>
   );
 }
-

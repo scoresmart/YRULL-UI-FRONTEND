@@ -93,7 +93,11 @@ export function TagsPage() {
                     <div className="mt-3 text-xs text-gray-400">Last used: {count ? '2 days ago' : '—'}</div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900" type="button" aria-label="Edit">
+                    <button
+                      className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                      type="button"
+                      aria-label="Edit"
+                    >
                       <Pencil className="h-4 w-4" />
                     </button>
                     <button
@@ -129,4 +133,3 @@ export function TagsPage() {
     </div>
   );
 }
-

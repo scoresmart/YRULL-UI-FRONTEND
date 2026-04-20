@@ -12,14 +12,21 @@ export function ContactSidePanel({ contact, tags, onClose }) {
     <aside className="fixed right-0 top-16 h-[calc(100vh-64px)] w-[420px] border-l border-brand-border bg-white">
       <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
         <div className="text-sm font-semibold text-gray-900">Contact</div>
-        <button className="rounded-lg p-2 text-gray-500 hover:bg-gray-100" type="button" onClick={onClose} aria-label="Close">
+        <button
+          className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>
 
       <div className="h-full overflow-auto p-6">
         <div className="flex items-start gap-3">
-          <div className={cn('flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold', avatarCls)}>
+          <div
+            className={cn('flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold', avatarCls)}
+          >
             {initialsFromName(name)}
           </div>
           <div className="min-w-0 flex-1">
@@ -66,4 +73,3 @@ export function ContactSidePanel({ contact, tags, onClose }) {
     </aside>
   );
 }
-

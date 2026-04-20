@@ -59,7 +59,7 @@ const FAQS = [
   },
   {
     q: 'What happens when my trial ends?',
-    a: 'After 14 days, you\'ll be asked to select a paid plan. If you don\'t, your account will be paused — your data is safe, and you can reactivate anytime.',
+    a: "After 14 days, you'll be asked to select a paid plan. If you don't, your account will be paused — your data is safe, and you can reactivate anytime.",
   },
   {
     q: 'Do you offer annual billing?',
@@ -71,7 +71,7 @@ const FAQS = [
   },
   {
     q: 'Is my data secure?',
-    a: 'Absolutely. All data is encrypted in transit and at rest. We comply with Meta Platform Terms and only access data you\'ve explicitly authorized. Workspaces are fully isolated.',
+    a: "Absolutely. All data is encrypted in transit and at rest. We comply with Meta Platform Terms and only access data you've explicitly authorized. Workspaces are fully isolated.",
   },
 ];
 
@@ -79,12 +79,11 @@ function FaqItem({ q, a }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="border-b border-gray-100">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between py-5 text-left"
-      >
+      <button onClick={() => setOpen(!open)} className="flex w-full items-center justify-between py-5 text-left">
         <span className="text-sm font-medium text-gray-900">{q}</span>
-        <ChevronDown className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+        />
       </button>
       {open && <p className="pb-5 text-sm leading-relaxed text-gray-500">{a}</p>}
     </div>
@@ -103,9 +102,7 @@ export function PricingPage() {
       <section className="bg-brand-sidebar py-20 text-center text-white sm:py-28">
         <div className="mx-auto max-w-3xl px-4">
           <p className="text-sm font-semibold uppercase tracking-widest text-brand-accent">Pricing</p>
-          <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl">
-            Simple plans, transparent pricing
-          </h1>
+          <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl">Simple plans, transparent pricing</h1>
           <p className="mx-auto mt-6 max-w-xl text-lg text-gray-400">
             Start free for 14 days. No credit card required. Upgrade when you&apos;re ready.
           </p>
@@ -135,11 +132,7 @@ export function PricingPage() {
                   <span className="text-sm text-gray-500"> / month</span>
                 </div>
                 <Link to="/register" className="mt-6">
-                  <Button
-                    className="w-full"
-                    variant={p.popular ? 'default' : 'outline'}
-                    size="lg"
-                  >
+                  <Button className="w-full" variant={p.popular ? 'default' : 'outline'} size="lg">
                     Start free trial <ArrowRight className="ml-1 h-4 w-4" />
                   </Button>
                 </Link>
@@ -165,11 +158,15 @@ export function PricingPage() {
         <div className="mx-auto max-w-2xl px-4 sm:px-6">
           <h2 className="text-center text-2xl font-bold text-gray-900">Frequently asked questions</h2>
           <div className="mt-10">
-            {FAQS.map((f) => <FaqItem key={f.q} q={f.q} a={f.a} />)}
+            {FAQS.map((f) => (
+              <FaqItem key={f.q} q={f.q} a={f.a} />
+            ))}
           </div>
           <p className="mt-8 text-center text-sm text-gray-500">
             Have another question?{' '}
-            <Link to="/contact" className="font-medium text-brand-accent hover:underline">Get in touch</Link>
+            <Link to="/contact" className="font-medium text-brand-accent hover:underline">
+              Get in touch
+            </Link>
           </p>
         </div>
       </section>

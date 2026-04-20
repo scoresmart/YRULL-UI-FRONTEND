@@ -1,5 +1,18 @@
 import { memo, useCallback, useMemo, useRef, useState, useEffect } from 'react';
-import { Paperclip, Send, Smile, Tag, UserPlus, Archive, Phone, PhoneOutgoing, PhoneIncoming, PhoneMissed, ArrowLeft, Info } from 'lucide-react';
+import {
+  Paperclip,
+  Send,
+  Smile,
+  Tag,
+  UserPlus,
+  Archive,
+  Phone,
+  PhoneOutgoing,
+  PhoneIncoming,
+  PhoneMissed,
+  ArrowLeft,
+  Info,
+} from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn, formatRelativeTime, initialsFromName, pastelClassFromString } from '../../lib/utils';
 import { Button } from '../ui/button';
@@ -24,7 +37,9 @@ function formatCallDuration(seconds) {
 // Check if message is a call event (actual incoming/outgoing call, not a call button)
 function isCallMessage(msg) {
   if (!msg) return false;
-  const msgType = String(msg.message_type || '').toLowerCase().trim();
+  const msgType = String(msg.message_type || '')
+    .toLowerCase()
+    .trim();
   return msgType === 'call_event';
 }
 
@@ -41,18 +56,14 @@ const CallMessage = memo(function CallMessage({ msg, inbound }) {
   }
 
   const isMissed = duration === 0 || duration === null || callStatus !== 'COMPLETED';
-  const PhoneIcon = isMissed ? PhoneMissed : (inbound ? PhoneIncoming : PhoneOutgoing);
-  const iconColor = isMissed
-    ? 'text-red-500'
-    : (inbound ? 'text-blue-500' : 'text-white');
+  const PhoneIcon = isMissed ? PhoneMissed : inbound ? PhoneIncoming : PhoneOutgoing;
+  const iconColor = isMissed ? 'text-red-500' : inbound ? 'text-blue-500' : 'text-white';
 
   return (
     <div className="flex items-center gap-3">
       <PhoneIcon className={cn('h-5 w-5 shrink-0', iconColor)} />
       <div className="flex-1">
-        <div className={cn('text-sm font-semibold', inbound ? 'text-gray-900' : 'text-white')}>
-          Voice call
-        </div>
+        <div className={cn('text-sm font-semibold', inbound ? 'text-gray-900' : 'text-white')}>Voice call</div>
         <div className={cn('text-xs', inbound ? 'text-gray-600' : 'text-white/90')}>
           {isMissed ? 'Missed call' : formatCallDuration(duration)}
         </div>
@@ -63,19 +74,17 @@ const CallMessage = memo(function CallMessage({ msg, inbound }) {
 
 const MessageBubble = memo(function MessageBubble({ msg }) {
   if (!msg) return null; // Safety check
-  
+
   const inbound = msg.direction === 'inbound';
   const isAiReply = msg.ai_intent?.startsWith('reply_to_');
   const isCall = isCallMessage(msg);
-  
+
   return (
     <div className={cn('flex w-full', inbound ? 'justify-start' : 'justify-end')}>
       <div
         className={cn(
           'max-w-[85%] rounded-xl px-4 py-2 text-sm shadow-sm sm:max-w-[62%]',
-          inbound 
-            ? 'rounded-tl-sm bg-white text-gray-800' 
-            : 'rounded-tr-sm bg-brand-sentBubble text-gray-900',
+          inbound ? 'rounded-tl-sm bg-white text-gray-800' : 'rounded-tr-sm bg-brand-sentBubble text-gray-900',
           isCall && !inbound && 'bg-[#005C4B]', // WhatsApp green (#005C4B) for outgoing calls
           isCall && inbound && 'bg-white', // White for incoming calls
         )}
@@ -85,9 +94,7 @@ const MessageBubble = memo(function MessageBubble({ msg }) {
         ) : msg.message_type === 'voice_call' ? (
           // Call button message — show the actual text + call button like WhatsApp
           <div className="flex flex-col gap-2">
-            <div className="whitespace-pre-wrap text-sm">
-              {(msg.body || '').replace(/^\[Call Button\]\s*/, '')}
-            </div>
+            <div className="whitespace-pre-wrap text-sm">{(msg.body || '').replace(/^\[Call Button\]\s*/, '')}</div>
             <div className="flex items-center justify-center gap-2 rounded-lg border border-green-700 bg-green-800/80 px-3 py-2">
               <Phone className="h-4 w-4 text-white" />
               <span className="text-sm font-semibold text-white">Call ScoreSmart</span>
@@ -99,11 +106,7 @@ const MessageBubble = memo(function MessageBubble({ msg }) {
             <div className={cn('text-sm font-medium', inbound ? 'text-gray-900' : 'text-white')}>
               📱 Interactive message
             </div>
-            {msg.body && (
-              <div className={cn('text-xs', inbound ? 'text-gray-600' : 'text-white/80')}>
-                {msg.body}
-              </div>
-            )}
+            {msg.body && <div className={cn('text-xs', inbound ? 'text-gray-600' : 'text-white/80')}>{msg.body}</div>}
             {!msg.body && (
               <div className={cn('text-xs italic', inbound ? 'text-gray-500' : 'text-white/70')}>
                 Tap to view on WhatsApp
@@ -113,7 +116,14 @@ const MessageBubble = memo(function MessageBubble({ msg }) {
         ) : msg.message_type === 'text' || !msg.message_type || msg.message_type === 'automated' ? (
           // Show body if available, check multiple fields for automated messages
           <div className="whitespace-pre-wrap">
-            {msg.body || msg.content || msg.text || msg.message || (msg.metadata && typeof msg.metadata === 'object' ? msg.metadata.text || msg.metadata.body || msg.metadata.content : null) || '[Automated message - no content]'}
+            {msg.body ||
+              msg.content ||
+              msg.text ||
+              msg.message ||
+              (msg.metadata && typeof msg.metadata === 'object'
+                ? msg.metadata.text || msg.metadata.body || msg.metadata.content
+                : null) ||
+              '[Automated message - no content]'}
           </div>
         ) : (
           <div className="flex items-center gap-2">
@@ -122,17 +132,37 @@ const MessageBubble = memo(function MessageBubble({ msg }) {
               <div className={cn('text-sm font-medium', inbound ? 'text-gray-900' : 'text-white')}>
                 {msg.message_type ? String(msg.message_type).toUpperCase() : 'MEDIA'}
               </div>
-              <div className={cn('text-xs', inbound ? 'text-gray-500' : 'text-white/70')}>
-                Preview coming soon
-              </div>
+              <div className={cn('text-xs', inbound ? 'text-gray-500' : 'text-white/70')}>Preview coming soon</div>
             </div>
           </div>
         )}
-        <div className={cn('mt-1 flex items-center justify-end gap-1 text-[11px]', inbound ? 'text-gray-500' : 'text-gray-600')}>
-          <span>{msg.created_at ? new Date(msg.created_at).toLocaleString('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).replace(',', '') : ''}</span>
+        <div
+          className={cn(
+            'mt-1 flex items-center justify-end gap-1 text-[11px]',
+            inbound ? 'text-gray-500' : 'text-gray-600',
+          )}
+        >
+          <span>
+            {msg.created_at
+              ? new Date(msg.created_at)
+                  .toLocaleString('en-AU', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false,
+                  })
+                  .replace(',', '')
+              : ''}
+          </span>
           {!inbound ? (
             <>
-              {isAiReply ? <span className="text-gray-400" title="AI auto-reply">🤖</span> : null}
+              {isAiReply ? (
+                <span className="text-gray-400" title="AI auto-reply">
+                  🤖
+                </span>
+              ) : null}
               {!isCall && <span className="text-gray-400">✓✓</span>}
             </>
           ) : null}
@@ -170,19 +200,17 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
   const [callingUser, setCallingUser] = useState(false);
   const [showTagPanel, setShowTagPanel] = useState(false);
   const [applyingTag, setApplyingTag] = useState(false);
-  
+
   const tagsQ = useTags();
   const contactTagsQ = useContactTags();
-  
+
   // Get tags applied to this contact
   // Note: contact_tags table references contacts.id, not whatsapp_contacts
   // The backend API handles the mapping between wa_id and contact_id
   const appliedTags = useMemo(() => {
     if (!contactTagsQ.data || !contact) return [];
     // Try to match by contact.id if available
-    return contactTagsQ.data
-      .filter((ct) => contact.id && ct.contact_id === contact.id)
-      .map((ct) => ct.tag_id);
+    return contactTagsQ.data.filter((ct) => contact.id && ct.contact_id === contact.id).map((ct) => ct.tag_id);
   }, [contactTagsQ.data, contact]);
   const listRef = useRef(null);
 
@@ -192,16 +220,16 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
     if (selectedWaId && messagesQ.data?.length) {
       // Get the latest message timestamp (most recent message)
       const sortedMessages = [...messagesQ.data].sort(
-        (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+        (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0),
       );
       const latestMessage = sortedMessages[0];
-      
+
       if (latestMessage?.created_at) {
         // Mark all current messages as read by setting lastRead to the latest message time
         // This ensures that when user views the chat, all visible messages are marked as read
         const latestTime = new Date(latestMessage.created_at).toISOString();
         const currentLastRead = localStorage.getItem(`lastRead_${selectedWaId}`);
-        
+
         // Only update if the latest message is newer than current lastRead
         if (!currentLastRead || new Date(latestMessage.created_at) > new Date(currentLastRead)) {
           localStorage.setItem(`lastRead_${selectedWaId}`, latestTime);
@@ -238,7 +266,7 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
 
       queryClient.setQueryData(['whatsapp_messages', selectedWaId], (oldData) => {
         if (!oldData) return [optimisticMessage];
-        
+
         // Check if message already exists (avoid duplicates)
         const exists = oldData.some(
           (msg) =>
@@ -246,14 +274,14 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
             (msg.body === messageText &&
               msg.direction === 'outbound' &&
               msg.wa_id === contact.wa_id &&
-              Math.abs(new Date(msg.created_at).getTime() - new Date(optimisticMessage.created_at).getTime()) < 5000)
+              Math.abs(new Date(msg.created_at).getTime() - new Date(optimisticMessage.created_at).getTime()) < 5000),
         );
-        
+
         if (exists) return oldData;
-        
+
         // Add optimistic message and sort
         return [...oldData, optimisticMessage].sort(
-          (a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0)
+          (a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0),
         );
       });
 
@@ -306,34 +334,37 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
   const deduplicatedMessages = useMemo(() => {
     const messages = messagesQ.data ?? [];
     if (messages.length === 0) return [];
-    
+
     // Aggressive deduplication: multiple passes
     const seen = new Map(); // Map of key -> first occurrence index
     const result = [];
-    
+
     messages.forEach((msg, index) => {
       // Include ALL messages - don't filter out automated messages or messages without body
       // Check multiple fields for content (body, content, text, message, metadata)
-      const bodyContent = (
-        msg.body || 
-        msg.content || 
-        msg.text || 
-        msg.message ||
-        (msg.metadata && typeof msg.metadata === 'object' ? (msg.metadata.text || msg.metadata.body || msg.metadata.content) : null) ||
-        ''
-      ).trim() || '[no body]';
-      
+      const bodyContent =
+        (
+          msg.body ||
+          msg.content ||
+          msg.text ||
+          msg.message ||
+          (msg.metadata && typeof msg.metadata === 'object'
+            ? msg.metadata.text || msg.metadata.body || msg.metadata.content
+            : null) ||
+          ''
+        ).trim() || '[no body]';
+
       // Create multiple keys for deduplication
       const idKey = msg.id ? `id:${msg.id}` : null;
       const contentKey = `content:${bodyContent}_${msg.created_at}_${msg.direction}_${msg.wa_id}`;
       const timestampKey = `time:${msg.created_at}_${bodyContent}_${msg.direction}_${msg.wa_id}`;
-      
+
       // Check all possible keys
       let isDuplicate = false;
       if (idKey && seen.has(idKey)) isDuplicate = true;
       if (!isDuplicate && seen.has(contentKey)) isDuplicate = true;
       if (!isDuplicate && seen.has(timestampKey)) isDuplicate = true;
-      
+
       if (!isDuplicate) {
         // Mark all keys as seen
         if (idKey) seen.set(idKey, index);
@@ -342,7 +373,7 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
         result.push(msg);
       }
     });
-    
+
     return result;
   }, [messagesQ.data]);
 
@@ -362,7 +393,12 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
       <div className="flex h-14 items-center justify-between border-b border-brand-border bg-white px-3 sm:h-16 sm:px-5">
         <div className="flex items-center gap-2 sm:gap-3">
           {onBack && (
-            <button type="button" onClick={onBack} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100" aria-label="Back">
+            <button
+              type="button"
+              onClick={onBack}
+              className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+              aria-label="Back"
+            >
               <ArrowLeft className="h-5 w-5" />
             </button>
           )}
@@ -378,9 +414,7 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
           <button
             className={cn(
               'rounded-lg p-2 hover:bg-gray-100',
-              callingUser
-                ? 'text-green-500 animate-pulse cursor-wait'
-                : 'text-gray-500 hover:text-gray-900',
+              callingUser ? 'text-green-500 animate-pulse cursor-wait' : 'text-gray-500 hover:text-gray-900',
             )}
             type="button"
             aria-label="Send call button"
@@ -390,9 +424,9 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
           >
             <Phone className="h-4 w-4" />
           </button>
-          <button 
-            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900" 
-            type="button" 
+          <button
+            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            type="button"
             aria-label="Tags"
             onClick={(e) => {
               e.stopPropagation();
@@ -405,14 +439,27 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
           >
             <Tag className="h-4 w-4" />
           </button>
-          <button className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900" type="button" aria-label="Assign">
+          <button
+            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            type="button"
+            aria-label="Assign"
+          >
             <UserPlus className="h-4 w-4" />
           </button>
-          <button className="hidden rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 sm:block" type="button" aria-label="Archive">
+          <button
+            className="hidden rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 sm:block"
+            type="button"
+            aria-label="Archive"
+          >
             <Archive className="h-4 w-4" />
           </button>
           {onToggleInfo && (
-            <button className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900" type="button" aria-label="Contact info" onClick={onToggleInfo}>
+            <button
+              className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+              type="button"
+              aria-label="Contact info"
+              onClick={onToggleInfo}
+            >
               <Info className="h-4 w-4" />
             </button>
           )}
@@ -457,8 +504,8 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
               </svg>
             </div>
             <div className="text-sm text-amber-800">
-              <span className="font-medium">WhatsApp is not connected.</span>{' '}
-              Go to the WhatsApp page to connect your Business account before sending messages.
+              <span className="font-medium">WhatsApp is not connected.</span> Go to the WhatsApp page to connect your
+              Business account before sending messages.
             </div>
           </div>
         </div>
@@ -478,10 +525,18 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
           </div>
 
           <div className="flex items-end gap-2 p-4">
-            <button type="button" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900" aria-label="Emoji">
+            <button
+              type="button"
+              className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+              aria-label="Emoji"
+            >
               <Smile className="h-5 w-5" />
             </button>
-            <button type="button" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900" aria-label="Attach">
+            <button
+              type="button"
+              className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+              aria-label="Attach"
+            >
               <Paperclip className="h-5 w-5" />
             </button>
 
@@ -521,7 +576,7 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
           <div className="max-h-[400px] overflow-y-auto">
             {tagsQ.isLoading ? (
               <div className="py-8 text-center text-sm text-gray-500">Loading tags...</div>
-            ) : (tagsQ.data && tagsQ.data.length > 0) ? (
+            ) : tagsQ.data && tagsQ.data.length > 0 ? (
               <div className="space-y-2">
                 {tagsQ.data.map((tag) => {
                   const isApplied = appliedTags.includes(tag.id);
@@ -557,29 +612,30 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
                       disabled={applyingTag}
                       className={cn(
                         'flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors',
-                        isApplied
-                          ? 'border-green-500 bg-green-50'
-                          : 'border-gray-200 hover:bg-gray-50'
+                        isApplied ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:bg-gray-50',
                       )}
                     >
-                      <span className={cn(
-                        'h-3 w-3 rounded-full',
-                        tag.color === 'green' ? 'bg-green-500' :
-                        tag.color === 'blue' ? 'bg-blue-500' :
-                        tag.color === 'purple' ? 'bg-purple-500' :
-                        tag.color === 'orange' ? 'bg-amber-500' :
-                        tag.color === 'red' ? 'bg-red-500' :
-                        'bg-gray-500'
-                      )} />
+                      <span
+                        className={cn(
+                          'h-3 w-3 rounded-full',
+                          tag.color === 'green'
+                            ? 'bg-green-500'
+                            : tag.color === 'blue'
+                              ? 'bg-blue-500'
+                              : tag.color === 'purple'
+                                ? 'bg-purple-500'
+                                : tag.color === 'orange'
+                                  ? 'bg-amber-500'
+                                  : tag.color === 'red'
+                                    ? 'bg-red-500'
+                                    : 'bg-gray-500',
+                        )}
+                      />
                       <div className="flex-1">
                         <div className="text-sm font-medium text-gray-900">{tag.name}</div>
-                        {tag.description && (
-                          <div className="text-xs text-gray-500">{tag.description}</div>
-                        )}
+                        {tag.description && <div className="text-xs text-gray-500">{tag.description}</div>}
                       </div>
-                      {isApplied && (
-                        <span className="text-xs text-green-600 font-medium">Applied</span>
-                      )}
+                      {isApplied && <span className="text-xs text-green-600 font-medium">Applied</span>}
                     </button>
                   );
                 })}
@@ -601,4 +657,3 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
     </div>
   );
 }
-

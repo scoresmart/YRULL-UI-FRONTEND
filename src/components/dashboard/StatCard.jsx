@@ -15,4 +15,3 @@ export function StatCard({ label, value, subLabel, right, accent = false }) {
     </Card>
   );
 }
-

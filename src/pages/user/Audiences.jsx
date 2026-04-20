@@ -43,7 +43,9 @@ export function AudiencesPage() {
                   </div>
                 </div>
                 <div className="shrink-0">
-                  <Badge variant={a.type === 'dynamic' ? 'success' : 'muted'}>{a.type === 'dynamic' ? 'Dynamic' : 'Static'}</Badge>
+                  <Badge variant={a.type === 'dynamic' ? 'success' : 'muted'}>
+                    {a.type === 'dynamic' ? 'Dynamic' : 'Static'}
+                  </Badge>
                   <div className="mt-2 text-xs text-gray-400">Updated: 2h ago</div>
                 </div>
               </div>
@@ -66,4 +68,3 @@ export function AudiencesPage() {
     </div>
   );
 }
-

@@ -19,7 +19,9 @@ function NavBar() {
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-lg">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-sidebar text-sm font-bold text-brand-accent">Y</span>
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-sidebar text-sm font-bold text-brand-accent">
+            Y
+          </span>
           <BrandMark className="text-xl" />
         </Link>
 
@@ -29,9 +31,7 @@ function NavBar() {
               key={l.to}
               to={l.to}
               className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                pathname === l.to
-                  ? 'bg-gray-100 text-gray-900'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                pathname === l.to ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
             >
               {l.label}
@@ -76,7 +76,9 @@ function NavBar() {
               Log in
             </Link>
             <Link to="/register" onClick={() => setOpen(false)}>
-              <Button className="w-full" size="sm">Start free trial</Button>
+              <Button className="w-full" size="sm">
+                Start free trial
+              </Button>
             </Link>
           </div>
         </div>
@@ -99,25 +101,61 @@ function SiteFooter() {
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">Product</h4>
             <ul className="mt-3 space-y-2 text-sm">
-              <li><Link to="/features" className="hover:text-white">Features</Link></li>
-              <li><Link to="/pricing" className="hover:text-white">Pricing</Link></li>
-              <li><Link to="/about" className="hover:text-white">About</Link></li>
-              <li><Link to="/contact" className="hover:text-white">Contact</Link></li>
+              <li>
+                <Link to="/features" className="hover:text-white">
+                  Features
+                </Link>
+              </li>
+              <li>
+                <Link to="/pricing" className="hover:text-white">
+                  Pricing
+                </Link>
+              </li>
+              <li>
+                <Link to="/about" className="hover:text-white">
+                  About
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="hover:text-white">
+                  Contact
+                </Link>
+              </li>
             </ul>
           </div>
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">Legal</h4>
             <ul className="mt-3 space-y-2 text-sm">
-              <li><Link to="/privacy" className="hover:text-white">Privacy Policy</Link></li>
-              <li><Link to="/terms" className="hover:text-white">Terms of Service</Link></li>
-              <li><Link to="/data-deletion" className="hover:text-white">Data Deletion</Link></li>
+              <li>
+                <Link to="/privacy" className="hover:text-white">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/terms" className="hover:text-white">
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link to="/data-deletion" className="hover:text-white">
+                  Data Deletion
+                </Link>
+              </li>
             </ul>
           </div>
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">Support</h4>
             <ul className="mt-3 space-y-2 text-sm">
-              <li><a href="mailto:support@yrull.com" className="hover:text-white">support@yrull.com</a></li>
-              <li><a href="mailto:privacy@yrull.com" className="hover:text-white">privacy@yrull.com</a></li>
+              <li>
+                <a href="mailto:support@yrull.com" className="hover:text-white">
+                  support@yrull.com
+                </a>
+              </li>
+              <li>
+                <a href="mailto:privacy@yrull.com" className="hover:text-white">
+                  privacy@yrull.com
+                </a>
+              </li>
             </ul>
           </div>
         </div>

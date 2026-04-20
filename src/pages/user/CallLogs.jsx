@@ -43,13 +43,13 @@ export function CallLogsPage() {
       calls = calls.filter(
         (c) =>
           c.direction === 'USER_INITIATED' &&
-          (c.status === 'MISSED' || c.event === 'missed' || (c.status !== 'ACCEPTED' && c.event !== 'connect'))
+          (c.status === 'MISSED' || c.event === 'missed' || (c.status !== 'ACCEPTED' && c.event !== 'connect')),
       );
     }
 
     // Sort by most recent first
     return calls.sort(
-      (a, b) => new Date(b.created_at || b.timestamp || 0) - new Date(a.created_at || a.timestamp || 0)
+      (a, b) => new Date(b.created_at || b.timestamp || 0) - new Date(a.created_at || a.timestamp || 0),
     );
   }, [callsQ.data, filter]);
 
@@ -102,7 +102,7 @@ export function CallLogsPage() {
               'border-b-2 px-4 py-3 text-sm font-medium transition-colors',
               filter === key
                 ? 'border-brand-accent text-brand-accent'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                : 'border-transparent text-gray-500 hover:text-gray-700',
             )}
           >
             {label}
@@ -163,7 +163,12 @@ export function CallLogsPage() {
                     <tr key={call.id} className="hover:bg-gray-50">
                       <td className="whitespace-nowrap px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className={cn('flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold', avatarCls)}>
+                          <div
+                            className={cn(
+                              'flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold',
+                              avatarCls,
+                            )}
+                          >
                             {initialsFromName(contactName)}
                           </div>
                           <div>
@@ -183,7 +188,15 @@ export function CallLogsPage() {
                         </div>
                       </td>
                       <td className="whitespace-nowrap px-6 py-4">
-                        <Badge variant={status.variant === 'success' ? 'success' : status.variant === 'destructive' ? 'danger' : 'default'}>
+                        <Badge
+                          variant={
+                            status.variant === 'success'
+                              ? 'success'
+                              : status.variant === 'destructive'
+                                ? 'danger'
+                                : 'default'
+                          }
+                        >
                           {status.label}
                         </Badge>
                       </td>
@@ -224,11 +237,15 @@ export function CallLogsPage() {
           <div className="rounded-xl border border-gray-200 bg-white p-4">
             <div className="text-sm text-gray-500">Missed</div>
             <div className="mt-1 text-2xl font-semibold text-red-600">
-              {callsQ.data.filter(
-                (c) =>
-                  c.direction === 'USER_INITIATED' &&
-                  (c.status === 'MISSED' || c.event === 'missed' || (c.status !== 'ACCEPTED' && c.event !== 'connect'))
-              ).length}
+              {
+                callsQ.data.filter(
+                  (c) =>
+                    c.direction === 'USER_INITIATED' &&
+                    (c.status === 'MISSED' ||
+                      c.event === 'missed' ||
+                      (c.status !== 'ACCEPTED' && c.event !== 'connect')),
+                ).length
+              }
             </div>
           </div>
         </div>

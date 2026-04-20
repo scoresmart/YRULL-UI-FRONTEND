@@ -3,7 +3,19 @@ import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
-import { Eye, EyeOff, Save, Loader2, ExternalLink, RefreshCw, CheckCircle2, LinkIcon, Unplug, Phone, Building2 } from 'lucide-react';
+import {
+  Eye,
+  EyeOff,
+  Save,
+  Loader2,
+  ExternalLink,
+  RefreshCw,
+  CheckCircle2,
+  LinkIcon,
+  Unplug,
+  Phone,
+  Building2,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { integrationsApi } from '../../lib/api';
 import { ConnectFacebookButton } from '../../components/integrations/ConnectFacebookButton';
@@ -56,15 +68,27 @@ const INTEGRATIONS = [
     ],
     logo: (
       <svg viewBox="0 0 109 113" className="h-8 w-8" fill="none">
-        <path d="M63.708 110.284c-2.86 3.601-8.658 1.628-8.727-2.97l-1.007-67.251h45.22c8.19 0 12.758 9.46 7.665 15.874L63.708 110.284z" fill="url(#sb-a)" />
-        <path d="M63.708 110.284c-2.86 3.601-8.658 1.628-8.727-2.97l-1.007-67.251h45.22c8.19 0 12.758 9.46 7.665 15.874L63.708 110.284z" fill="url(#sb-b)" fillOpacity=".2" />
-        <path d="M45.317 2.071c2.86-3.601 8.657-1.628 8.726 2.97l.442 67.251H9.83c-8.19 0-12.759-9.46-7.665-15.875L45.317 2.072z" fill="#3ECF8E" />
+        <path
+          d="M63.708 110.284c-2.86 3.601-8.658 1.628-8.727-2.97l-1.007-67.251h45.22c8.19 0 12.758 9.46 7.665 15.874L63.708 110.284z"
+          fill="url(#sb-a)"
+        />
+        <path
+          d="M63.708 110.284c-2.86 3.601-8.658 1.628-8.727-2.97l-1.007-67.251h45.22c8.19 0 12.758 9.46 7.665 15.874L63.708 110.284z"
+          fill="url(#sb-b)"
+          fillOpacity=".2"
+        />
+        <path
+          d="M45.317 2.071c2.86-3.601 8.657-1.628 8.726 2.97l.442 67.251H9.83c-8.19 0-12.759-9.46-7.665-15.875L45.317 2.072z"
+          fill="#3ECF8E"
+        />
         <defs>
           <linearGradient id="sb-a" x1="53.974" y1="54.974" x2="94.163" y2="71.829" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#249361" /><stop offset="1" stopColor="#3ECF8E" />
+            <stop stopColor="#249361" />
+            <stop offset="1" stopColor="#3ECF8E" />
           </linearGradient>
           <linearGradient id="sb-b" x1="36.156" y1="30.578" x2="54.484" y2="65.081" gradientUnits="userSpaceOnUse">
-            <stop /><stop offset="1" stopOpacity="0" />
+            <stop />
+            <stop offset="1" stopOpacity="0" />
           </linearGradient>
         </defs>
       </svg>
@@ -85,9 +109,18 @@ const INTEGRATIONS = [
     ],
     logo: (
       <svg viewBox="0 0 24 24" className="h-8 w-8" fill="currentColor">
-        <path d="M11.553 1.106a1 1 0 01.894 0l9 4.5A1 1 0 0122 6.5v.382a1 1 0 01-.553.894l-9 4.5a1 1 0 01-.894 0l-9-4.5A1 1 0 012 6.882V6.5a1 1 0 01.553-.894l9-4.5z" fill="#FCB400" />
-        <path d="M12.447 13.776a1 1 0 00-.894 0l-9 4.5A1 1 0 002 19.17v.382a1 1 0 00.553.894l9 4.5a1 1 0 00.894 0l9-4.5A1 1 0 0022 19.553v-.382a1 1 0 00-.553-.894l-9-4.5z" fill="#18BFFF" />
-        <path d="M2.553 10.276A1 1 0 002 11.17v.382a1 1 0 00.553.894l9 4.5a1 1 0 00.894 0l9-4.5A1 1 0 0022 11.553v-.382a1 1 0 00-.553-.894l-9-4.5a1 1 0 00-.894 0l-9 4.5z" fill="#F82B60" />
+        <path
+          d="M11.553 1.106a1 1 0 01.894 0l9 4.5A1 1 0 0122 6.5v.382a1 1 0 01-.553.894l-9 4.5a1 1 0 01-.894 0l-9-4.5A1 1 0 012 6.882V6.5a1 1 0 01.553-.894l9-4.5z"
+          fill="#FCB400"
+        />
+        <path
+          d="M12.447 13.776a1 1 0 00-.894 0l-9 4.5A1 1 0 002 19.17v.382a1 1 0 00.553.894l9 4.5a1 1 0 00.894 0l9-4.5A1 1 0 0022 19.553v-.382a1 1 0 00-.553-.894l-9-4.5z"
+          fill="#18BFFF"
+        />
+        <path
+          d="M2.553 10.276A1 1 0 002 11.17v.382a1 1 0 00.553.894l9 4.5a1 1 0 00.894 0l9-4.5A1 1 0 0022 11.553v-.382a1 1 0 00-.553-.894l-9-4.5a1 1 0 00-.894 0l-9 4.5z"
+          fill="#F82B60"
+        />
       </svg>
     ),
     color: 'bg-[#FCB400]',
@@ -106,7 +139,7 @@ const INTEGRATIONS = [
     ],
     logo: (
       <svg viewBox="0 0 24 24" className="h-8 w-8" fill="currentColor">
-        <path d="M2 6a2 2 0 012-2h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm2.4 0L12 11.5 19.6 6H4.4zM20 7.9l-8 5.8-8-5.8V18h16V7.9z"/>
+        <path d="M2 6a2 2 0 012-2h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm2.4 0L12 11.5 19.6 6H4.4zM20 7.9l-8 5.8-8-5.8V18h16V7.9z" />
       </svg>
     ),
     color: 'bg-[#000000]',
@@ -225,7 +258,9 @@ function WhatsAppIntegrationCard({ integration }) {
   return (
     <Card className="overflow-hidden">
       <div className="flex items-start gap-4 p-5">
-        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl ${integration.color} ${integration.textColor}`}>
+        <div
+          className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl ${integration.color} ${integration.textColor}`}
+        >
           {integration.logo}
         </div>
         <div className="min-w-0 flex-1">
@@ -242,7 +277,9 @@ function WhatsAppIntegrationCard({ integration }) {
                 Connected
               </Badge>
             ) : (
-              <Badge variant="secondary" className="text-xs">Not connected</Badge>
+              <Badge variant="secondary" className="text-xs">
+                Not connected
+              </Badge>
             )}
           </div>
           <p className="mt-1 text-sm text-gray-500">{integration.description}</p>
@@ -269,9 +306,7 @@ function WhatsAppIntegrationCard({ integration }) {
             </div>
           )}
 
-          {wa.error && !wa.connected && (
-            <p className="mt-2 text-sm text-red-600">{wa.error}</p>
-          )}
+          {wa.error && !wa.connected && <p className="mt-2 text-sm text-red-600">{wa.error}</p>}
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -287,8 +322,18 @@ function WhatsAppIntegrationCard({ integration }) {
             </a>
           )}
           {wa.connected ? (
-            <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700" onClick={wa.disconnect} disabled={wa.disconnecting}>
-              {wa.disconnecting ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Unplug className="mr-1.5 h-3.5 w-3.5" />}
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-red-600 hover:text-red-700"
+              onClick={wa.disconnect}
+              disabled={wa.disconnecting}
+            >
+              {wa.disconnecting ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Unplug className="mr-1.5 h-3.5 w-3.5" />
+              )}
               Disconnect
             </Button>
           ) : (
@@ -342,7 +387,9 @@ function IntegrationCard({ integration, serverConfig, onSave }) {
     <Card className="overflow-hidden">
       <div className="flex items-start gap-4 p-5">
         {/* Logo */}
-        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl ${integration.color} ${integration.textColor}`}>
+        <div
+          className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl ${integration.color} ${integration.textColor}`}
+        >
           {integration.logo}
         </div>
 
@@ -381,11 +428,7 @@ function IntegrationCard({ integration, serverConfig, onSave }) {
               <ExternalLink className="h-4 w-4" />
             </a>
           )}
-          <Button
-            variant={editing ? 'outline' : 'default'}
-            size="sm"
-            onClick={() => setEditing(!editing)}
-          >
+          <Button variant={editing ? 'outline' : 'default'} size="sm" onClick={() => setEditing(!editing)}>
             {editing ? 'Cancel' : 'Configure'}
           </Button>
         </div>
@@ -397,9 +440,7 @@ function IntegrationCard({ integration, serverConfig, onSave }) {
           <div className="space-y-3">
             {integration.fields.map((field) => (
               <div key={field.key}>
-                <label className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                  {field.label}
-                </label>
+                <label className="text-xs font-medium uppercase tracking-wide text-gray-400">{field.label}</label>
                 <div className="relative mt-1">
                   <Input
                     type={field.secret && !visibleFields[field.key] ? 'password' : 'text'}
@@ -411,16 +452,10 @@ function IntegrationCard({ integration, serverConfig, onSave }) {
                   {field.secret && (
                     <button
                       type="button"
-                      onClick={() =>
-                        setVisibleFields((prev) => ({ ...prev, [field.key]: !prev[field.key] }))
-                      }
+                      onClick={() => setVisibleFields((prev) => ({ ...prev, [field.key]: !prev[field.key] }))}
                       className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-400 hover:text-gray-600"
                     >
-                      {visibleFields[field.key] ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
+                      {visibleFields[field.key] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   )}
                 </div>
@@ -429,11 +464,7 @@ function IntegrationCard({ integration, serverConfig, onSave }) {
           </div>
           <div className="mt-4 flex justify-end">
             <Button onClick={handleSave} disabled={saving} size="sm">
-              {saving ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="mr-2 h-4 w-4" />
-              )}
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Save
             </Button>
           </div>
@@ -474,16 +505,13 @@ export function IntegrationsPage() {
     await loadConfigs();
   };
 
-  const filtered =
-    filter === 'all' ? INTEGRATIONS : INTEGRATIONS.filter((i) => i.category === filter);
+  const filtered = filter === 'all' ? INTEGRATIONS : INTEGRATIONS.filter((i) => i.category === filter);
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-gray-900">Integrations</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Connect and manage your third-party services
-        </p>
+        <p className="mt-1 text-sm text-gray-500">Connect and manage your third-party services</p>
       </div>
 
       {/* Category filter */}
@@ -494,9 +522,7 @@ export function IntegrationsPage() {
             type="button"
             onClick={() => setFilter(cat)}
             className={`rounded-full px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
-              filter === cat
-                ? 'bg-gray-900 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              filter === cat ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             {cat}
@@ -529,7 +555,7 @@ export function IntegrationsPage() {
                 serverConfig={configs[integration.key]}
                 onSave={handleSave}
               />
-            )
+            ),
           )}
         </div>
       )}

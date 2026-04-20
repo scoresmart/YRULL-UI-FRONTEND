@@ -54,7 +54,11 @@ export function AcceptInvitePage() {
   const [accepted, setAccepted] = useState(false);
 
   useEffect(() => {
-    if (!token) { setError('No invite token found'); setLoading(false); return; }
+    if (!token) {
+      setError('No invite token found');
+      setLoading(false);
+      return;
+    }
     validateInvite(token)
       .then(setInvite)
       .catch((err) => setError(err.message || 'Invalid invite'))
@@ -121,7 +125,9 @@ export function AcceptInvitePage() {
               <h2 className="mt-4 text-lg font-semibold text-gray-900">You've been invited</h2>
               <p className="mt-2 text-sm text-gray-500">
                 Join <span className="font-semibold text-gray-700">{invite.workspace_name}</span> as{' '}
-                <Badge variant="muted" className="ml-0.5">{invite.role || 'agent'}</Badge>
+                <Badge variant="muted" className="ml-0.5">
+                  {invite.role || 'agent'}
+                </Badge>
               </p>
 
               {isLoggedIn ? (
@@ -142,7 +148,10 @@ export function AcceptInvitePage() {
                   <Link to={`/register?${tokenParam}`}>
                     <Button className="w-full">Sign up to accept</Button>
                   </Link>
-                  <Link to={`/login?${tokenParam}`} className="block text-center text-sm font-medium text-gray-500 hover:text-gray-900">
+                  <Link
+                    to={`/login?${tokenParam}`}
+                    className="block text-center text-sm font-medium text-gray-500 hover:text-gray-900"
+                  >
                     Already have an account? Log in
                   </Link>
                 </div>

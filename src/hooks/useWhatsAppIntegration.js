@@ -66,13 +66,17 @@ export function useWhatsAppIntegration() {
     }
   }, [refresh]);
 
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (!workspaceId) {
       toast.error('No workspace found. Please sign in again.');
       return;
     }
-    const url = whatsappIntegrationApi.getAuthorizeUrl(workspaceId);
-    window.location.href = url;
+    try {
+      const url = await whatsappIntegrationApi.startAuthorize();
+      window.location.href = url;
+    } catch (err) {
+      toast.error(err.message || 'Failed to start WhatsApp connection', { id: 'wa-connect' });
+    }
   }, [workspaceId]);
 
   const disconnect = useCallback(async () => {
@@ -82,7 +86,7 @@ export function useWhatsAppIntegration() {
     setDisconnecting(true);
 
     // Optimistic update
-    setStatus((prev) => prev ? { ...prev, connected: false } : prev);
+    setStatus((prev) => (prev ? { ...prev, connected: false } : prev));
 
     try {
       await whatsappIntegrationApi.disconnect();

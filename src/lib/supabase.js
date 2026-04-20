@@ -1,10 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { ENV } from './env';
-import {
-  getSupabaseCredentials,
-  isSupabaseCredentialsPresent,
-  isRealSupabaseClient,
-} from './authConfig';
+import { getSupabaseCredentials, isSupabaseCredentialsPresent, isRealSupabaseClient } from './authConfig';
 
 let client;
 

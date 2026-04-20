@@ -43,11 +43,21 @@ export function AudienceModal({ trigger }) {
           <div className="space-y-4">
             <div>
               <div className="text-xs font-medium uppercase tracking-wide text-gray-400">Audience Name</div>
-              <Input className="mt-2" value={name} onChange={(e) => setName(e.target.value)} placeholder="VIP - Active < 7 days" />
+              <Input
+                className="mt-2"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="VIP - Active < 7 days"
+              />
             </div>
             <div>
               <div className="text-xs font-medium uppercase tracking-wide text-gray-400">Description</div>
-              <Input className="mt-2" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional…" />
+              <Input
+                className="mt-2"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Optional…"
+              />
             </div>
             <div>
               <div className="text-xs font-medium uppercase tracking-wide text-gray-400">Type</div>
@@ -144,7 +154,9 @@ export function AudienceModal({ trigger }) {
                 <div className="text-sm font-medium text-gray-900">Preview</div>
                 <Badge variant="success">{previewCount.toLocaleString()} contacts</Badge>
               </div>
-              <div className="mt-2 text-sm text-gray-500">This audience will match {previewCount.toLocaleString()} contacts.</div>
+              <div className="mt-2 text-sm text-gray-500">
+                This audience will match {previewCount.toLocaleString()} contacts.
+              </div>
             </div>
           </div>
         </div>
@@ -159,4 +171,3 @@ export function AudienceModal({ trigger }) {
     </Dialog>
   );
 }
-

@@ -1,8 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowRight, ArrowLeft, ChevronRight, Check, Loader2,
-  Instagram, MessageCircle, Sparkles, Rocket,
+  ArrowRight,
+  ArrowLeft,
+  ChevronRight,
+  Check,
+  Loader2,
+  Instagram,
+  MessageCircle,
+  Sparkles,
+  Rocket,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { BrandMark } from '../../components/brand/BrandMark';
@@ -14,9 +21,7 @@ import { ENV } from '../../lib/env';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { cn } from '../../lib/utils';
 
-const BUSINESS_TYPES = [
-  'E-commerce', 'Creator / Influencer', 'Marketing Agency', 'Service Business', 'SaaS', 'Other',
-];
+const BUSINESS_TYPES = ['E-commerce', 'Creator / Influencer', 'Marketing Agency', 'Service Business', 'SaaS', 'Other'];
 const TEAM_SIZES = ['Just me', '2–5', '6–20', '20+'];
 
 const CHANNELS = [
@@ -53,13 +58,17 @@ function ProgressBar({ step }) {
     <div className="flex items-center gap-2">
       {Array.from({ length: TOTAL_STEPS }, (_, i) => (
         <div key={i} className="flex-1">
-          <div className={cn(
-            'h-1.5 rounded-full transition-all duration-300',
-            i < step ? 'bg-green-500' : i === step ? 'bg-green-400' : 'bg-gray-200',
-          )} />
+          <div
+            className={cn(
+              'h-1.5 rounded-full transition-all duration-300',
+              i < step ? 'bg-green-500' : i === step ? 'bg-green-400' : 'bg-gray-200',
+            )}
+          />
         </div>
       ))}
-      <span className="ml-2 text-xs text-gray-400">{step + 1}/{TOTAL_STEPS}</span>
+      <span className="ml-2 text-xs text-gray-400">
+        {step + 1}/{TOTAL_STEPS}
+      </span>
     </div>
   );
 }
@@ -72,8 +81,8 @@ function StepWelcome({ onNext }) {
       </div>
       <h1 className="mt-6 text-3xl font-bold text-gray-900">Welcome to Yrull</h1>
       <p className="mt-3 max-w-md text-gray-500">
-        Automate every customer conversation across Instagram, WhatsApp, and Facebook.
-        Let's get you set up in just a few steps.
+        Automate every customer conversation across Instagram, WhatsApp, and Facebook. Let's get you set up in just a
+        few steps.
       </p>
       <Button onClick={onNext} className="mt-8 gap-2 px-8">
         Let's get started <ArrowRight className="h-4 w-4" />
@@ -156,7 +165,7 @@ function StepBusiness({ data, setData, onNext, onBack }) {
 
 function StepChannels({ selected, setSelected, onNext, onBack }) {
   function toggle(key) {
-    setSelected((prev) => prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]);
+    setSelected((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
   }
 
   return (
@@ -180,17 +189,24 @@ function StepChannels({ selected, setSelected, onNext, onBack }) {
                   : 'border-gray-200 hover:border-gray-300 hover:shadow-sm',
               )}
             >
-              <div className={cn('flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br text-white', ch.gradient)}>
+              <div
+                className={cn(
+                  'flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br text-white',
+                  ch.gradient,
+                )}
+              >
                 <Icon className="h-5 w-5" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-gray-900">{ch.name}</div>
                 <div className="text-xs text-gray-500">{ch.desc}</div>
               </div>
-              <div className={cn(
-                'flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors',
-                active ? 'border-green-500 bg-green-500 text-white' : 'border-gray-300',
-              )}>
+              <div
+                className={cn(
+                  'flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors',
+                  active ? 'border-green-500 bg-green-500 text-white' : 'border-gray-300',
+                )}
+              >
                 {active && <Check className="h-3.5 w-3.5" />}
               </div>
             </button>
@@ -254,15 +270,18 @@ export function OnboardingPage() {
     const workspaceId = profile?.workspace_id;
     try {
       if (!ENV.USE_MOCK && workspaceId) {
-        await supabase.from('workspaces').update({
-          name: bizData.businessName.trim() || profile?.workspace?.name,
-          metadata: {
-            business_type: bizData.businessType,
-            team_size: bizData.teamSize,
+        await supabase
+          .from('workspaces')
+          .update({
+            name: bizData.businessName.trim() || profile?.workspace?.name,
+            metadata: {
+              business_type: bizData.businessType,
+              team_size: bizData.teamSize,
+              onboarded: true,
+            },
             onboarded: true,
-          },
-          onboarded: true,
-        }).eq('id', workspaceId);
+          })
+          .eq('id', workspaceId);
 
         if (selectedChannels.length > 0) {
           const rows = selectedChannels.map((ch) => ({
@@ -303,12 +322,7 @@ export function OnboardingPage() {
       <div className="flex flex-1 items-center justify-center px-6 pb-16">
         {step === 0 && <StepWelcome onNext={() => setStep(1)} />}
         {step === 1 && (
-          <StepBusiness
-            data={bizData}
-            setData={setBizData}
-            onNext={() => setStep(2)}
-            onBack={() => setStep(0)}
-          />
+          <StepBusiness data={bizData} setData={setBizData} onNext={() => setStep(2)} onBack={() => setStep(0)} />
         )}
         {step === 2 && (
           <StepChannels

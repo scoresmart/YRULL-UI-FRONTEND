@@ -36,19 +36,31 @@ export function WhatsAppPage() {
           const msgKey = newMsg.id || `${newMsg.body}_${newMsg.created_at}_${newMsg.direction}_${newMsg.wa_id}`;
           if (processingMessages.current.has(msgKey)) return;
           processingMessages.current.add(msgKey);
-          setTimeout(() => { processingMessages.current.delete(msgKey); }, 1000);
+          setTimeout(() => {
+            processingMessages.current.delete(msgKey);
+          }, 1000);
 
           queryClient.setQueryData(['whatsapp_messages', waId], (oldData) => {
             if (!oldData) return [newMsg];
             const exists = oldData.some((msg) => {
               if (msg.id && newMsg.id && msg.id === newMsg.id) return true;
-              return msg.body === newMsg.body && msg.created_at === newMsg.created_at && msg.direction === newMsg.direction && msg.wa_id === newMsg.wa_id;
+              return (
+                msg.body === newMsg.body &&
+                msg.created_at === newMsg.created_at &&
+                msg.direction === newMsg.direction &&
+                msg.wa_id === newMsg.wa_id
+              );
             });
             if (exists) return oldData;
-            const updated = [...oldData, newMsg].sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+            const updated = [...oldData, newMsg].sort(
+              (a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0),
+            );
             const seenIds = new Set();
             const deduped = updated.filter((msg) => {
-              if (msg.id) { if (seenIds.has(msg.id)) return false; seenIds.add(msg.id); }
+              if (msg.id) {
+                if (seenIds.has(msg.id)) return false;
+                seenIds.add(msg.id);
+              }
               return true;
             });
             const seenContent = new Set();
@@ -66,7 +78,9 @@ export function WhatsAppPage() {
       }
     },
     onContactUpdate: () => {
-      try { queryClient.invalidateQueries({ queryKey: ['whatsapp_contacts'] }); } catch {}
+      try {
+        queryClient.invalidateQueries({ queryKey: ['whatsapp_contacts'] });
+      } catch {}
     },
   });
 
@@ -114,9 +128,7 @@ export function WhatsAppPage() {
       <WhatsAppConnectionCard wa={wa} compact />
 
       <div className="flex h-[calc(100%-56px)]">
-        {showList && (
-          <ConversationList className={isMobile ? 'w-full' : 'w-[320px]'} />
-        )}
+        {showList && <ConversationList className={isMobile ? 'w-full' : 'w-[320px]'} />}
         {showThread && (
           <ChatWindow
             connected={wa.connected}

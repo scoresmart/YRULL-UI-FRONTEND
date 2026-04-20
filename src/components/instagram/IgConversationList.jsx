@@ -23,7 +23,9 @@ const ConversationRow = memo(function ConversationRow({ contact, selected, onSel
         {contact?.profile_pic ? (
           <img src={contact.profile_pic} alt={name} className="h-10 w-10 rounded-full object-cover" />
         ) : (
-          <div className={cn('flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold', avatarCls)}>
+          <div
+            className={cn('flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold', avatarCls)}
+          >
             {initialsFromName(name)}
           </div>
         )}
@@ -36,9 +38,7 @@ const ConversationRow = memo(function ConversationRow({ contact, selected, onSel
               </span>
             )}
           </div>
-          {username && (
-            <p className="text-xs text-purple-500 truncate">{username}</p>
-          )}
+          {username && <p className="text-xs text-purple-500 truncate">{username}</p>}
         </div>
       </div>
     </button>
@@ -56,10 +56,11 @@ export function IgConversationList() {
   const filtered = useMemo(() => {
     if (!search.trim()) return contacts;
     const q = search.toLowerCase();
-    return contacts.filter((c) =>
-      (c.name || '').toLowerCase().includes(q) ||
-      (c.username || '').toLowerCase().includes(q) ||
-      (c.ig_user_id || '').toLowerCase().includes(q)
+    return contacts.filter(
+      (c) =>
+        (c.name || '').toLowerCase().includes(q) ||
+        (c.username || '').toLowerCase().includes(q) ||
+        (c.ig_user_id || '').toLowerCase().includes(q),
     );
   }, [contacts, search]);
 

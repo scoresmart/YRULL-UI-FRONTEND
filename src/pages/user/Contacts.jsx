@@ -62,7 +62,7 @@ export function ContactsPage() {
     [contactsQ.data, selectedContactId],
   );
   const selectedTags = useMemo(
-    () => (selectedContact ? tagsByContactId.get(selectedContact.id) ?? [] : []),
+    () => (selectedContact ? (tagsByContactId.get(selectedContact.id) ?? []) : []),
     [selectedContact, tagsByContactId],
   );
 
@@ -76,22 +76,29 @@ export function ContactsPage() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative w-full sm:w-60 lg:w-72">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 text-[16px] sm:text-sm" placeholder="Search contacts..." />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 text-[16px] sm:text-sm"
+              placeholder="Search contacts..."
+            />
           </div>
-          <Button variant="outline" className="hidden sm:inline-flex">Filter</Button>
-          <Button variant="outline" className="hidden lg:inline-flex">Import CSV</Button>
+          <Button variant="outline" className="hidden sm:inline-flex">
+            Filter
+          </Button>
+          <Button variant="outline" className="hidden lg:inline-flex">
+            Import CSV
+          </Button>
           <AddEditContactModal trigger={<Button>Add Contact</Button>} />
         </div>
       </div>
 
-      {contactsQ.error && (
-        <ErrorState title="Failed to load contacts" onRetry={() => contactsQ.refetch()} />
-      )}
+      {contactsQ.error && <ErrorState title="Failed to load contacts" onRetry={() => contactsQ.refetch()} />}
 
       <Card className={selectedContactId ? 'pr-[420px]' : ''}>
         {contactsQ.isLoading ? (
           <div className="space-y-3">
-            {[1,2,3,4,5].map((i) => (
+            {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="flex items-center gap-4 px-4 py-3">
                 <Skeleton className="h-8 w-8 rounded-full" />
                 <Skeleton className="h-4 w-32" />
@@ -137,7 +144,10 @@ export function ContactsPage() {
                         <td className="hidden px-4 py-3 lg:table-cell">
                           <div className="flex flex-wrap gap-1">
                             {tags.slice(0, 3).map((t) => (
-                              <span key={t.id} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+                              <span
+                                key={t.id}
+                                className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
+                              >
                                 {t.name}
                               </span>
                             ))}
@@ -169,7 +179,12 @@ export function ContactsPage() {
                 Page {page} of {totalPages}
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
                   Prev
                 </Button>
                 <Button
@@ -192,4 +207,3 @@ export function ContactsPage() {
     </div>
   );
 }
-

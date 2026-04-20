@@ -2,11 +2,7 @@ import * as React from 'react';
 import { cn } from '../../lib/utils';
 
 const Card = React.forwardRef(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn('rounded-xl border border-gray-100 bg-white p-6 shadow-sm', className)}
-    {...props}
-  />
+  <div ref={ref} className={cn('rounded-xl border border-gray-100 bg-white p-6 shadow-sm', className)} {...props} />
 ));
 Card.displayName = 'Card';
 
@@ -22,4 +18,3 @@ const CardDescription = ({ className, ...props }) => (
 const CardContent = ({ className, ...props }) => <div className={cn('', className)} {...props} />;
 
 export { Card, CardHeader, CardTitle, CardDescription, CardContent };
-

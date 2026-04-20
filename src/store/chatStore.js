@@ -12,6 +12,6 @@ export const useChatStore = create((set) => ({
   setFilter: (filter) => set({ conversationFilter: filter }),
   setSort: (sort) => set({ sort }),
   setSearch: (search) => set({ search }),
-  reset: () => set({ selectedWaId: null, selectedIgUserId: null, conversationFilter: 'all', sort: 'newest', search: '' }),
+  reset: () =>
+    set({ selectedWaId: null, selectedIgUserId: null, conversationFilter: 'all', sort: 'newest', search: '' }),
 }));
-

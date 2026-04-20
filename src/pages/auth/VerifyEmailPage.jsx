@@ -17,7 +17,10 @@ export function VerifyEmailPage() {
   const [resent, setResent] = useState(false);
 
   async function handleResend() {
-    if (!email) { toast.error('No email address found'); return; }
+    if (!email) {
+      toast.error('No email address found');
+      return;
+    }
     setResending(true);
     try {
       const { error } = await supabase.auth.resend({ type: 'signup', email });
@@ -44,20 +47,17 @@ export function VerifyEmailPage() {
           <h1 className="mt-5 text-2xl font-semibold text-gray-900">Check your email</h1>
           <p className="mt-2 text-sm text-gray-500">
             We sent a verification link to{' '}
-            {email ? <span className="font-medium text-gray-700">{email}</span> : 'your email'}.
-            Click it to activate your account.
+            {email ? <span className="font-medium text-gray-700">{email}</span> : 'your email'}. Click it to activate
+            your account.
           </p>
 
           <div className="mt-8 space-y-3">
-            <Button
-              variant="outline"
-              className="w-full gap-1.5"
-              onClick={handleResend}
-              disabled={resending || resent}
-            >
+            <Button variant="outline" className="w-full gap-1.5" onClick={handleResend} disabled={resending || resent}>
               {resending && <Loader2 className="h-4 w-4 animate-spin" />}
               {resent ? (
-                <><CheckCircle2 className="h-4 w-4 text-green-600" /> Email resent</>
+                <>
+                  <CheckCircle2 className="h-4 w-4 text-green-600" /> Email resent
+                </>
               ) : (
                 'Resend email'
               )}

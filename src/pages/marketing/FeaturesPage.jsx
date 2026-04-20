@@ -166,7 +166,9 @@ export function FeaturesPage() {
             </div>
             <p className="mt-3 text-lg font-medium text-gray-700">{s.intro}</p>
             {s.paragraphs.map((p, j) => (
-              <p key={j} className="mt-4 text-sm leading-relaxed text-gray-500">{p}</p>
+              <p key={j} className="mt-4 text-sm leading-relaxed text-gray-500">
+                {p}
+              </p>
             ))}
             <ul className="mt-6 grid gap-2 sm:grid-cols-2">
               {s.bullets.map((b) => (

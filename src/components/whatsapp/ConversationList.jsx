@@ -52,7 +52,15 @@ const FilterTabs = memo(function FilterTabs() {
   );
 });
 
-const ConversationRow = memo(function ConversationRow({ contact, lastMessage, unreadCount, selected, onSelect, tags, contactTags }) {
+const ConversationRow = memo(function ConversationRow({
+  contact,
+  lastMessage,
+  unreadCount,
+  selected,
+  onSelect,
+  tags,
+  contactTags,
+}) {
   const name = contact?.name || formatPhone(contact?.wa_id) || 'Unknown';
   const avatarCls = pastelClassFromString(contact?.wa_id ?? contact?.id);
   const displayPhone = formatPhone(contact?.wa_id || contact?.phone);
@@ -60,12 +68,12 @@ const ConversationRow = memo(function ConversationRow({ contact, lastMessage, un
   // Get tags applied to this contact
   const appliedTags = useMemo(() => {
     if (!tags || !contactTags || !contact) return [];
-    
+
     // Find contact_tags that match this contact
     const matchingTagIds = contactTags
       .filter((ct) => contact.id && ct.contact_id === contact.id)
       .map((ct) => ct.tag_id);
-    
+
     // Get the full tag objects
     return tags.filter((tag) => matchingTagIds.includes(tag.id));
   }, [tags, contactTags, contact]);
@@ -80,14 +88,23 @@ const ConversationRow = memo(function ConversationRow({ contact, lastMessage, un
       onClick={() => onSelect(contact.wa_id)}
     >
       <div className="flex items-start gap-3">
-        <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold', avatarCls)}>
+        <div
+          className={cn(
+            'flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold',
+            avatarCls,
+          )}
+        >
           {initialsFromName(name)}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <div className="truncate text-sm font-semibold text-gray-900">{name}</div>
             <div className="shrink-0 text-xs text-gray-400">
-              {lastMessage?.created_at ? formatRelativeTime(lastMessage.created_at) : contact?.last_seen ? formatRelativeTime(contact.last_seen) : ''}
+              {lastMessage?.created_at
+                ? formatRelativeTime(lastMessage.created_at)
+                : contact?.last_seen
+                  ? formatRelativeTime(contact.last_seen)
+                  : ''}
             </div>
           </div>
           <div className="mt-1 truncate text-sm text-gray-500">
@@ -104,23 +121,35 @@ const ConversationRow = memo(function ConversationRow({ contact, lastMessage, un
                   key={tag.id}
                   className={cn(
                     'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium',
-                    tag.color === 'green' ? 'bg-green-100 text-green-700 border border-green-200' :
-                    tag.color === 'blue' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
-                    tag.color === 'purple' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
-                    tag.color === 'orange' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
-                    tag.color === 'red' ? 'bg-red-100 text-red-700 border border-red-200' :
-                    'bg-gray-100 text-gray-700 border border-gray-200'
+                    tag.color === 'green'
+                      ? 'bg-green-100 text-green-700 border border-green-200'
+                      : tag.color === 'blue'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                        : tag.color === 'purple'
+                          ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                          : tag.color === 'orange'
+                            ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                            : tag.color === 'red'
+                              ? 'bg-red-100 text-red-700 border border-red-200'
+                              : 'bg-gray-100 text-gray-700 border border-gray-200',
                   )}
                 >
-                  <span className={cn(
-                    'h-1.5 w-1.5 rounded-full',
-                    tag.color === 'green' ? 'bg-green-500' :
-                    tag.color === 'blue' ? 'bg-blue-500' :
-                    tag.color === 'purple' ? 'bg-purple-500' :
-                    tag.color === 'orange' ? 'bg-amber-500' :
-                    tag.color === 'red' ? 'bg-red-500' :
-                    'bg-gray-500'
-                  )} />
+                  <span
+                    className={cn(
+                      'h-1.5 w-1.5 rounded-full',
+                      tag.color === 'green'
+                        ? 'bg-green-500'
+                        : tag.color === 'blue'
+                          ? 'bg-blue-500'
+                          : tag.color === 'purple'
+                            ? 'bg-purple-500'
+                            : tag.color === 'orange'
+                              ? 'bg-amber-500'
+                              : tag.color === 'red'
+                                ? 'bg-red-500'
+                                : 'bg-gray-500',
+                    )}
+                  />
                   {tag.name}
                 </span>
               ))}
@@ -167,20 +196,17 @@ export function ConversationList({ className }) {
       setIsLoadingMessages(false);
       return;
     }
-    
+
     setIsLoadingMessages(true);
     const counts = {};
     const messages = {};
-    
+
     for (const contact of contactsQ.data) {
-      const [count, lastMsg] = await Promise.all([
-        getUnreadCount(contact.wa_id),
-        getLastMessage(contact.wa_id),
-      ]);
+      const [count, lastMsg] = await Promise.all([getUnreadCount(contact.wa_id), getLastMessage(contact.wa_id)]);
       counts[contact.wa_id] = count;
       if (lastMsg) messages[contact.wa_id] = lastMsg;
     }
-    
+
     setUnreadCounts(counts);
     setLastMessages(messages);
     setIsLoadingMessages(false);
@@ -195,7 +221,7 @@ export function ConversationList({ className }) {
     } else {
       setIsLoadingMessages(false);
     }
-    
+
     // Real-time subscription handles instant updates; poll only as a safety fallback
     const interval = setInterval(() => {
       if (contactsQ.data?.length) {
@@ -227,7 +253,7 @@ export function ConversationList({ className }) {
 
   const items = useMemo(() => {
     let list = [...(contactsQ.data ?? [])];
-    
+
     if (debouncedSearch) {
       const q = debouncedSearch.toLowerCase();
       list = list.filter((c) => {
@@ -236,13 +262,13 @@ export function ConversationList({ className }) {
         return name.includes(q) || phone.includes(q);
       });
     }
-    
+
     // Filter by filter type
     if (filter === 'unread') {
       list = list.filter((c) => (unreadCounts[c.wa_id] ?? 0) > 0);
     }
     // Note: 'assigned' and 'resolved' filters don't apply (no such fields in schema)
-    
+
     // Sort by last message timestamp (newest first)
     // Contacts with unread messages should appear first, then by last message time
     list.sort((a, b) => {
@@ -250,7 +276,7 @@ export function ConversationList({ className }) {
       const bUnread = unreadCounts[b.wa_id] ?? 0;
       const aLastMsg = lastMessages[a.wa_id];
       const bLastMsg = lastMessages[b.wa_id];
-      
+
       // First priority: unread messages (contacts with unread appear first)
       if (aUnread > 0 && bUnread === 0) return -1;
       if (aUnread === 0 && bUnread > 0) return 1;
@@ -258,23 +284,26 @@ export function ConversationList({ className }) {
         // Both have unread - sort by unread count (more unread first)
         if (aUnread !== bUnread) return bUnread - aUnread;
       }
-      
+
       // Second priority: last message timestamp (newest first)
       const aTime = aLastMsg?.created_at ? new Date(aLastMsg.created_at).getTime() : 0;
       const bTime = bLastMsg?.created_at ? new Date(bLastMsg.created_at).getTime() : 0;
       return bTime - aTime; // Descending (newest first)
     });
-    
+
     return list;
   }, [contactsQ.data, debouncedSearch, filter, unreadCounts, lastMessages]);
 
-  const onSelect = useCallback((waId) => {
-    setSelectedWaId(waId);
-    // Mark as read when selected
-    localStorage.setItem(`lastRead_${waId}`, new Date().toISOString());
-    // Update unread count
-    setUnreadCounts((prev) => ({ ...prev, [waId]: 0 }));
-  }, [setSelectedWaId]);
+  const onSelect = useCallback(
+    (waId) => {
+      setSelectedWaId(waId);
+      // Mark as read when selected
+      localStorage.setItem(`lastRead_${waId}`, new Date().toISOString());
+      // Update unread count
+      setUnreadCounts((prev) => ({ ...prev, [waId]: 0 }));
+    },
+    [setSelectedWaId],
+  );
 
   // Don't auto-select - let user choose which conversation to open
 

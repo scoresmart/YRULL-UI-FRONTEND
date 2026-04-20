@@ -15,7 +15,9 @@ async function authFetch(url, options = {}) {
     const { useAuthStore } = await import('../store/authStore');
     const wsId = useAuthStore.getState().profile?.workspace_id;
     if (wsId) headers['X-Workspace-Id'] = wsId;
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return fetch(url, { ...options, headers });
 }
 
@@ -31,9 +33,17 @@ export const whatsappIntegrationApi = {
     return response.json();
   },
 
-  getAuthorizeUrl(workspaceId) {
+  async startAuthorize() {
     const returnOrigin = window.location.origin;
-    return `${ENV.API_BASE_URL}/oauth/whatsapp/authorize?workspace_id=${encodeURIComponent(workspaceId)}&return_origin=${encodeURIComponent(returnOrigin)}`;
+    const qs = `?return_origin=${encodeURIComponent(returnOrigin)}`;
+    const response = await authFetch(`${ENV.API_BASE_URL}/oauth/whatsapp/authorize${qs}`);
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to start WhatsApp authorization');
+    }
+    const data = await response.json();
+    if (!data.auth_url) throw new Error('Backend did not return an auth_url');
+    return data.auth_url;
   },
 
   async disconnect() {
@@ -266,7 +276,9 @@ export const workspaceMembersApi = {
 
   // TODO: backend endpoint — POST /api/workspace/invites/:id/resend
   async resendInvite(inviteId) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/workspace/invites/${inviteId}/resend`, { method: 'POST' });
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/workspace/invites/${inviteId}/resend`, {
+      method: 'POST',
+    });
     if (!response.ok) throw new Error('Failed to resend invite');
     return response.json();
   },

@@ -1,10 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Plus, Trash2, ArrowLeft, FileText, Search,
-  CheckCircle2, Clock, XCircle, AlertTriangle,
-} from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, FileText, Search, CheckCircle2, Clock, XCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
@@ -35,7 +32,10 @@ export function WhatsAppTemplatesPage() {
 
   const deleteMut = useMutation({
     mutationFn: (id) => templatesApi.delete(id),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['whatsapp_templates'] }); toast.success('Template deleted'); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['whatsapp_templates'] });
+      toast.success('Template deleted');
+    },
     onError: () => toast.error('Failed to delete template'),
   });
 
@@ -55,7 +55,9 @@ export function WhatsAppTemplatesPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link to="/broadcasts">
-            <Button variant="ghost" size="sm" className="gap-1.5"><ArrowLeft className="h-4 w-4" /> Broadcasts</Button>
+            <Button variant="ghost" size="sm" className="gap-1.5">
+              <ArrowLeft className="h-4 w-4" /> Broadcasts
+            </Button>
           </Link>
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">WhatsApp Templates</h1>
@@ -63,30 +65,43 @@ export function WhatsAppTemplatesPage() {
           </div>
         </div>
         <Link to="/broadcasts/templates/new">
-          <Button className="gap-1.5"><Plus className="h-4 w-4" /> Submit new template</Button>
+          <Button className="gap-1.5">
+            <Plus className="h-4 w-4" /> Submit new template
+          </Button>
         </Link>
       </div>
 
       <div className="relative max-w-sm">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" placeholder="Search templates..." />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9"
+          placeholder="Search templates..."
+        />
       </div>
 
       {templatesQ.isLoading ? (
         <Card>
-          <div className="space-y-1">{[1,2,3].map((i) => (
-            <div key={i} className="flex items-center gap-4 px-4 py-4">
-              <Skeleton className="h-4 w-40" />
-              <Skeleton className="h-4 w-20 ml-auto" />
-              <Skeleton className="h-4 w-16" />
-            </div>
-          ))}</div>
+          <div className="space-y-1">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-4 px-4 py-4">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 w-20 ml-auto" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+            ))}
+          </div>
         </Card>
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={FileText}
           title={search ? 'No templates match your search' : 'No WhatsApp templates yet'}
-          description={search ? 'Try a different search term.' : 'WhatsApp requires approved message templates for broadcasts. Create your first template to get started.'}
+          description={
+            search
+              ? 'Try a different search term.'
+              : 'WhatsApp requires approved message templates for broadcasts. Create your first template to get started.'
+          }
           actionLabel={search ? undefined : 'Create template'}
           actionHref={search ? undefined : '/broadcasts/templates/new'}
         />
@@ -126,13 +141,17 @@ export function WhatsAppTemplatesPage() {
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">{t.created_at ? formatRelativeTime(t.created_at) : '—'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500">
+                        {t.created_at ? formatRelativeTime(t.created_at) : '—'}
+                      </td>
                       <td className="px-4 py-3">
                         {(t.status === 'PENDING' || t.status === 'REJECTED') && (
                           <button
                             type="button"
                             className="rounded-lg p-2 text-red-400 hover:bg-red-50 hover:text-red-600"
-                            onClick={() => { if (window.confirm('Delete this template?')) deleteMut.mutate(t.id); }}
+                            onClick={() => {
+                              if (window.confirm('Delete this template?')) deleteMut.mutate(t.id);
+                            }}
                             aria-label="Delete"
                           >
                             <Trash2 className="h-4 w-4" />

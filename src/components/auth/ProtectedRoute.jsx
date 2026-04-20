@@ -32,4 +32,3 @@ export function ProtectedRoute({ children, requiredRole }) {
 
   return children;
 }
-

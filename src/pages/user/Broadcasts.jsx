@@ -2,8 +2,17 @@ import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Plus, MoreHorizontal, Megaphone, Copy, Trash2, XCircle,
-  MessageCircle, Instagram, Facebook, Search, FileText,
+  Plus,
+  MoreHorizontal,
+  Megaphone,
+  Copy,
+  Trash2,
+  XCircle,
+  MessageCircle,
+  Instagram,
+  Facebook,
+  Search,
+  FileText,
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -47,7 +56,10 @@ function ActionMenu({ broadcast, onDuplicate, onDelete, onCancel }) {
       <button
         type="button"
         className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
         aria-label="Actions"
       >
         <MoreHorizontal className="h-4 w-4" />
@@ -56,15 +68,39 @@ function ActionMenu({ broadcast, onDuplicate, onDelete, onCancel }) {
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full z-20 mt-1 w-44 rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
-            <button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={(e) => { e.stopPropagation(); onDuplicate(); setOpen(false); }}>
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDuplicate();
+                setOpen(false);
+              }}
+            >
               <Copy className="h-3.5 w-3.5" /> Duplicate
             </button>
             {broadcast.status === 'scheduled' && (
-              <button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-sm text-yellow-700 hover:bg-yellow-50" onClick={(e) => { e.stopPropagation(); onCancel(); setOpen(false); }}>
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-yellow-700 hover:bg-yellow-50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCancel();
+                  setOpen(false);
+                }}
+              >
                 <XCircle className="h-3.5 w-3.5" /> Cancel
               </button>
             )}
-            <button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); onDelete(); setOpen(false); }}>
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+                setOpen(false);
+              }}
+            >
               <Trash2 className="h-3.5 w-3.5" /> Delete
             </button>
           </div>
@@ -88,13 +124,19 @@ export function BroadcastsPage() {
 
   const cancelMut = useMutation({
     mutationFn: (id) => broadcastsApi.cancel(id),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['broadcasts'] }); toast.success('Broadcast cancelled'); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['broadcasts'] });
+      toast.success('Broadcast cancelled');
+    },
     onError: () => toast.error('Failed to cancel broadcast'),
   });
 
   const deleteMut = useMutation({
     mutationFn: (id) => broadcastsApi.delete(id),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['broadcasts'] }); toast.success('Broadcast deleted'); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['broadcasts'] });
+      toast.success('Broadcast deleted');
+    },
     onError: () => toast.error('Failed to delete broadcast'),
   });
 
@@ -132,10 +174,14 @@ export function BroadcastsPage() {
         </div>
         <div className="flex items-center gap-2">
           <Link to="/broadcasts/templates">
-            <Button variant="outline" className="gap-1.5"><FileText className="h-4 w-4" /> <span className="hidden sm:inline">Templates</span></Button>
+            <Button variant="outline" className="gap-1.5">
+              <FileText className="h-4 w-4" /> <span className="hidden sm:inline">Templates</span>
+            </Button>
           </Link>
           <Link to="/broadcasts/new">
-            <Button className="gap-1.5"><Plus className="h-4 w-4" /> New broadcast</Button>
+            <Button className="gap-1.5">
+              <Plus className="h-4 w-4" /> New broadcast
+            </Button>
           </Link>
         </div>
       </div>
@@ -148,7 +194,9 @@ export function BroadcastsPage() {
             onClick={() => setTab(t.key)}
             className={cn(
               'border-b-2 px-1 pb-3 text-sm font-medium transition-colors',
-              tab === t.key ? 'border-green-600 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700',
+              tab === t.key
+                ? 'border-green-600 text-green-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700',
             )}
           >
             {t.label}
@@ -157,7 +205,12 @@ export function BroadcastsPage() {
         <div className="ml-auto pb-2">
           <div className="relative w-60">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" placeholder="Search broadcasts..." />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+              placeholder="Search broadcasts..."
+            />
           </div>
         </div>
       </div>
@@ -165,7 +218,7 @@ export function BroadcastsPage() {
       {broadcastsQ.isLoading ? (
         <Card>
           <div className="space-y-1">
-            {[1,2,3,4].map((i) => (
+            {[1, 2, 3, 4].map((i) => (
               <div key={i} className="flex items-center gap-4 px-4 py-4">
                 <Skeleton className="h-8 w-8 rounded-lg" />
                 <Skeleton className="h-4 w-40" />
@@ -180,7 +233,11 @@ export function BroadcastsPage() {
         <EmptyState
           icon={Megaphone}
           title={search ? 'No broadcasts match your search' : 'Create your first broadcast to reach your audience'}
-          description={search ? 'Try a different search term.' : 'Broadcasts let you send messages to groups of contacts on WhatsApp, Instagram, or Facebook Messenger.'}
+          description={
+            search
+              ? 'Try a different search term.'
+              : 'Broadcasts let you send messages to groups of contacts on WhatsApp, Instagram, or Facebook Messenger.'
+          }
           actionLabel={search ? undefined : 'New broadcast'}
           actionHref={search ? undefined : '/broadcasts/new'}
         />
@@ -205,7 +262,11 @@ export function BroadcastsPage() {
                 {filtered.map((b) => {
                   const ChIcon = CHANNEL_ICON[b.channel] || MessageCircle;
                   return (
-                    <tr key={b.id} className="cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => navigate(`/broadcasts/${b.id}`)}>
+                    <tr
+                      key={b.id}
+                      className="cursor-pointer hover:bg-gray-50 transition-colors"
+                      onClick={() => navigate(`/broadcasts/${b.id}`)}
+                    >
                       <td className="px-3 py-3 sm:px-4">
                         <div className="text-sm font-medium text-gray-900">{b.name}</div>
                       </td>
@@ -214,16 +275,27 @@ export function BroadcastsPage() {
                           <ChIcon className="h-3.5 w-3.5" /> {b.channel}
                         </div>
                       </td>
-                      <td className="px-3 py-3 text-sm text-gray-600 sm:px-4">{(b.audience_size ?? 0).toLocaleString()}</td>
-                      <td className="hidden px-4 py-3 text-sm text-gray-500 md:table-cell">{b.scheduled_at ? formatRelativeTime(b.scheduled_at) : '—'}</td>
+                      <td className="px-3 py-3 text-sm text-gray-600 sm:px-4">
+                        {(b.audience_size ?? 0).toLocaleString()}
+                      </td>
+                      <td className="hidden px-4 py-3 text-sm text-gray-500 md:table-cell">
+                        {b.scheduled_at ? formatRelativeTime(b.scheduled_at) : '—'}
+                      </td>
                       <td className="px-3 py-3 text-sm text-gray-600 sm:px-4">{b.sent_count ?? '—'}</td>
-                      <td className="hidden px-4 py-3 text-sm text-gray-600 lg:table-cell">{b.delivered_count ?? '—'}</td>
+                      <td className="hidden px-4 py-3 text-sm text-gray-600 lg:table-cell">
+                        {b.delivered_count ?? '—'}
+                      </td>
                       <td className="hidden px-4 py-3 text-sm text-gray-600 lg:table-cell">{b.read_count ?? '—'}</td>
                       <td className="px-3 py-3 sm:px-4">
                         <Badge variant={STATUS_VARIANT[b.status] || 'muted'}>{b.status}</Badge>
                       </td>
                       <td className="px-4 py-3">
-                        <ActionMenu broadcast={b} onDuplicate={() => handleDuplicate(b)} onDelete={() => handleDelete(b)} onCancel={() => handleCancel(b)} />
+                        <ActionMenu
+                          broadcast={b}
+                          onDuplicate={() => handleDuplicate(b)}
+                          onDelete={() => handleDelete(b)}
+                          onCancel={() => handleCancel(b)}
+                        />
                       </td>
                     </tr>
                   );

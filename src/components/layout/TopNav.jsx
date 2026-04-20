@@ -28,7 +28,12 @@ export function TopNav() {
       <div className="flex h-full items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
           {!isDesktop && (
-            <button type="button" onClick={toggle} className="rounded-lg p-2 text-gray-600 hover:bg-gray-100" aria-label="Open menu">
+            <button
+              type="button"
+              onClick={toggle}
+              className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
+              aria-label="Open menu"
+            >
               <Menu className="h-5 w-5" />
             </button>
           )}
@@ -51,7 +56,12 @@ export function TopNav() {
                 type="button"
                 className="flex items-center gap-2 rounded-lg border border-gray-100 bg-white px-2 py-1.5 text-sm text-gray-700 shadow-sm hover:bg-gray-50"
               >
-                <div className={cn('flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold', avatarCls)}>
+                <div
+                  className={cn(
+                    'flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold',
+                    avatarCls,
+                  )}
+                >
                   {initialsFromName(name)}
                 </div>
                 <div className="hidden max-w-[200px] text-left sm:block">

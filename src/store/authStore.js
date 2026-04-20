@@ -50,12 +50,8 @@ export const useAuthStore = create((set, get) => ({
         set({ profile: null });
         return null;
       }
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-      
+      const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+
       if (error) {
         console.error('Error fetching profile:', {
           message: error.message,
@@ -67,7 +63,7 @@ export const useAuthStore = create((set, get) => ({
         set({ profile: null });
         return null;
       }
-      
+
       if (!profile) {
         console.warn('Profile not found for user:', userId);
         set({ profile: null });
@@ -118,11 +114,7 @@ export const useAuthStore = create((set, get) => ({
         rpcError.code === 'PGRST202');
 
     if (!rpcError && rpcId) {
-      const { data: wsRow } = await supabase
-        .from('workspaces')
-        .select('id, name, slug')
-        .eq('id', rpcId)
-        .maybeSingle();
+      const { data: wsRow } = await supabase.from('workspaces').select('id, name, slug').eq('id', rpcId).maybeSingle();
       const merged = {
         ...profile,
         workspace_id: rpcId,
@@ -134,10 +126,13 @@ export const useAuthStore = create((set, get) => ({
 
     if (rpcError && !rpcMissing) {
       console.error('ensureDefaultWorkspaceForUser: RPC failed', rpcError);
-      toast.error(`Could not create workspace (RPC): ${rpcError.message}. Re-run supabase/rpc_ensure_workspace.sql in SQL Editor.`, {
-        duration: 10000,
-        id: 'yrull-ws-rpc',
-      });
+      toast.error(
+        `Could not create workspace (RPC): ${rpcError.message}. Re-run supabase/rpc_ensure_workspace.sql in SQL Editor.`,
+        {
+          duration: 10000,
+          id: 'yrull-ws-rpc',
+        },
+      );
       return null;
     }
 
@@ -147,7 +142,10 @@ export const useAuthStore = create((set, get) => ({
       ? `${profile.full_name.trim()}'s workspace`
       : `${localPart}'s workspace`;
 
-    const slug = workspaceName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const slug = workspaceName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
     const { data: workspace, error: wsError } = await supabase
       .from('workspaces')
       .insert({ name: workspaceName, slug: `${slug}-${Date.now()}`, owner_id: userId })
@@ -162,10 +160,7 @@ export const useAuthStore = create((set, get) => ({
       return null;
     }
 
-    const { error: upError } = await supabase
-      .from('profiles')
-      .update({ workspace_id: workspace.id })
-      .eq('id', userId);
+    const { error: upError } = await supabase.from('profiles').update({ workspace_id: workspace.id }).eq('id', userId);
     if (upError) {
       console.error('ensureDefaultWorkspaceForUser: profile update failed', upError);
       toast.error(
@@ -208,7 +203,9 @@ export const useAuthStore = create((set, get) => ({
     if (rpcErr) {
       const msg = String(rpcErr.message || '');
       const missing =
-        msg.includes('Could not find the function') || msg.includes('ensure_workspace_for_current_user') || rpcErr.code === 'PGRST202';
+        msg.includes('Could not find the function') ||
+        msg.includes('ensure_workspace_for_current_user') ||
+        rpcErr.code === 'PGRST202';
       if (!missing) {
         console.error('resolveWorkspaceIdForInstagram RPC:', rpcErr);
         toast.error(`Workspace setup: ${msg}`, { duration: 12000, id: 'yrull-ws-rpc' });
@@ -217,13 +214,7 @@ export const useAuthStore = create((set, get) => ({
 
     const p = await get().fetchProfile();
     const fromState = get().profile;
-    return (
-      p?.workspace_id ??
-      p?.workspace?.id ??
-      fromState?.workspace_id ??
-      fromState?.workspace?.id ??
-      null
-    );
+    return p?.workspace_id ?? p?.workspace?.id ?? fromState?.workspace_id ?? fromState?.workspace?.id ?? null;
   },
 
   loginWithPassword: async ({ email, password }) => {
@@ -264,8 +255,7 @@ export const useAuthStore = create((set, get) => ({
     // Space-separated Facebook Login permissions. Default `public_profile` only — if Meta shows
     // "Invalid Scopes: email", your app doesn't have `email` enabled yet (Use Cases in Meta console).
     // After enabling email, set VITE_FACEBOOK_OAUTH_SCOPES=public_profile email and redeploy.
-    const facebookScopes =
-      (import.meta.env.VITE_FACEBOOK_OAUTH_SCOPES || '').trim() || 'public_profile';
+    const facebookScopes = (import.meta.env.VITE_FACEBOOK_OAUTH_SCOPES || '').trim() || 'public_profile';
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'facebook',
       options: {
@@ -288,7 +278,14 @@ export const useAuthStore = create((set, get) => ({
   signUp: async ({ email, password, fullName, workspaceName }) => {
     set({ status: 'loading' });
     if (ENV.USE_MOCK) {
-      const profile = { id: 'mock_new', email, full_name: fullName, role: 'user', workspace_id: 'ws_new', workspace: { id: 'ws_new', name: workspaceName } };
+      const profile = {
+        id: 'mock_new',
+        email,
+        full_name: fullName,
+        role: 'user',
+        workspace_id: 'ws_new',
+        workspace: { id: 'ws_new', name: workspaceName },
+      };
       set({ status: 'authed', session: { access_token: 'mock', user: { id: 'mock_new', email } }, profile });
       return { profile };
     }
@@ -316,7 +313,10 @@ export const useAuthStore = create((set, get) => ({
     const userId = authData.user?.id;
 
     // 3. Create workspace
-    const slug = workspaceName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const slug = workspaceName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
     const { data: workspace, error: wsError } = await supabase
       .from('workspaces')
       .insert({ name: workspaceName, slug: `${slug}-${Date.now()}`, owner_id: userId })
@@ -325,10 +325,7 @@ export const useAuthStore = create((set, get) => ({
     if (wsError) throw wsError;
 
     // 4. Link profile to workspace
-    await supabase
-      .from('profiles')
-      .update({ workspace_id: workspace.id, full_name: fullName })
-      .eq('id', userId);
+    await supabase.from('profiles').update({ workspace_id: workspace.id, full_name: fullName }).eq('id', userId);
 
     // 5. Fetch full profile
     const profile = await get().fetchProfile();
@@ -348,7 +345,10 @@ export const useAuthStore = create((set, get) => ({
       if (!userId) return [];
       // Fetch workspaces user owns or is a member of
       const { data: ownedWs } = await supabase.from('workspaces').select('id, name, slug').eq('owner_id', userId);
-      const { data: memberRows } = await supabase.from('workspace_members').select('workspace_id').eq('user_id', userId);
+      const { data: memberRows } = await supabase
+        .from('workspace_members')
+        .select('workspace_id')
+        .eq('user_id', userId);
       const memberWsIds = (memberRows || []).map((r) => r.workspace_id).filter(Boolean);
       let memberWs = [];
       if (memberWsIds.length > 0) {
@@ -385,7 +385,9 @@ export const useAuthStore = create((set, get) => ({
       try {
         const { queryClient } = await import('../lib/queryClient');
         queryClient.invalidateQueries();
-      } catch { /* queryClient may not be ready */ }
+      } catch {
+        /* queryClient may not be ready */
+      }
     } catch (err) {
       console.error('setActiveWorkspace failed:', err);
       toast.error('Failed to switch workspace');
@@ -400,7 +402,8 @@ export const useAuthStore = create((set, get) => ({
     try {
       const { queryClient } = await import('../lib/queryClient');
       queryClient.clear();
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   },
 }));
-

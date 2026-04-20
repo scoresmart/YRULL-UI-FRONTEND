@@ -11,9 +11,7 @@ export function useRealtime({ enabled, onMessage, onContactUpdate }) {
     const cleanupMessages = subscribeToTableMulti({
       table: 'whatsapp_messages',
       workspaceId,
-      listeners: [
-        { event: 'INSERT', callback: (payload) => onMessage?.(payload) },
-      ],
+      listeners: [{ event: 'INSERT', callback: (payload) => onMessage?.(payload) }],
     });
 
     const cleanupContacts = subscribeToTableMulti({

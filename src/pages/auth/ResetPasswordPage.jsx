@@ -20,8 +20,14 @@ export function ResetPasswordPage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (password.length < 8) { toast.error('Password must be at least 8 characters'); return; }
-    if (password !== confirm) { toast.error('Passwords do not match'); return; }
+    if (password.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+    if (password !== confirm) {
+      toast.error('Passwords do not match');
+      return;
+    }
     setLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ password });
@@ -95,13 +101,20 @@ export function ResetPasswordPage() {
                   )}
                 </div>
 
-                <Button type="submit" className="w-full" disabled={loading || password.length < 8 || password !== confirm}>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={loading || password.length < 8 || password !== confirm}
+                >
                   {loading && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
                   Update password
                 </Button>
               </form>
 
-              <Link to="/login" className="mt-6 block text-center text-sm font-medium text-gray-500 hover:text-gray-900">
+              <Link
+                to="/login"
+                className="mt-6 block text-center text-sm font-medium text-gray-500 hover:text-gray-900"
+              >
                 Back to login
               </Link>
             </>

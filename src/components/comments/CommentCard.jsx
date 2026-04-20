@@ -3,16 +3,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { ReplyComposer } from './ReplyComposer';
-import {
-  Reply,
-  EyeOff,
-  Eye,
-  Trash2,
-  ExternalLink,
-  AlertTriangle,
-  Loader2,
-  MessageCircle,
-} from 'lucide-react';
+import { Reply, EyeOff, Eye, Trash2, ExternalLink, AlertTriangle, Loader2, MessageCircle } from 'lucide-react';
 import { formatRelativeTime, initialsFromName, pastelClassFromString } from '../../lib/utils';
 import { cn } from '../../lib/utils';
 
@@ -31,12 +22,7 @@ function ConfirmDialog({ open, onOpenChange, title, description, confirmLabel, d
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancel
           </Button>
-          <Button
-            variant={destructive ? 'destructive' : 'default'}
-            size="sm"
-            onClick={onConfirm}
-            disabled={loading}
-          >
+          <Button variant={destructive ? 'destructive' : 'default'} size="sm" onClick={onConfirm} disabled={loading}>
             {loading && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
             {confirmLabel}
           </Button>
@@ -79,7 +65,12 @@ export function CommentCard({ comment, onReply, onHide, onUnhide, onDelete, repl
   }
 
   return (
-    <div className={cn('rounded-xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md', isHidden ? 'border-amber-200 bg-amber-50/30' : 'border-gray-100')}>
+    <div
+      className={cn(
+        'rounded-xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md',
+        isHidden ? 'border-amber-200 bg-amber-50/30' : 'border-gray-100',
+      )}
+    >
       {/* Header */}
       <div className="flex items-start gap-3">
         {avatarUrl ? (
@@ -99,12 +90,14 @@ export function CommentCard({ comment, onReply, onHide, onUnhide, onDelete, repl
             >
               @{username}
             </a>
-            {isHidden && <Badge variant="muted" className="text-[10px]">Hidden</Badge>}
+            {isHidden && (
+              <Badge variant="muted" className="text-[10px]">
+                Hidden
+              </Badge>
+            )}
             {isReplied && <Badge className="text-[10px]">Replied</Badge>}
           </div>
-          {timestamp && (
-            <p className="text-xs text-gray-400">{formatRelativeTime(timestamp)}</p>
-          )}
+          {timestamp && <p className="text-xs text-gray-400">{formatRelativeTime(timestamp)}</p>}
         </div>
 
         {/* Post thumbnail */}
@@ -146,12 +139,7 @@ export function CommentCard({ comment, onReply, onHide, onUnhide, onDelete, repl
         )}
 
         {isHidden ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 text-xs"
-            onClick={() => onUnhide?.(comment.id)}
-          >
+          <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => onUnhide?.(comment.id)}>
             <Eye className="mr-1 h-3.5 w-3.5" /> Unhide
           </Button>
         ) : (
@@ -194,7 +182,10 @@ export function CommentCard({ comment, onReply, onHide, onUnhide, onDelete, repl
         title="Hide this comment?"
         description="The commenter won't know their comment was hidden, but it won't be visible to others. You can unhide it later."
         confirmLabel="Hide comment"
-        onConfirm={() => { onHide?.(comment.id); setHideDialog(false); }}
+        onConfirm={() => {
+          onHide?.(comment.id);
+          setHideDialog(false);
+        }}
       />
 
       {/* Confirm delete */}
@@ -205,7 +196,10 @@ export function CommentCard({ comment, onReply, onHide, onUnhide, onDelete, repl
         description="This cannot be undone. The comment will be permanently removed from your post."
         confirmLabel="Delete comment"
         destructive
-        onConfirm={() => { onDelete?.(comment.id); setDeleteDialog(false); }}
+        onConfirm={() => {
+          onDelete?.(comment.id);
+          setDeleteDialog(false);
+        }}
       />
     </div>
   );

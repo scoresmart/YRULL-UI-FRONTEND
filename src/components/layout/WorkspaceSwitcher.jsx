@@ -32,7 +32,10 @@ export function WorkspaceSwitcher() {
   const avatarCls = pastelClassFromString(current?.name || 'W');
 
   async function handleSwitch(ws) {
-    if (ws.id === currentId) { setOpen(false); return; }
+    if (ws.id === currentId) {
+      setOpen(false);
+      return;
+    }
     setOpen(false);
     await setActiveWorkspace(ws.id);
   }
@@ -88,7 +91,10 @@ export function WorkspaceSwitcher() {
 
           <button
             type="button"
-            onClick={() => { setOpen(false); navigate('/settings'); }}
+            onClick={() => {
+              setOpen(false);
+              navigate('/settings');
+            }}
             className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-400 hover:bg-white/5 hover:text-white"
           >
             <Settings className="h-4 w-4" /> Manage workspaces

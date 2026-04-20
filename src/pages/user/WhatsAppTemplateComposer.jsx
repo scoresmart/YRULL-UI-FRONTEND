@@ -2,8 +2,17 @@ import { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import {
-  ArrowLeft, Plus, Trash2, Loader2, AlertTriangle,
-  FileText, Image, Video, File, Phone as PhoneIcon, ExternalLink,
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Loader2,
+  AlertTriangle,
+  FileText,
+  Image,
+  Video,
+  File,
+  Phone as PhoneIcon,
+  ExternalLink,
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -43,9 +52,7 @@ function TemplatePreview({ header, headerType, body, footer, buttons }) {
       <div className="mb-2 text-xs font-medium text-gray-500">WhatsApp Preview</div>
       <div className="mx-auto max-w-[300px]">
         <div className="rounded-lg bg-white p-3 shadow-sm">
-          {headerType === 'TEXT' && header && (
-            <div className="mb-1 text-sm font-semibold text-gray-900">{header}</div>
-          )}
+          {headerType === 'TEXT' && header && <div className="mb-1 text-sm font-semibold text-gray-900">{header}</div>}
           {headerType === 'IMAGE' && (
             <div className="mb-2 flex h-32 items-center justify-center rounded bg-gray-100 text-xs text-gray-400">
               <Image className="mr-1 h-4 w-4" /> Image header
@@ -98,7 +105,10 @@ export function WhatsAppTemplateComposerPage() {
 
   const createMut = useMutation({
     mutationFn: (data) => templatesApi.create(data),
-    onSuccess: () => { toast.success('Template submitted for approval'); navigate('/broadcasts/templates'); },
+    onSuccess: () => {
+      toast.success('Template submitted for approval');
+      navigate('/broadcasts/templates');
+    },
     onError: () => toast.error('Failed to submit template'),
   });
 
@@ -108,7 +118,7 @@ export function WhatsAppTemplateComposerPage() {
   }
 
   function updateButton(i, field, val) {
-    setButtons(buttons.map((b, idx) => idx === i ? { ...b, [field]: val } : b));
+    setButtons(buttons.map((b, idx) => (idx === i ? { ...b, [field]: val } : b)));
   }
 
   function removeButton(i) {
@@ -134,7 +144,9 @@ export function WhatsAppTemplateComposerPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Link to="/broadcasts/templates">
-          <Button variant="ghost" size="sm" className="gap-1.5"><ArrowLeft className="h-4 w-4" /> Templates</Button>
+          <Button variant="ghost" size="sm" className="gap-1.5">
+            <ArrowLeft className="h-4 w-4" /> Templates
+          </Button>
         </Link>
         <h1 className="text-xl font-semibold text-gray-900">New WhatsApp Template</h1>
       </div>
@@ -172,7 +184,9 @@ export function WhatsAppTemplateComposerPage() {
                     onClick={() => setCategory(c)}
                     className={cn(
                       'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
-                      category === c ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 text-gray-600 hover:border-gray-300',
+                      category === c
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300',
                     )}
                   >
                     {c.charAt(0) + c.slice(1).toLowerCase()}
@@ -184,8 +198,16 @@ export function WhatsAppTemplateComposerPage() {
             {/* Language */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Language</label>
-              <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
-                {LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              >
+                {LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -197,10 +219,15 @@ export function WhatsAppTemplateComposerPage() {
                   <button
                     key={h.value}
                     type="button"
-                    onClick={() => { setHeaderType(h.value); setHeader(''); }}
+                    onClick={() => {
+                      setHeaderType(h.value);
+                      setHeader('');
+                    }}
                     className={cn(
                       'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
-                      headerType === h.value ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 text-gray-600 hover:border-gray-300',
+                      headerType === h.value
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300',
                     )}
                   >
                     {h.label}
@@ -208,7 +235,12 @@ export function WhatsAppTemplateComposerPage() {
                 ))}
               </div>
               {headerType === 'TEXT' && (
-                <Input value={header} onChange={(e) => setHeader(e.target.value)} placeholder="Header text" className="mt-2" />
+                <Input
+                  value={header}
+                  onChange={(e) => setHeader(e.target.value)}
+                  placeholder="Header text"
+                  className="mt-2"
+                />
               )}
             </div>
 
@@ -221,17 +253,25 @@ export function WhatsAppTemplateComposerPage() {
                 rows={5}
                 className={cn(
                   'w-full rounded-lg border px-3 py-2 text-sm focus:ring-1',
-                  bodyValid ? 'border-gray-300 focus:border-green-500 focus:ring-green-500' : 'border-red-300 focus:border-red-500 focus:ring-red-500',
+                  bodyValid
+                    ? 'border-gray-300 focus:border-green-500 focus:ring-green-500'
+                    : 'border-red-300 focus:border-red-500 focus:ring-red-500',
                 )}
                 placeholder={'Hello {{1}}, thank you for contacting us!\n\nUse {{1}}, {{2}} for variables.'}
               />
-              <p className="mt-1 text-xs text-gray-400">Use {'{{1}}'}, {'{{2}}'}, etc. for dynamic variables.</p>
+              <p className="mt-1 text-xs text-gray-400">
+                Use {'{{1}}'}, {'{{2}}'}, etc. for dynamic variables.
+              </p>
             </div>
 
             {/* Footer */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Footer (optional)</label>
-              <Input value={footer} onChange={(e) => setFooter(e.target.value.slice(0, 60))} placeholder="e.g. Reply STOP to opt out" />
+              <Input
+                value={footer}
+                onChange={(e) => setFooter(e.target.value.slice(0, 60))}
+                placeholder="e.g. Reply STOP to opt out"
+              />
               <p className="mt-1 text-right text-xs text-gray-400">{footer.length}/60</p>
             </div>
 
@@ -247,10 +287,15 @@ export function WhatsAppTemplateComposerPage() {
                   <button
                     key={bt.value}
                     type="button"
-                    onClick={() => { setButtonType(bt.value); setButtons([]); }}
+                    onClick={() => {
+                      setButtonType(bt.value);
+                      setButtons([]);
+                    }}
                     className={cn(
                       'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
-                      buttonType === bt.value ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 text-gray-600 hover:border-gray-300',
+                      buttonType === bt.value
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300',
                     )}
                   >
                     {bt.label}
@@ -262,12 +307,28 @@ export function WhatsAppTemplateComposerPage() {
                   {buttons.map((btn, i) => (
                     <div key={i} className="flex items-start gap-2 rounded-lg border border-gray-200 p-3">
                       <div className="flex-1 space-y-2">
-                        <Input value={btn.text} onChange={(e) => updateButton(i, 'text', e.target.value)} placeholder="Button text" className="text-sm" />
+                        <Input
+                          value={btn.text}
+                          onChange={(e) => updateButton(i, 'text', e.target.value)}
+                          placeholder="Button text"
+                          className="text-sm"
+                        />
                         {buttonType === 'cta' && (
-                          <Input value={btn.value} onChange={(e) => updateButton(i, 'value', e.target.value)} placeholder={btn.type === 'URL' ? 'https://...' : '+61...'} className="text-sm" />
+                          <Input
+                            value={btn.value}
+                            onChange={(e) => updateButton(i, 'value', e.target.value)}
+                            placeholder={btn.type === 'URL' ? 'https://...' : '+61...'}
+                            className="text-sm"
+                          />
                         )}
                       </div>
-                      <button type="button" onClick={() => removeButton(i)} className="p-1 text-red-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                      <button
+                        type="button"
+                        onClick={() => removeButton(i)}
+                        className="p-1 text-red-400 hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   ))}
                   {buttons.length < 3 && (
@@ -288,13 +349,7 @@ export function WhatsAppTemplateComposerPage() {
           </div>
 
           <div className="col-span-12 lg:col-span-5">
-            <TemplatePreview
-              header={header}
-              headerType={headerType}
-              body={body}
-              footer={footer}
-              buttons={buttons}
-            />
+            <TemplatePreview header={header} headerType={headerType} body={body} footer={footer} buttons={buttons} />
           </div>
         </div>
       </form>

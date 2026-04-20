@@ -4,8 +4,7 @@ import { cn } from '../../lib/utils';
 import { getInstagramOAuthAuthorizeUrl } from '../../lib/oauth';
 import { useAuthStore } from '../../store/authStore';
 
-const DEFAULT_NO_WORKSPACE_MSG =
-  'Sign in first, then connect Instagram from Integrations or the Instagram page.';
+const DEFAULT_NO_WORKSPACE_MSG = 'Sign in first, then connect Instagram from Integrations or the Instagram page.';
 
 /**
  * - `linkWorkspace` (default): Instagram Business OAuth on the API — needs a logged-in workspace.
@@ -36,15 +35,15 @@ export function ConnectFacebookButton({
         const msg =
           e?.message === 'Facebook sign-in is not available in mock mode.'
             ? e.message
-            : e?.message ?? 'Unable to start Facebook sign-in. Enable the Facebook provider in Supabase (Auth → Providers).';
+            : (e?.message ??
+              'Unable to start Facebook sign-in. Enable the Facebook provider in Supabase (Auth → Providers).');
         toast.error(msg);
       }
       return;
     }
 
     // Re-fetch profile + workspace bootstrap on click — UI state can be stale right after SQL/RLS fixes.
-    let effectiveWorkspaceId =
-      workspaceId ?? (await useAuthStore.getState().resolveWorkspaceIdForInstagram());
+    let effectiveWorkspaceId = workspaceId ?? (await useAuthStore.getState().resolveWorkspaceIdForInstagram());
 
     if (!effectiveWorkspaceId) {
       if (whenNoWorkspace === 'toast') {
@@ -66,8 +65,7 @@ export function ConnectFacebookButton({
   };
 
   // Allow click when workspace might exist after refresh (toast mode); only hard-disable when policy is disabled.
-  const disableButton =
-    intent === 'linkWorkspace' && !workspaceId && whenNoWorkspace === 'disabled';
+  const disableButton = intent === 'linkWorkspace' && !workspaceId && whenNoWorkspace === 'disabled';
 
   const variant = appearance === 'instagram' ? 'instagram' : 'default';
 
@@ -82,13 +80,9 @@ export function ConnectFacebookButton({
         handleActivate();
       }}
       onPointerDown={(e) => e.stopPropagation()}
-      className={cn(
-        'relative z-[100] touch-manipulation active:!scale-100',
-        className,
-      )}
+      className={cn('relative z-[100] touch-manipulation active:!scale-100', className)}
     >
-      {children ??
-        (intent === 'signInWithFacebook' ? LABEL_SIGN_IN : LABEL_LINK_INSTAGRAM)}
+      {children ?? (intent === 'signInWithFacebook' ? LABEL_SIGN_IN : LABEL_LINK_INSTAGRAM)}
     </Button>
   );
 }

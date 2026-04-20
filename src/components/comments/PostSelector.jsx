@@ -29,7 +29,9 @@ export function PostSelector({ selectedPostId, onSelect }) {
             {selected.thumbnail_url || selected.media_url ? (
               <img src={selected.thumbnail_url || selected.media_url} alt="" className="h-8 w-8 rounded object-cover" />
             ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded bg-gray-100"><Image className="h-4 w-4 text-gray-400" /></div>
+              <div className="flex h-8 w-8 items-center justify-center rounded bg-gray-100">
+                <Image className="h-4 w-4 text-gray-400" />
+              </div>
             )}
             <span className="min-w-0 flex-1 truncate text-gray-700">{selected.caption?.slice(0, 50) || 'Post'}</span>
           </>
@@ -42,7 +44,10 @@ export function PostSelector({ selectedPostId, onSelect }) {
       {open && (
         <div className="absolute left-0 top-full z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
           <button
-            onClick={() => { onSelect(null); setOpen(false); }}
+            onClick={() => {
+              onSelect(null);
+              setOpen(false);
+            }}
             className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-500 hover:bg-gray-50"
           >
             All posts
@@ -50,7 +55,10 @@ export function PostSelector({ selectedPostId, onSelect }) {
           {display.map((p) => (
             <button
               key={p.id}
-              onClick={() => { onSelect(p.id); setOpen(false); }}
+              onClick={() => {
+                onSelect(p.id);
+                setOpen(false);
+              }}
               className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50 ${
                 p.id === selectedPostId ? 'bg-brand-accent/5 font-medium' : ''
               }`}
@@ -58,7 +66,9 @@ export function PostSelector({ selectedPostId, onSelect }) {
               {p.thumbnail_url || p.media_url ? (
                 <img src={p.thumbnail_url || p.media_url} alt="" className="h-8 w-8 rounded object-cover" />
               ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded bg-gray-100"><Image className="h-4 w-4 text-gray-400" /></div>
+                <div className="flex h-8 w-8 items-center justify-center rounded bg-gray-100">
+                  <Image className="h-4 w-4 text-gray-400" />
+                </div>
               )}
               <span className="min-w-0 flex-1 truncate text-gray-700">{p.caption?.slice(0, 60) || 'Post'}</span>
             </button>

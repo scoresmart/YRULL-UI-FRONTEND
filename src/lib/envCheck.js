@@ -17,8 +17,7 @@ const OPTIONAL_VARS = [
  * Returns { ok, missing[] } — never reveals actual values.
  */
 export function checkEnvVars() {
-  const isMock =
-    import.meta.env.VITE_USE_MOCK === 'true' || import.meta.env.VITE_USE_MOCK === true;
+  const isMock = import.meta.env.VITE_USE_MOCK === 'true' || import.meta.env.VITE_USE_MOCK === true;
 
   if (isMock) return { ok: true, missing: [], warnings: [] };
 
@@ -39,10 +38,7 @@ export function checkEnvVars() {
   }
 
   if (import.meta.env.DEV && warnings.length > 0) {
-    console.warn(
-      '⚠️ Optional env vars not set:',
-      warnings.map((w) => w.key).join(', '),
-    );
+    console.warn('⚠️ Optional env vars not set:', warnings.map((w) => w.key).join(', '));
   }
 
   return { ok: missing.length === 0, missing, warnings };

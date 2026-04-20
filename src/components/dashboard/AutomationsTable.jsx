@@ -14,7 +14,9 @@ const Row = memo(function Row({ item, onToggle, onEdit, onDelete }) {
       <td className="px-4 py-3">
         <Switch checked={item.is_active} onCheckedChange={() => onToggle(item.id)} />
       </td>
-      <td className="px-4 py-3 text-sm text-gray-500">{item.last_run_at ? formatRelativeTime(item.last_run_at) : '—'}</td>
+      <td className="px-4 py-3 text-sm text-gray-500">
+        {item.last_run_at ? formatRelativeTime(item.last_run_at) : '—'}
+      </td>
       <td className="px-4 py-3 text-sm text-gray-900">{item.messages_sent}</td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
@@ -89,11 +91,12 @@ export function AutomationsTable({ data, isLoading }) {
       ) : (
         <div className="rounded-xl border border-dashed border-gray-200 p-10 text-center">
           <div className="text-base font-semibold text-gray-900">No automations yet</div>
-          <div className="mt-1 text-sm text-gray-500">Create your first automation to respond faster and stay consistent.</div>
+          <div className="mt-1 text-sm text-gray-500">
+            Create your first automation to respond faster and stay consistent.
+          </div>
           <Button className="mt-4">Create your first automation</Button>
         </div>
       )}
     </Card>
   );
 }
-

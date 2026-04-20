@@ -64,7 +64,7 @@ const TriggerNode = ({ data, selected, id }) => {
     return <Zap className="h-5 w-5" />;
   };
 
-  const isConfigured = 
+  const isConfigured =
     data.triggerType === 'new_message' ||
     data.triggerType === 'missed_call' ||
     data.triggerType === 'incoming_call' ||
@@ -77,7 +77,7 @@ const TriggerNode = ({ data, selected, id }) => {
       className={cn(
         'relative rounded-lg border-2 bg-white p-4 shadow-sm transition-all',
         selected ? 'border-green-500 shadow-md' : 'border-gray-300',
-        'min-w-[280px] max-w-[320px]'
+        'min-w-[280px] max-w-[320px]',
       )}
     >
       <div className="flex items-start gap-3">
@@ -99,9 +99,7 @@ const TriggerNode = ({ data, selected, id }) => {
                       Message contains <span className="font-semibold text-gray-900">{data.keyword}</span>
                     </div>
                   ) : (
-                    <div className="text-sm text-gray-600">
-                      Any message (no keyword)
-                    </div>
+                    <div className="text-sm text-gray-600">Any message (no keyword)</div>
                   )}
                 </>
               )}
@@ -152,9 +150,7 @@ const TriggerNode = ({ data, selected, id }) => {
             </div>
           ) : (
             <>
-              {data.description && (
-                <div className="mt-2 text-sm text-gray-600">{data.description}</div>
-              )}
+              {data.description && <div className="mt-2 text-sm text-gray-600">{data.description}</div>}
               <button
                 type="button"
                 onClick={(e) => {
@@ -192,7 +188,13 @@ const ActionSelectionNode = ({ data, selected }) => {
     { type: 'assign', label: 'Assign', icon: Settings, color: 'text-blue-600', bgColor: 'bg-blue-50' },
     { type: 'delay', label: 'Delay', icon: Pause, color: 'text-purple-600', bgColor: 'bg-purple-50' },
     { type: 'condition', label: 'Condition', icon: GitBranch, color: 'text-cyan-600', bgColor: 'bg-cyan-50' },
-    { type: 'custom_integration', label: 'Custom Integration', icon: Plug, color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
+    {
+      type: 'custom_integration',
+      label: 'Custom Integration',
+      icon: Plug,
+      color: 'text-indigo-600',
+      bgColor: 'bg-indigo-50',
+    },
     { type: 'randomizer', label: 'Randomizer', icon: Shuffle, color: 'text-pink-600', bgColor: 'bg-pink-50' },
     { type: 'webhook', label: 'Webhook', icon: Webhook, color: 'text-amber-600', bgColor: 'bg-amber-50' },
     { type: 'code', label: 'Code', icon: Code, color: 'text-slate-600', bgColor: 'bg-slate-50' },
@@ -205,7 +207,7 @@ const ActionSelectionNode = ({ data, selected }) => {
       className={cn(
         'relative rounded-lg border-2 border-dashed bg-white p-4 shadow-sm transition-all',
         selected ? 'border-blue-500' : 'border-gray-300',
-        'min-w-[300px] max-w-[340px]'
+        'min-w-[300px] max-w-[340px]',
       )}
     >
       <div className="flex items-center gap-2 mb-4">
@@ -223,7 +225,7 @@ const ActionSelectionNode = ({ data, selected }) => {
                 onClick={() => data?.onAddAction?.(option.type)}
                 className={cn(
                   'flex items-center gap-2 rounded-lg border border-gray-200 p-3 text-left hover:bg-gray-50 transition-colors',
-                  option.bgColor
+                  option.bgColor,
                 )}
               >
                 <Icon className={cn('h-5 w-5 shrink-0', option.color)} />
@@ -281,7 +283,7 @@ const ActionNode = ({ data, selected, id }) => {
       className={cn(
         'relative rounded-lg border-2 bg-white p-4 shadow-sm transition-all',
         selected ? 'border-gray-300 shadow-md' : 'border-gray-300',
-        'min-w-[280px] max-w-[320px]'
+        'min-w-[280px] max-w-[320px]',
       )}
     >
       {/* Delete and Change buttons - top right */}
@@ -352,14 +354,21 @@ const ActionNode = ({ data, selected, id }) => {
                 <>
                   <div className="flex items-center justify-between rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
                     <div className="flex items-center gap-2">
-                      <span className={`h-2 w-2 rounded-full ${
-                        data.tagColor === 'green' ? 'bg-green-500' :
-                        data.tagColor === 'blue' ? 'bg-blue-500' :
-                        data.tagColor === 'purple' ? 'bg-purple-500' :
-                        data.tagColor === 'orange' ? 'bg-amber-500' :
-                        data.tagColor === 'red' ? 'bg-red-500' :
-                        'bg-gray-500'
-                      }`} />
+                      <span
+                        className={`h-2 w-2 rounded-full ${
+                          data.tagColor === 'green'
+                            ? 'bg-green-500'
+                            : data.tagColor === 'blue'
+                              ? 'bg-blue-500'
+                              : data.tagColor === 'purple'
+                                ? 'bg-purple-500'
+                                : data.tagColor === 'orange'
+                                  ? 'bg-amber-500'
+                                  : data.tagColor === 'red'
+                                    ? 'bg-red-500'
+                                    : 'bg-gray-500'
+                        }`}
+                      />
                       <span className="text-sm font-medium text-gray-700">{data.tagName || 'Selected Tag'}</span>
                     </div>
                     <button
@@ -411,7 +420,9 @@ const ActionNode = ({ data, selected, id }) => {
               {data.integrationKey ? (
                 <>
                   <div className="flex items-center justify-between rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
-                    <span className="text-sm font-medium text-gray-700">{data.integrationName || data.integrationKey}</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      {data.integrationName || data.integrationKey}
+                    </span>
                     <button
                       type="button"
                       onClick={(e) => {
@@ -512,7 +523,7 @@ const ClaudeAINode = ({ data, selected, id }) => {
       className={cn(
         'relative rounded-lg border-2 bg-white p-4 shadow-sm transition-all',
         selected ? 'border-[#D4A574] shadow-md' : 'border-gray-300',
-        'min-w-[300px] max-w-[380px]'
+        'min-w-[300px] max-w-[380px]',
       )}
     >
       <div className="flex items-start gap-3">
@@ -525,8 +536,12 @@ const ClaudeAINode = ({ data, selected, id }) => {
           <div className="text-base font-semibold text-gray-900">Claude AI</div>
           <div className="mt-1 text-sm text-gray-600">Analyze + Reply</div>
           <div className="mt-2 flex flex-wrap gap-1.5">
-            <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700">claude-sonnet-4</span>
-            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">500 tokens</span>
+            <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700">
+              claude-sonnet-4
+            </span>
+            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+              500 tokens
+            </span>
           </div>
         </div>
       </div>
@@ -541,8 +556,18 @@ const ClaudeAINode = ({ data, selected, id }) => {
           placeholder="Enter system prompt..."
         />
       </div>
-      <Handle type="target" position={Position.Left} className="!h-6 !w-6 !rounded-full !border-2 !border-gray-400 !bg-white" style={{ left: -12 }} />
-      <Handle type="source" position={Position.Right} className="!h-6 !w-6 !rounded-full !border-2 !border-gray-400 !bg-white" style={{ right: -12 }} />
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!h-6 !w-6 !rounded-full !border-2 !border-gray-400 !bg-white"
+        style={{ left: -12 }}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!h-6 !w-6 !rounded-full !border-2 !border-gray-400 !bg-white"
+        style={{ right: -12 }}
+      />
     </div>
   );
 };
@@ -554,7 +579,7 @@ const SendReplyNode = ({ data, selected }) => {
       className={cn(
         'relative rounded-lg border-2 bg-white p-4 shadow-sm transition-all',
         selected ? 'border-blue-500 shadow-md' : 'border-gray-300',
-        'min-w-[260px] max-w-[300px]'
+        'min-w-[260px] max-w-[300px]',
       )}
     >
       <div className="flex items-start gap-3">
@@ -569,8 +594,18 @@ const SendReplyNode = ({ data, selected }) => {
           </div>
         </div>
       </div>
-      <Handle type="target" position={Position.Left} className="!h-6 !w-6 !rounded-full !border-2 !border-gray-400 !bg-white" style={{ left: -12 }} />
-      <Handle type="source" position={Position.Right} className="!h-6 !w-6 !rounded-full !border-2 !border-gray-400 !bg-white" style={{ right: -12 }} />
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!h-6 !w-6 !rounded-full !border-2 !border-gray-400 !bg-white"
+        style={{ left: -12 }}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!h-6 !w-6 !rounded-full !border-2 !border-gray-400 !bg-white"
+        style={{ right: -12 }}
+      />
     </div>
   );
 };
@@ -582,7 +617,7 @@ const SaveNode = ({ data, selected }) => {
       className={cn(
         'relative rounded-lg border-2 bg-white p-4 shadow-sm transition-all',
         selected ? 'border-gray-500 shadow-md' : 'border-gray-300',
-        'min-w-[260px] max-w-[300px]'
+        'min-w-[260px] max-w-[300px]',
       )}
     >
       <div className="flex items-start gap-3">
@@ -597,7 +632,12 @@ const SaveNode = ({ data, selected }) => {
           </div>
         </div>
       </div>
-      <Handle type="target" position={Position.Left} className="!h-6 !w-6 !rounded-full !border-2 !border-gray-400 !bg-white" style={{ left: -12 }} />
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!h-6 !w-6 !rounded-full !border-2 !border-gray-400 !bg-white"
+        style={{ left: -12 }}
+      />
     </div>
   );
 };
@@ -670,7 +710,7 @@ function AutomationBuilderContent() {
   const [newTagName, setNewTagName] = useState('');
   const [newTagColor, setNewTagColor] = useState('green');
   const [showCreateTag, setShowCreateTag] = useState(false);
-  
+
   // Load tags
   const tagsQ = useTags();
   const queryClient = useQueryClient();
@@ -692,12 +732,48 @@ function AutomationBuilderContent() {
         setIntegrationConfigs(configs);
         // Define available integrations (matching Integrations page)
         const availableIntegrations = [
-          { key: 'anthropic', name: 'Claude AI', description: 'Powers AI chat replies and smart reply classification', category: 'AI', requiresPrompt: true },
-          { key: 'whatsapp', name: 'WhatsApp Cloud API', description: 'Send and receive WhatsApp messages via Meta', category: 'Messaging', requiresPrompt: false },
-          { key: 'supabase', name: 'Supabase', description: 'Database for messages, contacts, call logs, and automations', category: 'Database', requiresPrompt: false },
-          { key: 'airtable', name: 'Airtable', description: 'CRM — source of truth for all leads and enrollments', category: 'CRM', requiresPrompt: false },
-          { key: 'resend', name: 'Resend', description: 'Email delivery for sequences, reports, and notifications', category: 'Email', requiresPrompt: false },
-          { key: 'retell', name: 'Retell AI', description: 'AI-powered outbound phone calls to leads', category: 'Voice AI', requiresPrompt: false },
+          {
+            key: 'anthropic',
+            name: 'Claude AI',
+            description: 'Powers AI chat replies and smart reply classification',
+            category: 'AI',
+            requiresPrompt: true,
+          },
+          {
+            key: 'whatsapp',
+            name: 'WhatsApp Cloud API',
+            description: 'Send and receive WhatsApp messages via Meta',
+            category: 'Messaging',
+            requiresPrompt: false,
+          },
+          {
+            key: 'supabase',
+            name: 'Supabase',
+            description: 'Database for messages, contacts, call logs, and automations',
+            category: 'Database',
+            requiresPrompt: false,
+          },
+          {
+            key: 'airtable',
+            name: 'Airtable',
+            description: 'CRM — source of truth for all leads and enrollments',
+            category: 'CRM',
+            requiresPrompt: false,
+          },
+          {
+            key: 'resend',
+            name: 'Resend',
+            description: 'Email delivery for sequences, reports, and notifications',
+            category: 'Email',
+            requiresPrompt: false,
+          },
+          {
+            key: 'retell',
+            name: 'Retell AI',
+            description: 'AI-powered outbound phone calls to leads',
+            category: 'Voice AI',
+            requiresPrompt: false,
+          },
         ];
         // Filter to only show connected integrations
         const connected = availableIntegrations.filter((int) => {
@@ -717,7 +793,8 @@ function AutomationBuilderContent() {
     if (isSystem) {
       // Load system AI automation with nodes on canvas
       setLoadingAutomation(true);
-      claudePromptApi.get()
+      claudePromptApi
+        .get()
         .then((data) => {
           const prompt = data?.prompt || '';
           const systemNodes = [
@@ -748,22 +825,40 @@ function AutomationBuilderContent() {
           ];
           const systemEdges = [
             {
-              id: 'e-trigger-claude', source: 'trigger-1', target: 'claude-ai-1',
-              type: 'smoothstep', style: { stroke: '#D4A574', strokeWidth: 2 },
-              label: 'Then', labelStyle: { fill: '#6B7280', fontWeight: 500, fontSize: 12 },
-              labelBgStyle: { fill: 'white', fillOpacity: 0.9 }, labelBgPadding: [4, 8], labelBgBorderRadius: 4,
+              id: 'e-trigger-claude',
+              source: 'trigger-1',
+              target: 'claude-ai-1',
+              type: 'smoothstep',
+              style: { stroke: '#D4A574', strokeWidth: 2 },
+              label: 'Then',
+              labelStyle: { fill: '#6B7280', fontWeight: 500, fontSize: 12 },
+              labelBgStyle: { fill: 'white', fillOpacity: 0.9 },
+              labelBgPadding: [4, 8],
+              labelBgBorderRadius: 4,
             },
             {
-              id: 'e-claude-reply', source: 'claude-ai-1', target: 'send-reply-1',
-              type: 'smoothstep', style: { stroke: '#3B82F6', strokeWidth: 2 },
-              label: 'Reply', labelStyle: { fill: '#6B7280', fontWeight: 500, fontSize: 12 },
-              labelBgStyle: { fill: 'white', fillOpacity: 0.9 }, labelBgPadding: [4, 8], labelBgBorderRadius: 4,
+              id: 'e-claude-reply',
+              source: 'claude-ai-1',
+              target: 'send-reply-1',
+              type: 'smoothstep',
+              style: { stroke: '#3B82F6', strokeWidth: 2 },
+              label: 'Reply',
+              labelStyle: { fill: '#6B7280', fontWeight: 500, fontSize: 12 },
+              labelBgStyle: { fill: 'white', fillOpacity: 0.9 },
+              labelBgPadding: [4, 8],
+              labelBgBorderRadius: 4,
             },
             {
-              id: 'e-reply-save', source: 'send-reply-1', target: 'save-1',
-              type: 'smoothstep', style: { stroke: '#9CA3AF', strokeWidth: 2 },
-              label: 'Log', labelStyle: { fill: '#6B7280', fontWeight: 500, fontSize: 12 },
-              labelBgStyle: { fill: 'white', fillOpacity: 0.9 }, labelBgPadding: [4, 8], labelBgBorderRadius: 4,
+              id: 'e-reply-save',
+              source: 'send-reply-1',
+              target: 'save-1',
+              type: 'smoothstep',
+              style: { stroke: '#9CA3AF', strokeWidth: 2 },
+              label: 'Log',
+              labelStyle: { fill: '#6B7280', fontWeight: 500, fontSize: 12 },
+              labelBgStyle: { fill: 'white', fillOpacity: 0.9 },
+              labelBgPadding: [4, 8],
+              labelBgBorderRadius: 4,
             },
           ];
           setNodes(systemNodes);
@@ -776,7 +871,8 @@ function AutomationBuilderContent() {
 
     if (!isNew && id) {
       setLoadingAutomation(true);
-      automationsApi.get(id)
+      automationsApi
+        .get(id)
         .then((auto) => {
           if (auto && auto.id) {
             setAutomationName(auto.name || 'Untitled');
@@ -784,13 +880,11 @@ function AutomationBuilderContent() {
             setAutomationId(auto.id);
             try {
               // Try to load nodes and edges, but don't fail if they don't exist
-              const loadedNodes = typeof auto.nodes === 'string' 
-                ? JSON.parse(auto.nodes) 
-                : (Array.isArray(auto.nodes) ? auto.nodes : null);
-              const loadedEdges = typeof auto.edges === 'string' 
-                ? JSON.parse(auto.edges) 
-                : (Array.isArray(auto.edges) ? auto.edges : null);
-              
+              const loadedNodes =
+                typeof auto.nodes === 'string' ? JSON.parse(auto.nodes) : Array.isArray(auto.nodes) ? auto.nodes : null;
+              const loadedEdges =
+                typeof auto.edges === 'string' ? JSON.parse(auto.edges) : Array.isArray(auto.edges) ? auto.edges : null;
+
               // Only update if we have valid arrays
               if (loadedNodes && Array.isArray(loadedNodes) && loadedNodes.length > 0) {
                 setNodes(loadedNodes);
@@ -829,10 +923,7 @@ function AutomationBuilderContent() {
     }
   }, [id, isNew, navigate, setNodes, setEdges]);
 
-  const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
-  );
+  const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
 
   const addActionNode = useCallback(
     (actionType) => {
@@ -869,7 +960,7 @@ function AutomationBuilderContent() {
         return [...filtered, newActionNode];
       });
     },
-    [setNodes, setEdges]
+    [setNodes, setEdges],
   );
 
   const handleConfigureTrigger = useCallback((nodeId) => {
@@ -877,91 +968,100 @@ function AutomationBuilderContent() {
     setShowTriggerTypePanel(true);
   }, []);
 
-  const handleDeleteAction = useCallback((nodeId) => {
-    setNodes((nds) => {
-      const filtered = nds.filter((n) => n.id !== nodeId);
-      // Also remove edges connected to this node
-      setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
-      // If no action nodes remain, add back the action selection node
-      const hasActionNodes = filtered.some((n) => n.type === 'action');
-      const hasActionSelection = filtered.some((n) => n.id === 'action-selection-1');
-      if (!hasActionNodes && !hasActionSelection) {
-        const triggerNode = filtered.find((n) => n.type === 'trigger');
-        if (triggerNode) {
-          const actionSelectionNode = {
-            id: 'action-selection-1',
-            type: 'actionSelection',
-            position: { x: 800, y: 200 },
-            data: {},
-          };
-          // Add edge from trigger to action selection
-          setEdges((eds) => [
-            ...eds,
-            {
-              id: 'e-trigger-action-selection',
-              source: triggerNode.id,
-              target: 'action-selection-1',
-              type: 'smoothstep',
-              animated: false,
-              style: { stroke: '#9CA3AF', strokeWidth: 2 },
-              label: 'Then',
-              labelStyle: { fill: '#6B7280', fontWeight: 500, fontSize: 12 },
-              labelBgStyle: { fill: 'white', fillOpacity: 0.9 },
-              labelBgPadding: [4, 8],
-              labelBgBorderRadius: 4,
-            },
-          ]);
-          return [...filtered, actionSelectionNode];
+  const handleDeleteAction = useCallback(
+    (nodeId) => {
+      setNodes((nds) => {
+        const filtered = nds.filter((n) => n.id !== nodeId);
+        // Also remove edges connected to this node
+        setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+        // If no action nodes remain, add back the action selection node
+        const hasActionNodes = filtered.some((n) => n.type === 'action');
+        const hasActionSelection = filtered.some((n) => n.id === 'action-selection-1');
+        if (!hasActionNodes && !hasActionSelection) {
+          const triggerNode = filtered.find((n) => n.type === 'trigger');
+          if (triggerNode) {
+            const actionSelectionNode = {
+              id: 'action-selection-1',
+              type: 'actionSelection',
+              position: { x: 800, y: 200 },
+              data: {},
+            };
+            // Add edge from trigger to action selection
+            setEdges((eds) => [
+              ...eds,
+              {
+                id: 'e-trigger-action-selection',
+                source: triggerNode.id,
+                target: 'action-selection-1',
+                type: 'smoothstep',
+                animated: false,
+                style: { stroke: '#9CA3AF', strokeWidth: 2 },
+                label: 'Then',
+                labelStyle: { fill: '#6B7280', fontWeight: 500, fontSize: 12 },
+                labelBgStyle: { fill: 'white', fillOpacity: 0.9 },
+                labelBgPadding: [4, 8],
+                labelBgBorderRadius: 4,
+              },
+            ]);
+            return [...filtered, actionSelectionNode];
+          }
         }
-      }
-      return filtered;
-    });
-  }, [setNodes, setEdges]);
+        return filtered;
+      });
+    },
+    [setNodes, setEdges],
+  );
 
-  const handleChangeAction = useCallback((nodeId) => {
-    // Delete the current action and show action selection
-    handleDeleteAction(nodeId);
-  }, [handleDeleteAction]);
+  const handleChangeAction = useCallback(
+    (nodeId) => {
+      // Delete the current action and show action selection
+      handleDeleteAction(nodeId);
+    },
+    [handleDeleteAction],
+  );
 
-  const handleSelectTriggerType = useCallback((triggerType) => {
-    setSelectedTriggerType(triggerType);
-    setShowTriggerTypePanel(false);
-    
-    // If it's new_message, show keyword config. Otherwise, just save the trigger type
-    if (triggerType === 'new_message') {
-      setShowTriggerConfig(true);
-      const node = nodes.find((n) => n.id === configuringTriggerId);
-      // If keyword is null or undefined, it means "any message"
-      const existingKeyword = node?.data?.keyword;
-      if (existingKeyword) {
-        setTriggerKeyword(existingKeyword);
-        setTriggerMode('keyword');
+  const handleSelectTriggerType = useCallback(
+    (triggerType) => {
+      setSelectedTriggerType(triggerType);
+      setShowTriggerTypePanel(false);
+
+      // If it's new_message, show keyword config. Otherwise, just save the trigger type
+      if (triggerType === 'new_message') {
+        setShowTriggerConfig(true);
+        const node = nodes.find((n) => n.id === configuringTriggerId);
+        // If keyword is null or undefined, it means "any message"
+        const existingKeyword = node?.data?.keyword;
+        if (existingKeyword) {
+          setTriggerKeyword(existingKeyword);
+          setTriggerMode('keyword');
+        } else {
+          setTriggerKeyword('');
+          setTriggerMode('any');
+        }
       } else {
-        setTriggerKeyword('');
-        setTriggerMode('any');
+        // For missed_call and incoming_call, just save directly
+        if (configuringTriggerId) {
+          setNodes((nds) =>
+            nds.map((node) => {
+              if (node.id === configuringTriggerId) {
+                return {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    triggerType,
+                  },
+                };
+              }
+              return node;
+            }),
+          );
+        }
+        setConfiguringTriggerId(null);
+        setSelectedTriggerType(null);
       }
-    } else {
-      // For missed_call and incoming_call, just save directly
-      if (configuringTriggerId) {
-        setNodes((nds) =>
-          nds.map((node) => {
-            if (node.id === configuringTriggerId) {
-              return {
-                ...node,
-                data: {
-                  ...node.data,
-                  triggerType,
-                },
-              };
-            }
-            return node;
-          })
-        );
-      }
-      setConfiguringTriggerId(null);
-      setSelectedTriggerType(null);
-    }
-  }, [configuringTriggerId, nodes, setNodes]);
+    },
+    [configuringTriggerId, nodes, setNodes],
+  );
 
   const handleSaveTrigger = useCallback(() => {
     if (configuringTriggerId && selectedTriggerType === 'new_message') {
@@ -979,7 +1079,7 @@ function AutomationBuilderContent() {
             };
           }
           return node;
-        })
+        }),
       );
     }
     setShowTriggerConfig(false);
@@ -989,78 +1089,87 @@ function AutomationBuilderContent() {
     setTriggerMode('any');
   }, [configuringTriggerId, selectedTriggerType, triggerKeyword, triggerMode, setNodes]);
 
-  const handleUpdateMessage = useCallback((nodeId, value, field = 'message') => {
-    setNodes((nds) =>
-      nds.map((node) => {
-        if (node.id === nodeId) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              [field]: value,
-            },
-          };
-        }
-        return node;
-      })
-    );
-  }, [setNodes]);
+  const handleUpdateMessage = useCallback(
+    (nodeId, value, field = 'message') => {
+      setNodes((nds) =>
+        nds.map((node) => {
+          if (node.id === nodeId) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                [field]: value,
+              },
+            };
+          }
+          return node;
+        }),
+      );
+    },
+    [setNodes],
+  );
 
   const handleConfigureIntegration = useCallback((nodeId) => {
     setConfiguringActionId(nodeId);
     setShowIntegrationPanel(true);
   }, []);
 
-  const handleSelectIntegration = useCallback((integration) => {
-    if (configuringActionId) {
-      setNodes((nds) =>
-        nds.map((node) => {
-          if (node.id === configuringActionId) {
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                integrationKey: integration.key,
-                integrationName: integration.name,
-                prompt: integration.key === 'anthropic' ? (node.data.prompt || '') : undefined,
-              },
-            };
-          }
-          return node;
-        })
-      );
-    }
-    setShowIntegrationPanel(false);
-    setConfiguringActionId(null);
-  }, [configuringActionId, setNodes]);
+  const handleSelectIntegration = useCallback(
+    (integration) => {
+      if (configuringActionId) {
+        setNodes((nds) =>
+          nds.map((node) => {
+            if (node.id === configuringActionId) {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  integrationKey: integration.key,
+                  integrationName: integration.name,
+                  prompt: integration.key === 'anthropic' ? node.data.prompt || '' : undefined,
+                },
+              };
+            }
+            return node;
+          }),
+        );
+      }
+      setShowIntegrationPanel(false);
+      setConfiguringActionId(null);
+    },
+    [configuringActionId, setNodes],
+  );
 
   const handleConfigureTag = useCallback((nodeId) => {
     setConfiguringTagActionId(nodeId);
     setShowTagPanel(true);
   }, []);
 
-  const handleSelectTag = useCallback((tag) => {
-    if (configuringTagActionId) {
-      setNodes((nds) =>
-        nds.map((node) => {
-          if (node.id === configuringTagActionId) {
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                tagId: tag.id,
-                tagName: tag.name,
-                tagColor: tag.color,
-              },
-            };
-          }
-          return node;
-        })
-      );
-    }
-    setShowTagPanel(false);
-    setConfiguringTagActionId(null);
-  }, [configuringTagActionId, setNodes]);
+  const handleSelectTag = useCallback(
+    (tag) => {
+      if (configuringTagActionId) {
+        setNodes((nds) =>
+          nds.map((node) => {
+            if (node.id === configuringTagActionId) {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  tagId: tag.id,
+                  tagName: tag.name,
+                  tagColor: tag.color,
+                },
+              };
+            }
+            return node;
+          }),
+        );
+      }
+      setShowTagPanel(false);
+      setConfiguringTagActionId(null);
+    },
+    [configuringTagActionId, setNodes],
+  );
 
   const handleCreateTag = useCallback(async () => {
     if (!newTagName.trim()) {
@@ -1077,9 +1186,9 @@ function AutomationBuilderContent() {
       // Invalidate and refetch tags query to update the Tags page
       await queryClient.invalidateQueries({ queryKey: ['tags'] });
       await tagsQ.refetch();
-      
+
       toast.success('Tag created!');
-      
+
       // Select the newly created tag
       handleSelectTag(newTag);
       setNewTagName('');
@@ -1135,7 +1244,16 @@ function AutomationBuilderContent() {
       }
       return node;
     });
-  }, [nodes, addActionNode, handleConfigureTrigger, handleUpdateMessage, handleDeleteAction, handleChangeAction, handleConfigureIntegration, handleConfigureTag]);
+  }, [
+    nodes,
+    addActionNode,
+    handleConfigureTrigger,
+    handleUpdateMessage,
+    handleDeleteAction,
+    handleChangeAction,
+    handleConfigureIntegration,
+    handleConfigureTag,
+  ]);
 
   const handleSave = async (overrideStatus) => {
     // System automation: save the Claude prompt
@@ -1164,7 +1282,16 @@ function AutomationBuilderContent() {
     const saveStatus = overrideStatus || status;
     // Strip callback functions from nodes before saving (not serializable)
     const cleanNodes = nodes.map(({ data, ...rest }) => {
-      const { onAddAction, onConfigureTrigger, onUpdateMessage, onDeleteAction, onChangeAction, onConfigureIntegration, onConfigureTag, ...cleanData } = data || {};
+      const {
+        onAddAction,
+        onConfigureTrigger,
+        onUpdateMessage,
+        onDeleteAction,
+        onChangeAction,
+        onConfigureIntegration,
+        onConfigureTag,
+        ...cleanData
+      } = data || {};
       return { ...rest, data: cleanData };
     });
 
@@ -1259,9 +1386,7 @@ function AutomationBuilderContent() {
           <Badge variant={status === 'live' ? 'danger' : 'muted'} className="ml-2">
             {status.toUpperCase()}
           </Badge>
-          {isSystem && (
-            <Badge className="ml-1 border-purple-200 bg-purple-100 text-xs text-purple-700">System</Badge>
-          )}
+          {isSystem && <Badge className="ml-1 border-purple-200 bg-purple-100 text-xs text-purple-700">System</Badge>}
         </div>
         <div className="flex items-center gap-2">
           {isSaved && (
@@ -1274,16 +1399,17 @@ function AutomationBuilderContent() {
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             {isSystem ? 'Save Prompt' : 'Save'}
           </Button>
-          {!isSystem && (status === 'draft' ? (
-            <Button onClick={handlePublish} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
-              Set Live
-            </Button>
-          ) : (
-            <Button variant="outline" onClick={handleUnpublish} disabled={saving} size="sm">
-              <Pause className="mr-2 h-4 w-4" />
-              Unpublish
-            </Button>
-          ))}
+          {!isSystem &&
+            (status === 'draft' ? (
+              <Button onClick={handlePublish} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+                Set Live
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={handleUnpublish} disabled={saving} size="sm">
+                <Pause className="mr-2 h-4 w-4" />
+                Unpublish
+              </Button>
+            ))}
           <Button variant="ghost" size="sm" className="text-gray-600">
             <MoreVertical className="h-4 w-4" />
           </Button>
@@ -1300,433 +1426,433 @@ function AutomationBuilderContent() {
         ) : (
           <>
             {/* Main Canvas */}
-        <ReactFlow
-          nodes={nodesWithCallbacks}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          nodeTypes={nodeTypes}
-          defaultEdgeOptions={edgeOptions}
-          fitView
-          fitViewOptions={{ padding: 0.8, maxZoom: 0.65, minZoom: 0.3 }}
-          className="bg-white"
-          connectionLineStyle={{ stroke: '#9CA3AF', strokeWidth: 2 }}
-        >
-          <Background color="#E5E7EB" gap={20} size={1} />
-          <Controls
-            position="top-right"
-            showInteractive={false}
-            className="bg-white border border-gray-200 rounded-lg shadow-sm"
-          />
-          <MiniMap
-            position="bottom-right"
-            className="bg-white border border-gray-200 rounded-lg shadow-sm"
-            style={{ bottom: '100px', right: '12px' }}
-            nodeColor="#3B82F6"
-            maskColor="rgba(0, 0, 0, 0.1)"
-          />
-        </ReactFlow>
-
-        {/* Floating Add Button - Right Side */}
-        <div className="absolute right-6 top-1/2 -translate-y-1/2 z-10">
-          <button className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-colors">
-            <Plus className="h-6 w-6" />
-          </button>
-        </div>
-
-        {/* Create with AI Section - Bottom */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10">
-          <div className="flex items-center gap-3 rounded-lg bg-gradient-to-r from-yellow-400 to-orange-500 px-6 py-3 shadow-lg">
-            <Sparkles className="h-5 w-5 text-white" />
-            <span className="text-sm font-medium text-white">Create with AI</span>
-            <div className="flex items-center gap-2 rounded-md bg-white/20 px-3 py-1.5">
-              <input
-                type="text"
-                placeholder="What do you want to build?"
-                className="bg-transparent text-sm text-white placeholder-white/80 outline-none w-64"
-              />
-              <button className="text-white">
-                <Plus className="h-4 w-4 rotate-45" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Help Icon - Bottom Right */}
-        <div className="absolute bottom-6 right-6 z-10">
-          <button className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors shadow-sm">
-            <HelpCircle className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Hint Text - Top Center */}
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10">
-          <div className="flex items-center gap-2 rounded-lg bg-yellow-50 border border-yellow-200 px-3 py-2">
-            <span className="text-lg">📝</span>
-            <span className="text-sm text-gray-700">Tap some step to edit</span>
-          </div>
-        </div>
-
-        {/* Trigger Type Selection Panel */}
-        {showTriggerTypePanel && (
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-96 rounded-lg border border-gray-200 bg-white p-6 shadow-xl">
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Choose Trigger Type</h3>
-              <p className="mt-1 text-sm text-gray-500">Select the event that will start your automation</p>
-            </div>
-            <div className="space-y-3">
-              <button
-                onClick={() => handleSelectTriggerType('new_message')}
-                className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-4 text-left hover:bg-gray-50 transition-colors"
-              >
-                <MessageSquare className="h-5 w-5 text-green-600" />
-                <div>
-                  <div className="text-sm font-medium text-gray-900">New Message</div>
-                  <div className="text-xs text-gray-500">When a user sends a message</div>
-                </div>
-              </button>
-              <button
-                onClick={() => handleSelectTriggerType('missed_call')}
-                className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-4 text-left hover:bg-gray-50 transition-colors"
-              >
-                <PhoneMissed className="h-5 w-5 text-red-600" />
-                <div>
-                  <div className="text-sm font-medium text-gray-900">Missed Call</div>
-                  <div className="text-xs text-gray-500">When a call is missed</div>
-                </div>
-              </button>
-              <button
-                onClick={() => handleSelectTriggerType('incoming_call')}
-                className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-4 text-left hover:bg-gray-50 transition-colors"
-              >
-                <PhoneIncoming className="h-5 w-5 text-blue-600" />
-                <div>
-                  <div className="text-sm font-medium text-gray-900">Incoming Call</div>
-                  <div className="text-xs text-gray-500">When a call is received</div>
-                </div>
-              </button>
-
-              {/* Instagram triggers */}
-              <div className="border-t border-gray-100 pt-3 mt-1">
-                <p className="text-xs font-semibold text-purple-500 uppercase tracking-wide mb-2">Instagram</p>
-              </div>
-              <button
-                onClick={() => handleSelectTriggerType('instagram_dm')}
-                className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-4 text-left hover:bg-gray-50 transition-colors"
-              >
-                <Instagram className="h-5 w-5 text-purple-600" />
-                <div>
-                  <div className="text-sm font-medium text-gray-900">Instagram DM</div>
-                  <div className="text-xs text-gray-500">When a user sends a DM</div>
-                </div>
-              </button>
-              <button
-                onClick={() => handleSelectTriggerType('instagram_comment')}
-                className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-4 text-left hover:bg-gray-50 transition-colors"
-              >
-                <MessageSquare className="h-5 w-5 text-amber-600" />
-                <div>
-                  <div className="text-sm font-medium text-gray-900">Instagram Comment</div>
-                  <div className="text-xs text-gray-500">When someone comments on a post</div>
-                </div>
-              </button>
-              <button
-                onClick={() => handleSelectTriggerType('instagram_story_reply')}
-                className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-4 text-left hover:bg-gray-50 transition-colors"
-              >
-                <AtSign className="h-5 w-5 text-pink-600" />
-                <div>
-                  <div className="text-sm font-medium text-gray-900">Story Reply / Mention</div>
-                  <div className="text-xs text-gray-500">When someone replies to or mentions in a story</div>
-                </div>
-              </button>
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowTriggerTypePanel(false);
-                setConfiguringTriggerId(null);
-                setSelectedTriggerType(null);
-              }}
-              className="mt-4 w-full"
+            <ReactFlow
+              nodes={nodesWithCallbacks}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              nodeTypes={nodeTypes}
+              defaultEdgeOptions={edgeOptions}
+              fitView
+              fitViewOptions={{ padding: 0.8, maxZoom: 0.65, minZoom: 0.3 }}
+              className="bg-white"
+              connectionLineStyle={{ stroke: '#9CA3AF', strokeWidth: 2 }}
             >
-              Cancel
-            </Button>
-          </div>
-        )}
+              <Background color="#E5E7EB" gap={20} size={1} />
+              <Controls
+                position="top-right"
+                showInteractive={false}
+                className="bg-white border border-gray-200 rounded-lg shadow-sm"
+              />
+              <MiniMap
+                position="bottom-right"
+                className="bg-white border border-gray-200 rounded-lg shadow-sm"
+                style={{ bottom: '100px', right: '12px' }}
+                nodeColor="#3B82F6"
+                maskColor="rgba(0, 0, 0, 0.1)"
+              />
+            </ReactFlow>
 
-        {/* Tag Selection Panel */}
-        {showTagPanel && (
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-96 rounded-lg border border-gray-200 bg-white p-6 shadow-xl max-h-[600px] overflow-y-auto">
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Select Tag</h3>
-              <p className="mt-1 text-sm text-gray-500">Choose a tag to apply to contacts</p>
+            {/* Floating Add Button - Right Side */}
+            <div className="absolute right-6 top-1/2 -translate-y-1/2 z-10">
+              <button className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-colors">
+                <Plus className="h-6 w-6" />
+              </button>
             </div>
-            {!showCreateTag ? (
-              <>
-                {tagsQ.isLoading ? (
-                  <div className="py-8 text-center">
-                    <p className="text-sm text-gray-500">Loading tags...</p>
+
+            {/* Create with AI Section - Bottom */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10">
+              <div className="flex items-center gap-3 rounded-lg bg-gradient-to-r from-yellow-400 to-orange-500 px-6 py-3 shadow-lg">
+                <Sparkles className="h-5 w-5 text-white" />
+                <span className="text-sm font-medium text-white">Create with AI</span>
+                <div className="flex items-center gap-2 rounded-md bg-white/20 px-3 py-1.5">
+                  <input
+                    type="text"
+                    placeholder="What do you want to build?"
+                    className="bg-transparent text-sm text-white placeholder-white/80 outline-none w-64"
+                  />
+                  <button className="text-white">
+                    <Plus className="h-4 w-4 rotate-45" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Help Icon - Bottom Right */}
+            <div className="absolute bottom-6 right-6 z-10">
+              <button className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors shadow-sm">
+                <HelpCircle className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Hint Text - Top Center */}
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10">
+              <div className="flex items-center gap-2 rounded-lg bg-yellow-50 border border-yellow-200 px-3 py-2">
+                <span className="text-lg">📝</span>
+                <span className="text-sm text-gray-700">Tap some step to edit</span>
+              </div>
+            </div>
+
+            {/* Trigger Type Selection Panel */}
+            {showTriggerTypePanel && (
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-96 rounded-lg border border-gray-200 bg-white p-6 shadow-xl">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Choose Trigger Type</h3>
+                  <p className="mt-1 text-sm text-gray-500">Select the event that will start your automation</p>
+                </div>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => handleSelectTriggerType('new_message')}
+                    className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-4 text-left hover:bg-gray-50 transition-colors"
+                  >
+                    <MessageSquare className="h-5 w-5 text-green-600" />
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">New Message</div>
+                      <div className="text-xs text-gray-500">When a user sends a message</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => handleSelectTriggerType('missed_call')}
+                    className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-4 text-left hover:bg-gray-50 transition-colors"
+                  >
+                    <PhoneMissed className="h-5 w-5 text-red-600" />
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">Missed Call</div>
+                      <div className="text-xs text-gray-500">When a call is missed</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => handleSelectTriggerType('incoming_call')}
+                    className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-4 text-left hover:bg-gray-50 transition-colors"
+                  >
+                    <PhoneIncoming className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">Incoming Call</div>
+                      <div className="text-xs text-gray-500">When a call is received</div>
+                    </div>
+                  </button>
+
+                  {/* Instagram triggers */}
+                  <div className="border-t border-gray-100 pt-3 mt-1">
+                    <p className="text-xs font-semibold text-purple-500 uppercase tracking-wide mb-2">Instagram</p>
                   </div>
-                ) : (tagsQ.data && tagsQ.data.length > 0) ? (
-                  <div className="space-y-2">
-                    {tagsQ.data.map((tag) => (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => handleSelectTag(tag)}
-                        className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-3 text-left hover:bg-gray-50 transition-colors"
+                  <button
+                    onClick={() => handleSelectTriggerType('instagram_dm')}
+                    className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-4 text-left hover:bg-gray-50 transition-colors"
+                  >
+                    <Instagram className="h-5 w-5 text-purple-600" />
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">Instagram DM</div>
+                      <div className="text-xs text-gray-500">When a user sends a DM</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => handleSelectTriggerType('instagram_comment')}
+                    className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-4 text-left hover:bg-gray-50 transition-colors"
+                  >
+                    <MessageSquare className="h-5 w-5 text-amber-600" />
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">Instagram Comment</div>
+                      <div className="text-xs text-gray-500">When someone comments on a post</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => handleSelectTriggerType('instagram_story_reply')}
+                    className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-4 text-left hover:bg-gray-50 transition-colors"
+                  >
+                    <AtSign className="h-5 w-5 text-pink-600" />
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">Story Reply / Mention</div>
+                      <div className="text-xs text-gray-500">When someone replies to or mentions in a story</div>
+                    </div>
+                  </button>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowTriggerTypePanel(false);
+                    setConfiguringTriggerId(null);
+                    setSelectedTriggerType(null);
+                  }}
+                  className="mt-4 w-full"
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
+
+            {/* Tag Selection Panel */}
+            {showTagPanel && (
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-96 rounded-lg border border-gray-200 bg-white p-6 shadow-xl max-h-[600px] overflow-y-auto">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Select Tag</h3>
+                  <p className="mt-1 text-sm text-gray-500">Choose a tag to apply to contacts</p>
+                </div>
+                {!showCreateTag ? (
+                  <>
+                    {tagsQ.isLoading ? (
+                      <div className="py-8 text-center">
+                        <p className="text-sm text-gray-500">Loading tags...</p>
+                      </div>
+                    ) : tagsQ.data && tagsQ.data.length > 0 ? (
+                      <div className="space-y-2">
+                        {tagsQ.data.map((tag) => (
+                          <button
+                            key={tag.id}
+                            type="button"
+                            onClick={() => handleSelectTag(tag)}
+                            className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-3 text-left hover:bg-gray-50 transition-colors"
+                          >
+                            <span
+                              className={`h-3 w-3 rounded-full ${
+                                tag.color === 'green'
+                                  ? 'bg-green-500'
+                                  : tag.color === 'blue'
+                                    ? 'bg-blue-500'
+                                    : tag.color === 'purple'
+                                      ? 'bg-purple-500'
+                                      : tag.color === 'orange'
+                                        ? 'bg-amber-500'
+                                        : tag.color === 'red'
+                                          ? 'bg-red-500'
+                                          : 'bg-gray-500'
+                              }`}
+                            />
+                            <div className="flex-1">
+                              <div className="text-sm font-medium text-gray-900">{tag.name}</div>
+                              {tag.description && <div className="text-xs text-gray-500">{tag.description}</div>}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="py-8 text-center">
+                        <p className="text-sm text-gray-500">No tags found</p>
+                        <p className="mt-1 text-xs text-gray-400">Create a tag to get started</p>
+                      </div>
+                    )}
+                    <Button variant="outline" onClick={() => setShowCreateTag(true)} className="mt-4 w-full">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create New Tag
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setShowTagPanel(false);
+                        setConfiguringTagActionId(null);
+                      }}
+                      className="mt-2 w-full"
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Tag Name</label>
+                      <Input
+                        value={newTagName}
+                        onChange={(e) => setNewTagName(e.target.value)}
+                        placeholder="e.g., VIP, Lead, Customer"
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-2">Color</label>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { key: 'green', cls: 'bg-green-500' },
+                          { key: 'blue', cls: 'bg-blue-500' },
+                          { key: 'purple', cls: 'bg-purple-500' },
+                          { key: 'orange', cls: 'bg-amber-500' },
+                          { key: 'red', cls: 'bg-red-500' },
+                          { key: 'gray', cls: 'bg-gray-500' },
+                        ].map((c) => (
+                          <button
+                            key={c.key}
+                            type="button"
+                            onClick={() => setNewTagColor(c.key)}
+                            className="rounded-full p-1"
+                          >
+                            <div
+                              className={`h-7 w-7 rounded-full ${c.cls} ${
+                                newTagColor === c.key ? 'ring-2 ring-black/30 ring-offset-2' : 'ring-1 ring-black/10'
+                              }`}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setShowCreateTag(false);
+                          setNewTagName('');
+                        }}
+                        className="flex-1"
                       >
-                        <span className={`h-3 w-3 rounded-full ${
-                          tag.color === 'green' ? 'bg-green-500' :
-                          tag.color === 'blue' ? 'bg-blue-500' :
-                          tag.color === 'purple' ? 'bg-purple-500' :
-                          tag.color === 'orange' ? 'bg-amber-500' :
-                          tag.color === 'red' ? 'bg-red-500' :
-                          'bg-gray-500'
-                        }`} />
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-gray-900">{tag.name}</div>
-                          {tag.description && (
-                            <div className="text-xs text-gray-500">{tag.description}</div>
+                        Back
+                      </Button>
+                      <Button onClick={handleCreateTag} className="flex-1">
+                        Create Tag
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Integration Selection Panel */}
+            {showIntegrationPanel && (
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-96 rounded-lg border border-gray-200 bg-white p-6 shadow-xl max-h-[600px] overflow-y-auto">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Select Integration</h3>
+                  <p className="mt-1 text-sm text-gray-500">Choose a connected integration to use</p>
+                </div>
+                {integrations.length === 0 ? (
+                  <div className="py-8 text-center">
+                    <p className="text-sm text-gray-500">No integrations connected</p>
+                    <p className="mt-1 text-xs text-gray-400">Configure integrations in Settings first</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {integrations.map((integration) => (
+                      <button
+                        key={integration.key}
+                        type="button"
+                        onClick={() => handleSelectIntegration(integration)}
+                        className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-4 text-left hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100">
+                          {integration.key === 'anthropic' && (
+                            <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#D4A574]" fill="currentColor">
+                              <path d="M17.304 3.541l-5.497 16.918H14.93L20.426 3.54h-3.122zm-10.608 0L1.2 20.459h3.166l1.188-3.776h5.862l1.19 3.776h3.165L10.275 3.54H6.696zM6.47 13.828l2.03-6.449h.073l2.03 6.449H6.47z" />
+                            </svg>
                           )}
+                          {integration.key === 'whatsapp' && (
+                            <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#25D366]" fill="currentColor">
+                              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                            </svg>
+                          )}
+                          {integration.key === 'supabase' && <div className="h-5 w-5 rounded bg-[#3ECF8E]" />}
+                          {integration.key === 'airtable' && <div className="h-5 w-5 rounded bg-[#FCB400]" />}
+                          {integration.key === 'resend' && <div className="h-5 w-5 rounded bg-black" />}
+                          {integration.key === 'retell' && <div className="h-5 w-5 rounded bg-[#6C5CE7]" />}
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-900">{integration.name}</div>
+                          <div className="text-xs text-gray-500">{integration.description}</div>
                         </div>
                       </button>
                     ))}
                   </div>
-                ) : (
-                  <div className="py-8 text-center">
-                    <p className="text-sm text-gray-500">No tags found</p>
-                    <p className="mt-1 text-xs text-gray-400">Create a tag to get started</p>
-                  </div>
                 )}
                 <Button
                   variant="outline"
-                  onClick={() => setShowCreateTag(true)}
+                  onClick={() => {
+                    setShowIntegrationPanel(false);
+                    setConfiguringActionId(null);
+                  }}
                   className="mt-4 w-full"
                 >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create New Tag
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setShowTagPanel(false);
-                    setConfiguringTagActionId(null);
-                  }}
-                  className="mt-2 w-full"
-                >
                   Cancel
                 </Button>
-              </>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Tag Name</label>
-                  <Input
-                    value={newTagName}
-                    onChange={(e) => setNewTagName(e.target.value)}
-                    placeholder="e.g., VIP, Lead, Customer"
-                    className="w-full"
-                  />
+              </div>
+            )}
+
+            {/* Trigger Configuration Panel (for keyword) */}
+            {showTriggerConfig && selectedTriggerType === 'new_message' && (
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-96 rounded-lg border border-gray-200 bg-white p-6 shadow-xl">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Configure Trigger</h3>
+                  <p className="mt-1 text-sm text-gray-500">Choose when this automation should trigger</p>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-2">Color</label>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { key: 'green', cls: 'bg-green-500' },
-                      { key: 'blue', cls: 'bg-blue-500' },
-                      { key: 'purple', cls: 'bg-purple-500' },
-                      { key: 'orange', cls: 'bg-amber-500' },
-                      { key: 'red', cls: 'bg-red-500' },
-                      { key: 'gray', cls: 'bg-gray-500' },
-                    ].map((c) => (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Trigger on</label>
+                    <div className="space-y-2">
                       <button
-                        key={c.key}
                         type="button"
-                        onClick={() => setNewTagColor(c.key)}
-                        className="rounded-full p-1"
+                        onClick={() => {
+                          setTriggerMode('any');
+                          setTriggerKeyword('');
+                        }}
+                        className={cn(
+                          'w-full rounded-lg border-2 p-3 text-left transition-colors',
+                          triggerMode === 'any'
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 bg-white hover:bg-gray-50',
+                        )}
                       >
-                        <div
-                          className={`h-7 w-7 rounded-full ${c.cls} ${
-                            newTagColor === c.key ? 'ring-2 ring-black/30 ring-offset-2' : 'ring-1 ring-black/10'
-                          }`}
-                        />
+                        <div className="flex items-center gap-2">
+                          <MessageSquare className="h-5 w-5 text-green-600" />
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">Any message</div>
+                            <div className="text-xs text-gray-500">Triggers on any WhatsApp message</div>
+                          </div>
+                        </div>
                       </button>
-                    ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTriggerMode('keyword');
+                          if (!triggerKeyword) setTriggerKeyword('');
+                        }}
+                        className={cn(
+                          'w-full rounded-lg border-2 p-3 text-left transition-colors',
+                          triggerMode === 'keyword'
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 bg-white hover:bg-gray-50',
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Zap className="h-5 w-5 text-orange-600" />
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">Message contains keyword</div>
+                            <div className="text-xs text-gray-500">
+                              Triggers only when message contains specific text
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                  {triggerMode === 'keyword' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Keyword</label>
+                      <Input
+                        type="text"
+                        placeholder="e.g., HI, Hello, Help"
+                        value={triggerKeyword}
+                        onChange={(e) => setTriggerKeyword(e.target.value)}
+                        className="w-full"
+                        autoFocus
+                      />
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Button onClick={handleSaveTrigger} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                      Save
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowTriggerConfig(false);
+                        setConfiguringTriggerId(null);
+                        setSelectedTriggerType(null);
+                        setTriggerKeyword('');
+                        setTriggerMode('any');
+                      }}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowCreateTag(false);
-                      setNewTagName('');
-                    }}
-                    className="flex-1"
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    onClick={handleCreateTag}
-                    className="flex-1"
-                  >
-                    Create Tag
-                  </Button>
-                </div>
               </div>
             )}
-          </div>
-        )}
-
-        {/* Integration Selection Panel */}
-        {showIntegrationPanel && (
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-96 rounded-lg border border-gray-200 bg-white p-6 shadow-xl max-h-[600px] overflow-y-auto">
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Select Integration</h3>
-              <p className="mt-1 text-sm text-gray-500">Choose a connected integration to use</p>
-            </div>
-            {integrations.length === 0 ? (
-              <div className="py-8 text-center">
-                <p className="text-sm text-gray-500">No integrations connected</p>
-                <p className="mt-1 text-xs text-gray-400">Configure integrations in Settings first</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {integrations.map((integration) => (
-                  <button
-                    key={integration.key}
-                    type="button"
-                    onClick={() => handleSelectIntegration(integration)}
-                    className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-4 text-left hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100">
-                      {integration.key === 'anthropic' && (
-                        <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#D4A574]" fill="currentColor">
-                          <path d="M17.304 3.541l-5.497 16.918H14.93L20.426 3.54h-3.122zm-10.608 0L1.2 20.459h3.166l1.188-3.776h5.862l1.19 3.776h3.165L10.275 3.54H6.696zM6.47 13.828l2.03-6.449h.073l2.03 6.449H6.47z" />
-                        </svg>
-                      )}
-                      {integration.key === 'whatsapp' && (
-                        <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#25D366]" fill="currentColor">
-                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                        </svg>
-                      )}
-                      {integration.key === 'supabase' && <div className="h-5 w-5 rounded bg-[#3ECF8E]" />}
-                      {integration.key === 'airtable' && <div className="h-5 w-5 rounded bg-[#FCB400]" />}
-                      {integration.key === 'resend' && <div className="h-5 w-5 rounded bg-black" />}
-                      {integration.key === 'retell' && <div className="h-5 w-5 rounded bg-[#6C5CE7]" />}
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-900">{integration.name}</div>
-                      <div className="text-xs text-gray-500">{integration.description}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowIntegrationPanel(false);
-                setConfiguringActionId(null);
-              }}
-              className="mt-4 w-full"
-            >
-              Cancel
-            </Button>
-          </div>
-        )}
-
-        {/* Trigger Configuration Panel (for keyword) */}
-        {showTriggerConfig && selectedTriggerType === 'new_message' && (
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-96 rounded-lg border border-gray-200 bg-white p-6 shadow-xl">
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Configure Trigger</h3>
-              <p className="mt-1 text-sm text-gray-500">Choose when this automation should trigger</p>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Trigger on</label>
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTriggerMode('any');
-                      setTriggerKeyword('');
-                    }}
-                    className={cn(
-                      'w-full rounded-lg border-2 p-3 text-left transition-colors',
-                      triggerMode === 'any'
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 bg-white hover:bg-gray-50'
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <MessageSquare className="h-5 w-5 text-green-600" />
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">Any message</div>
-                        <div className="text-xs text-gray-500">Triggers on any WhatsApp message</div>
-                      </div>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTriggerMode('keyword');
-                      if (!triggerKeyword) setTriggerKeyword('');
-                    }}
-                    className={cn(
-                      'w-full rounded-lg border-2 p-3 text-left transition-colors',
-                      triggerMode === 'keyword'
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 bg-white hover:bg-gray-50'
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Zap className="h-5 w-5 text-orange-600" />
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">Message contains keyword</div>
-                        <div className="text-xs text-gray-500">Triggers only when message contains specific text</div>
-                      </div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-              {triggerMode === 'keyword' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Keyword</label>
-                  <Input
-                    type="text"
-                    placeholder="e.g., HI, Hello, Help"
-                    value={triggerKeyword}
-                    onChange={(e) => setTriggerKeyword(e.target.value)}
-                    className="w-full"
-                    autoFocus
-                  />
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <Button onClick={handleSaveTrigger} className="flex-1 bg-blue-600 hover:bg-blue-700">
-                  Save
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowTriggerConfig(false);
-                    setConfiguringTriggerId(null);
-                    setSelectedTriggerType(null);
-                    setTriggerKeyword('');
-                    setTriggerMode('any');
-                  }}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
           </>
         )}
       </div>

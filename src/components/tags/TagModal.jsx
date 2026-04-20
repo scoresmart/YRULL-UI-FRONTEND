@@ -39,22 +39,25 @@ export function TagModal({ trigger }) {
     defaultValues: { name: '', color: 'green', description: '' },
   });
 
-  const onSubmit = useCallback(async (values) => {
-    try {
-      await tagsApi.create({
-        name: values.name.trim(),
-        color: values.color,
-        description: values.description || '',
-      });
-      toast.success('Tag created!');
-      await queryClient.invalidateQueries({ queryKey: ['tags'] });
-      form.reset();
-      setOpen(false);
-    } catch (err) {
-      console.error('Failed to create tag:', err);
-      toast.error('Failed to create tag');
-    }
-  }, [form, queryClient]);
+  const onSubmit = useCallback(
+    async (values) => {
+      try {
+        await tagsApi.create({
+          name: values.name.trim(),
+          color: values.color,
+          description: values.description || '',
+        });
+        toast.success('Tag created!');
+        await queryClient.invalidateQueries({ queryKey: ['tags'] });
+        form.reset();
+        setOpen(false);
+      } catch (err) {
+        console.error('Failed to create tag:', err);
+        toast.error('Failed to create tag');
+      }
+    },
+    [form, queryClient],
+  );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -69,7 +72,9 @@ export function TagModal({ trigger }) {
           <div>
             <div className="text-xs font-medium uppercase tracking-wide text-gray-400">Tag Name</div>
             <Input className="mt-2" placeholder="VIP" {...form.register('name')} />
-            {form.formState.errors.name ? <p className="mt-1 text-sm text-red-500">{form.formState.errors.name.message}</p> : null}
+            {form.formState.errors.name ? (
+              <p className="mt-1 text-sm text-red-500">{form.formState.errors.name.message}</p>
+            ) : null}
           </div>
 
           <div>
@@ -119,4 +124,3 @@ export function TagModal({ trigger }) {
     </Dialog>
   );
 }
-

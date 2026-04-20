@@ -39,12 +39,12 @@ function EnvError({ missing }) {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-8 text-center shadow-sm">
         <h1 className="text-lg font-semibold text-red-700">Configuration Error</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          The following required environment variables are missing:
-        </p>
+        <p className="mt-2 text-sm text-gray-600">The following required environment variables are missing:</p>
         <ul className="mt-3 space-y-1">
           {missing.map((m) => (
-            <li key={m.key} className="rounded-lg bg-red-50 px-3 py-1.5 font-mono text-xs text-red-800">{m.key}</li>
+            <li key={m.key} className="rounded-lg bg-red-50 px-3 py-1.5 font-mono text-xs text-red-800">
+              {m.key}
+            </li>
           ))}
         </ul>
         <p className="mt-4 text-xs text-gray-400">
@@ -77,4 +77,4 @@ createRoot(document.getElementById('root')).render(
       )}
     </ErrorBoundary>
   </StrictMode>,
-)
+);

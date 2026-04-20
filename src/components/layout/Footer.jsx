@@ -7,15 +7,21 @@ export function Footer() {
         <Link to="/privacy" className="font-medium text-gray-600 hover:text-green-600">
           Privacy Policy
         </Link>
-        <span className="text-gray-300" aria-hidden>·</span>
+        <span className="text-gray-300" aria-hidden>
+          ·
+        </span>
         <Link to="/terms" className="font-medium text-gray-600 hover:text-green-600">
           Terms of Service
         </Link>
-        <span className="text-gray-300" aria-hidden>·</span>
+        <span className="text-gray-300" aria-hidden>
+          ·
+        </span>
         <Link to="/data-deletion" className="font-medium text-gray-600 hover:text-green-600">
           Data Deletion
         </Link>
-        <span className="text-gray-300" aria-hidden>·</span>
+        <span className="text-gray-300" aria-hidden>
+          ·
+        </span>
         <a href="mailto:support@yrull.com" className="font-medium text-gray-600 hover:text-green-600">
           Contact
         </a>

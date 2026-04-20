@@ -1,6 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, FolderPlus, Trash2, Grid, List, Zap, Edit2, Loader2, Bot, MessageSquare, ChevronDown, Save, Eye } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  FolderPlus,
+  Trash2,
+  Grid,
+  List,
+  Zap,
+  Edit2,
+  Loader2,
+  Bot,
+  MessageSquare,
+  ChevronDown,
+  Save,
+  Eye,
+} from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
@@ -27,7 +42,8 @@ export function AutomationsPage() {
     {
       id: 'system-ai-reply',
       name: 'AI Auto-Reply (Claude)',
-      description: 'Analyzes every incoming WhatsApp message with Claude AI and sends an intelligent reply with intent detection.',
+      description:
+        'Analyzes every incoming WhatsApp message with Claude AI and sends an intelligent reply with intent detection.',
       status: 'live',
       system: true,
       trigger_types: ['new_message'],
@@ -65,9 +81,12 @@ Rules:
 
   useEffect(() => {
     loadAutomations();
-    claudePromptApi.get().then((data) => {
-      if (data?.prompt) setLivePrompt(data.prompt);
-    }).catch(() => {});
+    claudePromptApi
+      .get()
+      .then((data) => {
+        if (data?.prompt) setLivePrompt(data.prompt);
+      })
+      .catch(() => {});
   }, []);
 
   const loadAutomations = async () => {
@@ -184,7 +203,7 @@ Rules:
             onClick={() => setViewMode('list')}
             className={cn(
               'rounded px-2 py-1 text-sm',
-              viewMode === 'list' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'
+              viewMode === 'list' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50',
             )}
           >
             <List className="h-4 w-4" />
@@ -193,7 +212,7 @@ Rules:
             onClick={() => setViewMode('grid')}
             className={cn(
               'rounded px-2 py-1 text-sm',
-              viewMode === 'grid' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'
+              viewMode === 'grid' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50',
             )}
           >
             <Grid className="h-4 w-4" />
@@ -227,23 +246,21 @@ Rules:
               systemAutomations
                 .filter((sa) => !search || sa.name.toLowerCase().includes(search.toLowerCase()))
                 .map((sa) => (
-                  <div
-                    key={sa.id}
-                    className="rounded-lg border border-gray-200 bg-white"
-                  >
+                  <div key={sa.id} className="rounded-lg border border-gray-200 bg-white">
                     <div className="flex items-center gap-4 p-4">
                       <div className="w-12">
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100">
                           <Zap className="h-4 w-4 text-green-600" />
                         </div>
                       </div>
-                      <div
-                        className="flex-1 cursor-pointer"
-                        onClick={() => navigate(`/automations/${sa.id}`)}
-                      >
+                      <div className="flex-1 cursor-pointer" onClick={() => navigate(`/automations/${sa.id}`)}>
                         <div className="flex items-center gap-2">
-                          <Badge variant="danger" className="text-xs">LIVE</Badge>
-                          <span className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors">{sa.name}</span>
+                          <Badge variant="danger" className="text-xs">
+                            LIVE
+                          </Badge>
+                          <span className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors">
+                            {sa.name}
+                          </span>
                         </div>
                         <p className="mt-1 text-xs text-gray-500">{sa.description}</p>
                       </div>
@@ -388,7 +405,11 @@ Rules:
                                   disabled={savingPrompt}
                                   className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
                                 >
-                                  {savingPrompt ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                                  {savingPrompt ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <Save className="h-3 w-3" />
+                                  )}
                                   Save Prompt
                                 </button>
                                 <button
@@ -400,7 +421,10 @@ Rules:
                               </div>
                             ) : (
                               <button
-                                onClick={() => { setEditingPrompt(true); setSystemPrompt(livePrompt || sa.prompt); }}
+                                onClick={() => {
+                                  setEditingPrompt(true);
+                                  setSystemPrompt(livePrompt || sa.prompt);
+                                }}
                                 className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-100 transition-colors"
                               >
                                 <Edit2 className="h-3 w-3" />
@@ -427,208 +451,219 @@ Rules:
 
             {/* User Automations */}
             {filteredAutomations.map((automation) => {
-            const triggerTypes = automation.trigger_types || [];
-            // Parse nodes to extract trigger/action info for visual flow
-            let parsedNodes = [];
-            try {
-              parsedNodes = typeof automation.nodes === 'string'
-                ? JSON.parse(automation.nodes)
-                : (Array.isArray(automation.nodes) ? automation.nodes : []);
-            } catch { /* ignore */ }
-            const triggerNode = parsedNodes.find((n) => n.type === 'trigger');
-            const actionNodes = parsedNodes.filter((n) => n.type === 'action');
+              const triggerTypes = automation.trigger_types || [];
+              // Parse nodes to extract trigger/action info for visual flow
+              let parsedNodes = [];
+              try {
+                parsedNodes =
+                  typeof automation.nodes === 'string'
+                    ? JSON.parse(automation.nodes)
+                    : Array.isArray(automation.nodes)
+                      ? automation.nodes
+                      : [];
+              } catch {
+                /* ignore */
+              }
+              const triggerNode = parsedNodes.find((n) => n.type === 'trigger');
+              const actionNodes = parsedNodes.filter((n) => n.type === 'action');
 
-            return (
-              <div key={automation.id} className="rounded-lg border border-gray-200 bg-white">
-                <div className="flex items-center gap-4 p-4">
-                  <div className="w-12">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100">
-                      <Zap className="h-4 w-4 text-green-600" />
+              return (
+                <div key={automation.id} className="rounded-lg border border-gray-200 bg-white">
+                  <div className="flex items-center gap-4 p-4">
+                    <div className="w-12">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100">
+                        <Zap className="h-4 w-4 text-green-600" />
+                      </div>
                     </div>
-                  </div>
-                  <div
-                    className="flex-1 cursor-pointer"
-                    onClick={() => navigate(`/automations/${automation.id}`)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant={automation.status === 'live' ? 'danger' : 'muted'}
-                        className="text-xs"
-                      >
-                        {(automation.status || 'draft').toUpperCase()}
-                      </Badge>
-                      <span className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors">{automation.name}</span>
-                      {automation.platform === 'whatsapp' && (
-                        <span className="text-xs text-gray-500">📱 WhatsApp</span>
-                      )}
-                    </div>
-                    {automation.description && (
-                      <p className="mt-1 text-xs text-gray-500">{automation.description}</p>
-                    )}
-                  </div>
-                  <div className="w-24 text-right text-sm text-gray-600">
-                    {automation.total_runs ?? 0}
-                  </div>
-                  <div className="w-24 text-right text-sm text-gray-600">
-                    {triggerTypes.length > 0
-                      ? triggerTypes.map((t) => t.replace('_', ' ')).join(', ')
-                      : 'None'}
-                  </div>
-                  <div className="w-32 text-right text-sm text-gray-600">
-                    {formatDate(automation.updated_at)}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => navigate(`/automations/${automation.id}`)}
-                      className="rounded-lg bg-blue-50 p-2 text-blue-600 hover:bg-blue-100 hover:text-blue-700 transition-colors"
-                      title="Edit in Builder"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={(e) => handleDelete(e, automation.id)}
-                      className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"
-                      title="Delete"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => toggleExpand(automation.id)}
-                    className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 transition-colors"
-                    title="Show flow preview"
-                  >
-                    <ChevronDown
-                      className={cn(
-                        'h-5 w-5 transition-transform duration-200',
-                        expandedAutomations.has(automation.id) && 'rotate-180',
-                      )}
-                    />
-                  </button>
-                </div>
-
-                {/* Expanded Visual Flow */}
-                {expandedAutomations.has(automation.id) && (
-                  <div className="border-t border-gray-100">
-                    <div className="px-6 py-5">
-                      <div className="flex items-center gap-3">
-                        {/* Trigger Step */}
-                        <div className="flex flex-col items-center">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-100">
-                            {triggerNode?.data?.triggerType === 'missed_call' ? (
-                              <Zap className="h-5 w-5 text-green-600" />
-                            ) : triggerNode?.data?.triggerType === 'incoming_call' ? (
-                              <Zap className="h-5 w-5 text-green-600" />
-                            ) : (
-                              <MessageSquare className="h-5 w-5 text-green-600" />
-                            )}
-                          </div>
-                          <span className="mt-1.5 text-xs font-semibold text-green-700">When...</span>
-                          <span className="text-[10px] text-gray-500">
-                            {triggerNode?.data?.triggerType === 'new_message'
-                              ? 'User sends message'
-                              : triggerNode?.data?.triggerType === 'missed_call'
-                              ? 'Call is missed'
-                              : triggerNode?.data?.triggerType === 'incoming_call'
-                              ? 'Call received'
-                              : 'Trigger'}
-                          </span>
-                          {triggerNode?.data?.keyword && (
-                            <span className="mt-0.5 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
-                              contains "{triggerNode.data.keyword}"
-                            </span>
-                          )}
-                        </div>
-
-                        {actionNodes.length > 0 ? (
-                          actionNodes.map((actionNode, i) => (
-                            <div key={actionNode.id} className="flex items-center gap-3">
-                              {/* Arrow */}
-                              <div className="flex flex-1 items-center">
-                                <div className="h-0.5 w-16 bg-gradient-to-r from-green-300 to-blue-300" />
-                                <div className="text-blue-400">▶</div>
-                              </div>
-
-                              {/* Action Step */}
-                              <div className="flex flex-col items-center">
-                                <div className={cn(
-                                  'flex h-12 w-12 items-center justify-center rounded-xl',
-                                  actionNode.data?.actionType === 'send_message' ? 'bg-blue-100' :
-                                  actionNode.data?.actionType === 'delay' ? 'bg-purple-100' :
-                                  'bg-orange-100'
-                                )}>
-                                  {actionNode.data?.actionType === 'send_message' ? (
-                                    <MessageSquare className="h-5 w-5 text-blue-600" />
-                                  ) : actionNode.data?.actionType === 'delay' ? (
-                                    <Zap className="h-5 w-5 text-purple-600" />
-                                  ) : (
-                                    <Zap className="h-5 w-5 text-orange-600" />
-                                  )}
-                                </div>
-                                <span className={cn(
-                                  'mt-1.5 text-xs font-semibold',
-                                  actionNode.data?.actionType === 'send_message' ? 'text-blue-700' :
-                                  actionNode.data?.actionType === 'delay' ? 'text-purple-700' :
-                                  'text-orange-700'
-                                )}>
-                                  {actionNode.data?.actionType === 'send_message' ? 'WhatsApp' :
-                                   actionNode.data?.actionType === 'delay' ? 'Delay' :
-                                   actionNode.data?.actionType === 'add_tag' ? 'Add Tag' :
-                                   actionNode.data?.actionType === 'assign' ? 'Assign' :
-                                   'Action'}
-                                </span>
-                                <span className="text-[10px] text-gray-500">
-                                  {actionNode.data?.actionType === 'send_message' ? 'Send Message' :
-                                   actionNode.data?.actionType === 'delay' ? `Wait ${actionNode.data?.duration || 60}s` :
-                                   actionNode.data?.actionType?.replace('_', ' ')}
-                                </span>
-                                {actionNode.data?.actionType === 'send_message' && actionNode.data?.message && (
-                                  <span className="mt-0.5 max-w-[120px] truncate rounded-full bg-blue-50 px-2 py-0.5 text-[10px] text-blue-600">
-                                    "{actionNode.data.message}"
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <>
-                            {/* Arrow */}
-                            <div className="flex flex-1 items-center">
-                              <div className="h-0.5 w-16 bg-gradient-to-r from-green-300 to-gray-300" />
-                              <div className="text-gray-400">▶</div>
-                            </div>
-                            {/* No action configured */}
-                            <div className="flex flex-col items-center">
-                              <div className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50">
-                                <Plus className="h-5 w-5 text-gray-400" />
-                              </div>
-                              <span className="mt-1.5 text-xs font-semibold text-gray-400">No action</span>
-                              <span className="text-[10px] text-gray-400">Add a step</span>
-                            </div>
-                          </>
+                    <div className="flex-1 cursor-pointer" onClick={() => navigate(`/automations/${automation.id}`)}>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={automation.status === 'live' ? 'danger' : 'muted'} className="text-xs">
+                          {(automation.status || 'draft').toUpperCase()}
+                        </Badge>
+                        <span className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors">
+                          {automation.name}
+                        </span>
+                        {automation.platform === 'whatsapp' && (
+                          <span className="text-xs text-gray-500">📱 WhatsApp</span>
                         )}
                       </div>
+                      {automation.description && <p className="mt-1 text-xs text-gray-500">{automation.description}</p>}
                     </div>
-
-                    {/* Edit in Builder link */}
-                    <div className="border-t border-gray-100 px-6 py-3 flex items-center justify-between bg-gray-50">
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <Zap className="h-3 w-3" />
-                        {triggerTypes.length} trigger{triggerTypes.length !== 1 ? 's' : ''} · {actionNodes.length} action{actionNodes.length !== 1 ? 's' : ''}
-                      </div>
+                    <div className="w-24 text-right text-sm text-gray-600">{automation.total_runs ?? 0}</div>
+                    <div className="w-24 text-right text-sm text-gray-600">
+                      {triggerTypes.length > 0 ? triggerTypes.map((t) => t.replace('_', ' ')).join(', ') : 'None'}
+                    </div>
+                    <div className="w-32 text-right text-sm text-gray-600">{formatDate(automation.updated_at)}</div>
+                    <div className="flex items-center gap-1">
                       <button
-                        onClick={(e) => { e.stopPropagation(); navigate(`/automations/${automation.id}`); }}
-                        className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors"
+                        onClick={() => navigate(`/automations/${automation.id}`)}
+                        className="rounded-lg bg-blue-50 p-2 text-blue-600 hover:bg-blue-100 hover:text-blue-700 transition-colors"
+                        title="Edit in Builder"
                       >
-                        <Edit2 className="h-3 w-3" />
-                        Edit in Builder
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={(e) => handleDelete(e, automation.id)}
+                        className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
+                    <button
+                      onClick={() => toggleExpand(automation.id)}
+                      className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 transition-colors"
+                      title="Show flow preview"
+                    >
+                      <ChevronDown
+                        className={cn(
+                          'h-5 w-5 transition-transform duration-200',
+                          expandedAutomations.has(automation.id) && 'rotate-180',
+                        )}
+                      />
+                    </button>
                   </div>
-                )}
-              </div>
-            );
-          })}
+
+                  {/* Expanded Visual Flow */}
+                  {expandedAutomations.has(automation.id) && (
+                    <div className="border-t border-gray-100">
+                      <div className="px-6 py-5">
+                        <div className="flex items-center gap-3">
+                          {/* Trigger Step */}
+                          <div className="flex flex-col items-center">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-100">
+                              {triggerNode?.data?.triggerType === 'missed_call' ? (
+                                <Zap className="h-5 w-5 text-green-600" />
+                              ) : triggerNode?.data?.triggerType === 'incoming_call' ? (
+                                <Zap className="h-5 w-5 text-green-600" />
+                              ) : (
+                                <MessageSquare className="h-5 w-5 text-green-600" />
+                              )}
+                            </div>
+                            <span className="mt-1.5 text-xs font-semibold text-green-700">When...</span>
+                            <span className="text-[10px] text-gray-500">
+                              {triggerNode?.data?.triggerType === 'new_message'
+                                ? 'User sends message'
+                                : triggerNode?.data?.triggerType === 'missed_call'
+                                  ? 'Call is missed'
+                                  : triggerNode?.data?.triggerType === 'incoming_call'
+                                    ? 'Call received'
+                                    : 'Trigger'}
+                            </span>
+                            {triggerNode?.data?.keyword && (
+                              <span className="mt-0.5 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
+                                contains "{triggerNode.data.keyword}"
+                              </span>
+                            )}
+                          </div>
+
+                          {actionNodes.length > 0 ? (
+                            actionNodes.map((actionNode, i) => (
+                              <div key={actionNode.id} className="flex items-center gap-3">
+                                {/* Arrow */}
+                                <div className="flex flex-1 items-center">
+                                  <div className="h-0.5 w-16 bg-gradient-to-r from-green-300 to-blue-300" />
+                                  <div className="text-blue-400">▶</div>
+                                </div>
+
+                                {/* Action Step */}
+                                <div className="flex flex-col items-center">
+                                  <div
+                                    className={cn(
+                                      'flex h-12 w-12 items-center justify-center rounded-xl',
+                                      actionNode.data?.actionType === 'send_message'
+                                        ? 'bg-blue-100'
+                                        : actionNode.data?.actionType === 'delay'
+                                          ? 'bg-purple-100'
+                                          : 'bg-orange-100',
+                                    )}
+                                  >
+                                    {actionNode.data?.actionType === 'send_message' ? (
+                                      <MessageSquare className="h-5 w-5 text-blue-600" />
+                                    ) : actionNode.data?.actionType === 'delay' ? (
+                                      <Zap className="h-5 w-5 text-purple-600" />
+                                    ) : (
+                                      <Zap className="h-5 w-5 text-orange-600" />
+                                    )}
+                                  </div>
+                                  <span
+                                    className={cn(
+                                      'mt-1.5 text-xs font-semibold',
+                                      actionNode.data?.actionType === 'send_message'
+                                        ? 'text-blue-700'
+                                        : actionNode.data?.actionType === 'delay'
+                                          ? 'text-purple-700'
+                                          : 'text-orange-700',
+                                    )}
+                                  >
+                                    {actionNode.data?.actionType === 'send_message'
+                                      ? 'WhatsApp'
+                                      : actionNode.data?.actionType === 'delay'
+                                        ? 'Delay'
+                                        : actionNode.data?.actionType === 'add_tag'
+                                          ? 'Add Tag'
+                                          : actionNode.data?.actionType === 'assign'
+                                            ? 'Assign'
+                                            : 'Action'}
+                                  </span>
+                                  <span className="text-[10px] text-gray-500">
+                                    {actionNode.data?.actionType === 'send_message'
+                                      ? 'Send Message'
+                                      : actionNode.data?.actionType === 'delay'
+                                        ? `Wait ${actionNode.data?.duration || 60}s`
+                                        : actionNode.data?.actionType?.replace('_', ' ')}
+                                  </span>
+                                  {actionNode.data?.actionType === 'send_message' && actionNode.data?.message && (
+                                    <span className="mt-0.5 max-w-[120px] truncate rounded-full bg-blue-50 px-2 py-0.5 text-[10px] text-blue-600">
+                                      "{actionNode.data.message}"
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <>
+                              {/* Arrow */}
+                              <div className="flex flex-1 items-center">
+                                <div className="h-0.5 w-16 bg-gradient-to-r from-green-300 to-gray-300" />
+                                <div className="text-gray-400">▶</div>
+                              </div>
+                              {/* No action configured */}
+                              <div className="flex flex-col items-center">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50">
+                                  <Plus className="h-5 w-5 text-gray-400" />
+                                </div>
+                                <span className="mt-1.5 text-xs font-semibold text-gray-400">No action</span>
+                                <span className="text-[10px] text-gray-400">Add a step</span>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Edit in Builder link */}
+                      <div className="border-t border-gray-100 px-6 py-3 flex items-center justify-between bg-gray-50">
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <Zap className="h-3 w-3" />
+                          {triggerTypes.length} trigger{triggerTypes.length !== 1 ? 's' : ''} · {actionNodes.length}{' '}
+                          action{actionNodes.length !== 1 ? 's' : ''}
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/automations/${automation.id}`);
+                          }}
+                          className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors"
+                        >
+                          <Edit2 className="h-3 w-3" />
+                          Edit in Builder
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </>
         )}
       </div>

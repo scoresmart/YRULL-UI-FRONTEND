@@ -48,12 +48,12 @@ export function ContactInfoPanel({ onClose }) {
   // Get tags applied to this contact
   const appliedTags = useMemo(() => {
     if (!tagsQ.data || !contactTagsQ.data || !contact) return [];
-    
+
     // Find contact_tags that match this contact
     const matchingTagIds = contactTagsQ.data
       .filter((ct) => contact.id && ct.contact_id === contact.id)
       .map((ct) => ct.tag_id);
-    
+
     // Get the full tag objects
     return tagsQ.data.filter((tag) => matchingTagIds.includes(tag.id));
   }, [tagsQ.data, contactTagsQ.data, contact]);
@@ -82,9 +82,7 @@ export function ContactInfoPanel({ onClose }) {
   // Filter calls for this contact
   const contactCalls = useMemo(() => {
     if (!callsQ.data || !selectedWaId) return [];
-    return callsQ.data.filter(
-      (c) => c.from_number === selectedWaId || c.to_number === selectedWaId
-    );
+    return callsQ.data.filter((c) => c.from_number === selectedWaId || c.to_number === selectedWaId);
   }, [callsQ.data, selectedWaId]);
 
   // Track previous call count to detect new incoming calls
@@ -100,7 +98,7 @@ export function ContactInfoPanel({ onClose }) {
 
     // Sort calls by timestamp to get the latest
     const sortedCalls = [...contactCalls].sort(
-      (a, b) => new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp)
+      (a, b) => new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp),
     );
     const latestCall = sortedCalls[0];
     const latestCallId = latestCall?.id;
@@ -143,15 +141,18 @@ export function ContactInfoPanel({ onClose }) {
     }
   }, [noteText, selectedWaId, queryClient]);
 
-  const handleDeleteNote = useCallback(async (noteId) => {
-    try {
-      await notesApi.delete(selectedWaId, noteId);
-      await queryClient.invalidateQueries({ queryKey: ['contact_notes', selectedWaId] });
-      toast.success('Note deleted');
-    } catch (err) {
-      toast.error(err.message || 'Failed to delete note');
-    }
-  }, [selectedWaId, queryClient]);
+  const handleDeleteNote = useCallback(
+    async (noteId) => {
+      try {
+        await notesApi.delete(selectedWaId, noteId);
+        await queryClient.invalidateQueries({ queryKey: ['contact_notes', selectedWaId] });
+        toast.success('Note deleted');
+      } catch (err) {
+        toast.error(err.message || 'Failed to delete note');
+      }
+    },
+    [selectedWaId, queryClient],
+  );
 
   return (
     <div className="flex h-full w-[300px] flex-shrink-0 flex-col border-l border-brand-border bg-white">
@@ -162,7 +163,9 @@ export function ContactInfoPanel({ onClose }) {
       <div className="flex-1 overflow-auto">
         <Section title="Contact Details">
           <div className="flex items-start gap-3">
-            <div className={cn('flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold', avatarCls)}>
+            <div
+              className={cn('flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold', avatarCls)}
+            >
               {initialsFromName(name)}
             </div>
             <div className="min-w-0 flex-1">
@@ -175,21 +178,27 @@ export function ContactInfoPanel({ onClose }) {
               <div className="mt-1 text-sm text-gray-500">{displayPhone || '—'}</div>
               {contact?.source ? (
                 <div className="mt-1 inline-flex items-center gap-1.5">
-                  <span className={cn(
-                    'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-                    contact.source === 'TIKTOK' ? 'bg-gray-900 text-white' :
-                    contact.source === 'META' ? 'bg-blue-100 text-blue-700' :
-                    'bg-gray-100 text-gray-600'
-                  )}>
+                  <span
+                    className={cn(
+                      'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                      contact.source === 'TIKTOK'
+                        ? 'bg-gray-900 text-white'
+                        : contact.source === 'META'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-gray-100 text-gray-600',
+                    )}
+                  >
                     {contact.source}
                   </span>
                 </div>
               ) : null}
-              {contact?.campaign_name ? <div className="mt-1 text-xs text-gray-400">Campaign: {contact.campaign_name}</div> : null}
+              {contact?.campaign_name ? (
+                <div className="mt-1 text-xs text-gray-400">Campaign: {contact.campaign_name}</div>
+              ) : null}
               {contact?.ad_id ? <div className="mt-0.5 text-xs text-gray-400">Ad ID: {contact.ad_id}</div> : null}
             </div>
           </div>
-          
+
           {/* Tags Display */}
           {appliedTags.length > 0 && (
             <div className="mt-3">
@@ -200,30 +209,42 @@ export function ContactInfoPanel({ onClose }) {
                     key={tag.id}
                     className={cn(
                       'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium',
-                      tag.color === 'green' ? 'bg-green-100 text-green-700 border border-green-200' :
-                      tag.color === 'blue' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
-                      tag.color === 'purple' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
-                      tag.color === 'orange' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
-                      tag.color === 'red' ? 'bg-red-100 text-red-700 border border-red-200' :
-                      'bg-gray-100 text-gray-700 border border-gray-200'
+                      tag.color === 'green'
+                        ? 'bg-green-100 text-green-700 border border-green-200'
+                        : tag.color === 'blue'
+                          ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                          : tag.color === 'purple'
+                            ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                            : tag.color === 'orange'
+                              ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                              : tag.color === 'red'
+                                ? 'bg-red-100 text-red-700 border border-red-200'
+                                : 'bg-gray-100 text-gray-700 border border-gray-200',
                     )}
                   >
-                    <span className={cn(
-                      'h-2 w-2 rounded-full',
-                      tag.color === 'green' ? 'bg-green-500' :
-                      tag.color === 'blue' ? 'bg-blue-500' :
-                      tag.color === 'purple' ? 'bg-purple-500' :
-                      tag.color === 'orange' ? 'bg-amber-500' :
-                      tag.color === 'red' ? 'bg-red-500' :
-                      'bg-gray-500'
-                    )} />
+                    <span
+                      className={cn(
+                        'h-2 w-2 rounded-full',
+                        tag.color === 'green'
+                          ? 'bg-green-500'
+                          : tag.color === 'blue'
+                            ? 'bg-blue-500'
+                            : tag.color === 'purple'
+                              ? 'bg-purple-500'
+                              : tag.color === 'orange'
+                                ? 'bg-amber-500'
+                                : tag.color === 'red'
+                                  ? 'bg-red-500'
+                                  : 'bg-gray-500',
+                      )}
+                    />
                     {tag.name}
                   </span>
                 ))}
               </div>
             </div>
           )}
-          
+
           <Button variant="outline" className="mt-4 w-full" onClick={onEditContact}>
             Edit Contact
           </Button>
@@ -250,7 +271,9 @@ export function ContactInfoPanel({ onClose }) {
             {contact?.ad_id && (
               <div className="flex justify-between">
                 <span className="text-gray-600">Ad ID:</span>
-                <span className="text-right text-gray-900 max-w-[150px] truncate font-mono text-xs">{contact.ad_id}</span>
+                <span className="text-right text-gray-900 max-w-[150px] truncate font-mono text-xs">
+                  {contact.ad_id}
+                </span>
               </div>
             )}
             {contact?.metadata?.adset_name && (
@@ -281,12 +304,7 @@ export function ContactInfoPanel({ onClose }) {
             value={noteText}
             onChange={(e) => setNoteText(e.target.value)}
           />
-          <Button
-            className="mt-3"
-            size="sm"
-            onClick={handleAddNote}
-            disabled={!noteText.trim() || savingNote}
-          >
+          <Button className="mt-3" size="sm" onClick={handleAddNote} disabled={!noteText.trim() || savingNote}>
             {savingNote ? 'Saving...' : 'Add Note'}
           </Button>
           <div className="mt-4 space-y-3">
@@ -308,7 +326,9 @@ export function ContactInfoPanel({ onClose }) {
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                  <div className="mt-1 text-xs text-gray-500">{n.created_at ? formatRelativeTime(n.created_at) : ''}</div>
+                  <div className="mt-1 text-xs text-gray-500">
+                    {n.created_at ? formatRelativeTime(n.created_at) : ''}
+                  </div>
                 </div>
               ))
             )}
@@ -317,8 +337,12 @@ export function ContactInfoPanel({ onClose }) {
 
         <Section title="Audience Membership" defaultOpen={false}>
           <div className="flex flex-wrap gap-2">
-            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">Warm Pipeline</span>
-            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">VIP - Active &lt; 7 days</span>
+            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
+              Warm Pipeline
+            </span>
+            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
+              VIP - Active &lt; 7 days
+            </span>
           </div>
         </Section>
 
@@ -357,4 +381,3 @@ export function ContactInfoPanel({ onClose }) {
     </div>
   );
 }
-

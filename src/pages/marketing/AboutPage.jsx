@@ -46,18 +46,16 @@ export function AboutPage() {
           <h2 className="text-2xl font-bold text-gray-900">Our story</h2>
           <div className="mt-6 space-y-4 text-sm leading-relaxed text-gray-600">
             <p>
-              Yrull is a product of Prepsmart Pty Ltd, an Australian software company building conversation
-              automation tools for modern businesses. We believe customer service and marketing should be
-              seamless, personalized, and scalable — without requiring a massive support team.
+              Yrull is a product of Prepsmart Pty Ltd, an Australian software company building conversation automation
+              tools for modern businesses. We believe customer service and marketing should be seamless, personalized,
+              and scalable — without requiring a massive support team.
             </p>
             <p>
-              Too many businesses lose customers to slow response times and disconnected messaging tools.
-              Yrull brings Instagram, WhatsApp, and Facebook Messenger into one inbox with powerful automations
-              that handle the repetitive work, so your team can focus on conversations that actually close deals.
+              Too many businesses lose customers to slow response times and disconnected messaging tools. Yrull brings
+              Instagram, WhatsApp, and Facebook Messenger into one inbox with powerful automations that handle the
+              repetitive work, so your team can focus on conversations that actually close deals.
             </p>
-            <p>
-              Based in Melbourne, Australia, we serve businesses globally.
-            </p>
+            <p>Based in Melbourne, Australia, we serve businesses globally.</p>
           </div>
         </div>
       </section>
@@ -90,13 +88,34 @@ export function AboutPage() {
               <div>
                 <h3 className="font-semibold text-gray-900">Prepsmart Pty Ltd</h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  97 Waverly Street, Moonee Ponds<br />
+                  97 Waverly Street, Moonee Ponds
+                  <br />
                   Melbourne, Victoria 3039, Australia
                 </p>
                 <div className="mt-3 space-y-1 text-sm text-gray-500">
-                  <p>General: <a href="mailto:support@yrull.com" className="font-medium text-brand-accent hover:underline">support@yrull.com</a></p>
-                  <p>Privacy: <a href="mailto:privacy@yrull.com" className="font-medium text-brand-accent hover:underline">privacy@yrull.com</a></p>
-                  <p>Web: <a href="https://yrull.com" className="font-medium text-brand-accent hover:underline" target="_blank" rel="noopener noreferrer">yrull.com</a></p>
+                  <p>
+                    General:{' '}
+                    <a href="mailto:support@yrull.com" className="font-medium text-brand-accent hover:underline">
+                      support@yrull.com
+                    </a>
+                  </p>
+                  <p>
+                    Privacy:{' '}
+                    <a href="mailto:privacy@yrull.com" className="font-medium text-brand-accent hover:underline">
+                      privacy@yrull.com
+                    </a>
+                  </p>
+                  <p>
+                    Web:{' '}
+                    <a
+                      href="https://yrull.com"
+                      className="font-medium text-brand-accent hover:underline"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      yrull.com
+                    </a>
+                  </p>
                 </div>
               </div>
             </div>

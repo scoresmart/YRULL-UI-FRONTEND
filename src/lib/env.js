@@ -2,8 +2,8 @@
 if (import.meta.env.DEV && !window.__ENV_CHECKED__) {
   window.__ENV_CHECKED__ = true;
   console.debug('🔍 Vite env check:', {
-    'VITE_SUPABASE_URL': import.meta.env.VITE_SUPABASE_URL ? '✅ Found' : '❌ Missing',
-    'VITE_SUPABASE_ANON_KEY': import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ Found' : '❌ Missing',
+    VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL ? '✅ Found' : '❌ Missing',
+    VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ Found' : '❌ Missing',
   });
 }
 
@@ -18,4 +18,3 @@ export const ENV = {
 };
 
 export { isAuthConfigured } from './authConfig';
-

@@ -76,9 +76,7 @@ export function IgChatWindow() {
         <Instagram className="h-5 w-5 text-purple-600" />
         <div>
           <h3 className="text-sm font-semibold text-gray-900">{contactName}</h3>
-          {contact?.username && (
-            <p className="text-xs text-purple-500">@{contact.username}</p>
-          )}
+          {contact?.username && <p className="text-xs text-purple-500">@{contact.username}</p>}
         </div>
       </div>
 
@@ -100,9 +98,7 @@ export function IgChatWindow() {
                 <div
                   className={cn(
                     'max-w-[70%] rounded-2xl px-4 py-2',
-                    isOutbound
-                      ? 'bg-purple-600 text-white rounded-br-md'
-                      : 'bg-gray-100 text-gray-900 rounded-bl-md'
+                    isOutbound ? 'bg-purple-600 text-white rounded-br-md' : 'bg-gray-100 text-gray-900 rounded-bl-md',
                   )}
                 >
                   {msg.event_type && msg.event_type !== 'dm' && (
