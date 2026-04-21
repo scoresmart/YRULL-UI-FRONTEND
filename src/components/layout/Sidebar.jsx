@@ -13,6 +13,7 @@ import {
   Workflow,
   Plug,
   Instagram,
+  Smartphone,
   Loader2,
   Megaphone,
   X,
@@ -27,6 +28,7 @@ import { useIsDesktop } from '../../hooks/useMediaQuery';
 const nav = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/whatsapp', label: 'WhatsApp', icon: MessageCircle },
+  { to: '/dashboard/whatsapp', label: 'WhatsApp Manager', icon: Smartphone },
   { to: '/instagram', label: 'Instagram', icon: Instagram },
   { to: '/comments', label: 'Comments', icon: MessageSquare },
   { to: '/call-logs', label: 'Call Logs', icon: Phone },
@@ -88,6 +90,7 @@ export function Sidebar() {
             <NavLink
               key={item.to}
               to={item.to}
+              end={item.to === '/dashboard'}
               onClick={() => {
                 if (!isDesktop) close();
               }}

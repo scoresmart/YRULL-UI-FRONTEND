@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 
 const TITLES = {
   '/dashboard': 'Dashboard',
+  '/dashboard/whatsapp': 'WhatsApp Manager',
   '/whatsapp': 'WhatsApp Inbox',
   '/contacts': 'Contacts',
   '/tags': 'Tags',

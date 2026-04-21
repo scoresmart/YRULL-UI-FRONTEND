@@ -100,6 +100,38 @@ src/
 - **Responsive design** — Mobile-first with breakpoints at 640px (sm), 768px (md), 1024px (lg)
 - **Skeleton loading** — Data-loading states use skeleton screens instead of spinners
 
+## WhatsApp Manager
+
+The dashboard includes a WhatsApp Manager screen at `/dashboard/whatsapp` for number registration and template lifecycle management.
+
+### Setup Notes
+
+- Ensure `VITE_API_BASE_URL` points to the backend that exposes WhatsApp/template endpoints.
+- The app sends authenticated requests using the existing fetch wrapper in `src/lib/api.js`.
+- Protected requests include both auth and workspace scoping headers:
+	- `Authorization: Bearer <token>`
+	- `X-Workspace-Id: <workspace_id>`
+
+### Endpoint Mapping
+
+| UI Capability | Endpoint | Method |
+|---|---|---|
+| Numbers list | `/api/whatsapp/numbers` | `GET` |
+| Register number | `/api/whatsapp/register-number` | `POST` |
+| List templates | `/api/templates/list` | `GET` |
+| Refresh from Meta | `/api/templates/list?refresh=1` | `GET` |
+| Create template | `/api/templates/create` | `POST` |
+| Edit template | `/api/templates/:id/edit` | `PUT` |
+| Delete template | `/api/templates/:id` | `DELETE` |
+
+### UI Components
+
+- `src/components/whatsapp-manager/NumberCard.tsx`
+- `src/components/whatsapp-manager/RegisterNumberModal.tsx`
+- `src/components/whatsapp-manager/TemplateCard.tsx`
+- `src/components/whatsapp-manager/TemplateBuilderModal.tsx`
+- `src/components/whatsapp-manager/StatusPill.tsx`
+
 ## Testing
 
 ```bash

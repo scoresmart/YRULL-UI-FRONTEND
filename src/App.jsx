@@ -25,6 +25,9 @@ const AcceptInvitePage = lazy(() =>
 const AdminLayout = lazy(() => import('./components/layout/AdminLayout').then((m) => ({ default: m.AdminLayout })));
 const DashboardPage = lazy(() => import('./pages/user/Dashboard').then((m) => ({ default: m.DashboardPage })));
 const WhatsAppPage = lazy(() => import('./pages/user/WhatsApp').then((m) => ({ default: m.WhatsAppPage })));
+const WhatsAppManagerPage = lazy(() =>
+  import('./pages/user/WhatsAppManagerPage').then((m) => ({ default: m.WhatsAppManagerPage })),
+);
 const InstagramPage = lazy(() => import('./pages/user/Instagram').then((m) => ({ default: m.InstagramPage })));
 const CallLogsPage = lazy(() => import('./pages/user/CallLogs').then((m) => ({ default: m.CallLogsPage })));
 const ContactsPage = lazy(() => import('./pages/user/Contacts').then((m) => ({ default: m.ContactsPage })));
@@ -140,6 +143,7 @@ export default function App() {
             }
           >
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/dashboard/whatsapp" element={<WhatsAppManagerPage />} />
             <Route path="/whatsapp" element={<WhatsAppPage />} />
             <Route path="/instagram" element={<InstagramPage />} />
             <Route path="/comments" element={<CommentsPage />} />

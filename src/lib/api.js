@@ -5,7 +5,7 @@ import { supabase } from './supabase';
 /**
  * Authenticated fetch wrapper - attaches Supabase JWT + workspace context.
  */
-async function authFetch(url, options = {}) {
+export async function authFetch(url, options = {}) {
   const { data } = await supabase.auth.getSession();
   const token = data?.session?.access_token;
   const headers = { ...options.headers };
