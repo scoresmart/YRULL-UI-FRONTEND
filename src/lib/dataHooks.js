@@ -4,6 +4,7 @@ import { ENV } from './env';
 import { supabase } from './supabase';
 import { mockDb } from './mockData';
 import { tagsApi, instagramApi } from './api';
+import { useAuthStore } from '../store/authStore';
 
 async function fromSupabase(table, opts = {}) {
   const q = supabase.from(table).select(opts.select ?? '*');
@@ -70,6 +71,58 @@ export function useContactTags() {
   return useQuery({
     queryKey: ['contact_tags'],
     queryFn: async () => (ENV.USE_MOCK ? mockDb.contact_tags : tagsApi.listContactTags()),
+  });
+}
+
+export function useCreateContact() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload) => {
+      const wsId = useAuthStore.getState().profile?.workspace_id;
+      if (!wsId) throw new Error('Workspace is not available for this session');
+
+      if (ENV.USE_MOCK) {
+        const record = {
+          id: crypto.randomUUID(),
+          workspace_id: wsId,
+          phone: payload.phone,
+          first_name: payload.first_name || null,
+          last_name: payload.last_name || null,
+          email: payload.email || null,
+          notes: payload.notes || null,
+          status: 'active',
+          created_at: new Date().toISOString(),
+          last_active_at: null,
+        };
+        mockDb.contacts.unshift(record);
+        return record;
+      }
+
+      const { data, error } = await supabase
+        .from('contacts')
+        .insert({
+          workspace_id: wsId,
+          phone: payload.phone,
+          first_name: payload.first_name || null,
+          last_name: payload.last_name || null,
+          email: payload.email || null,
+          notes: payload.notes || null,
+          status: 'active',
+        })
+        .select('*')
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['whatsapp_contacts'] });
+      toast.success('Contact saved');
+    },
+    onError: (err) => {
+      const msg = err instanceof Error ? err.message : 'Failed to save contact';
+      toast.error(msg);
+    },
   });
 }
 

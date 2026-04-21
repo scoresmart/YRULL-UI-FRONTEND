@@ -1,12 +1,12 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import toast from 'react-hot-toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
+import { useCreateContact } from '../../lib/dataHooks';
 
 const schema = z.object({
   first_name: z.string().optional(),
@@ -17,6 +17,8 @@ const schema = z.object({
 });
 
 export function AddEditContactModal({ trigger }) {
+  const [open, setOpen] = useState(false);
+  const createContact = useCreateContact();
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: { first_name: '', last_name: '', phone: '', email: '', notes: '' },
@@ -24,15 +26,16 @@ export function AddEditContactModal({ trigger }) {
 
   const onSubmit = useCallback(
     async (values) => {
-      toast.success('Saved (mock)');
+      await createContact.mutateAsync(values);
       form.reset();
+      setOpen(false);
       return values;
     },
-    [form],
+    [createContact, form],
   );
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-xl">
         <DialogHeader>
@@ -78,7 +81,7 @@ export function AddEditContactModal({ trigger }) {
             <Button type="button" variant="outline" onClick={() => form.reset()}>
               Reset
             </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
+            <Button type="submit" disabled={form.formState.isSubmitting || createContact.isPending}>
               {form.formState.isSubmitting ? 'Saving…' : 'Save'}
             </Button>
           </div>

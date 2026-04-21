@@ -90,6 +90,33 @@ type ApiMutationEnvelope<T> = T & {
   data?: T;
 };
 
+function makeUrl(path: string): string {
+  const base = (ENV.API_BASE_URL || '').trim();
+  return `${base}${path}`;
+}
+
+async function authFetchWithFallback(paths: string[], init?: RequestInit): Promise<Response> {
+  let lastError: unknown = null;
+  for (const path of paths) {
+    try {
+      const response = await authFetch(makeUrl(path), init);
+      if (response.ok) return response;
+      if (response.status !== 404) return response;
+      lastError = new Error(`Endpoint not found: ${path}`);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  if (lastError instanceof TypeError) {
+    throw new Error('Cannot reach backend API. Check VITE_API_BASE_URL and CORS settings.');
+  }
+  if (lastError instanceof Error) {
+    throw lastError;
+  }
+  throw new Error('Failed to reach backend API');
+}
+
 async function readErrorMessage(response: Response, fallback: string): Promise<string> {
   try {
     const data = (await response.json()) as { error?: string; message?: string; detail?: string };
@@ -132,7 +159,7 @@ function normalizeMutationPayload<T extends object>(raw: unknown): T {
 
 export const whatsappManagerApi = {
   async getNumbers(): Promise<WhatsAppNumberRecord[]> {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/whatsapp/numbers`);
+    const response = await authFetchWithFallback(['/api/whatsapp/numbers', '/whatsapp/numbers']);
     if (!response.ok) {
       throw new Error(await readErrorMessage(response, 'Failed to load WhatsApp numbers'));
     }
@@ -141,7 +168,7 @@ export const whatsappManagerApi = {
   },
 
   async registerNumber(payload: RegisterNumberPayload): Promise<RegisterNumberResponse> {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/whatsapp/register-number`, {
+    const response = await authFetchWithFallback(['/api/whatsapp/register-number', '/whatsapp/register-number'], {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -155,7 +182,10 @@ export const whatsappManagerApi = {
 
   async listTemplates(refresh?: boolean): Promise<WhatsAppTemplateListItem[]> {
     const qs = refresh ? '?refresh=1' : '';
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/templates/list${qs}`);
+    const response = await authFetchWithFallback([
+      `/api/templates/list${qs}`,
+      '/api/whatsapp/templates',
+    ]);
     if (!response.ok) {
       throw new Error(await readErrorMessage(response, 'Failed to load templates'));
     }
@@ -164,7 +194,7 @@ export const whatsappManagerApi = {
   },
 
   async createTemplate(payload: CreateTemplatePayload): Promise<TemplateMutationResponse> {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/templates/create`, {
+    const response = await authFetchWithFallback(['/api/templates/create'], {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -177,7 +207,7 @@ export const whatsappManagerApi = {
   },
 
   async editTemplate(id: string, payload: CreateTemplatePayload): Promise<TemplateMutationResponse> {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/templates/${encodeURIComponent(id)}/edit`, {
+    const response = await authFetchWithFallback([`/api/templates/${encodeURIComponent(id)}/edit`], {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -190,7 +220,7 @@ export const whatsappManagerApi = {
   },
 
   async deleteTemplate(id: string, _name?: string): Promise<void> {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/templates/${encodeURIComponent(id)}`, {
+    const response = await authFetchWithFallback([`/api/templates/${encodeURIComponent(id)}`], {
       method: 'DELETE',
     });
     if (!response.ok) {
