@@ -97,9 +97,12 @@ function makeUrl(path: string): string {
 
 async function authFetchWithFallback(paths: string[], init?: RequestInit): Promise<Response> {
   let lastError: unknown = null;
+  let lastTriedUrl = '';
   for (const path of paths) {
     try {
-      const response = await authFetch(makeUrl(path), init);
+      const url = makeUrl(path);
+      lastTriedUrl = url;
+      const response = await authFetch(url, init);
       if (response.ok) return response;
       if (response.status !== 404) return response;
       lastError = new Error(`Endpoint not found: ${path}`);
@@ -109,7 +112,8 @@ async function authFetchWithFallback(paths: string[], init?: RequestInit): Promi
   }
 
   if (lastError instanceof TypeError) {
-    throw new Error('Cannot reach backend API. Check VITE_API_BASE_URL and CORS settings.');
+    const urlHint = lastTriedUrl || makeUrl(paths[0] || '');
+    throw new Error(`Cannot reach backend API (${urlHint}). Check deployment URL, backend uptime, and CORS.`);
   }
   if (lastError instanceof Error) {
     throw lastError;
