@@ -584,7 +584,9 @@ export const notesApi = {
 export const instagramApi = {
   async getStatus() {
     const response = await authFetch(`${ENV.API_BASE_URL}/instagram/status`);
-    return response.json();
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'Failed to fetch Instagram status');
+    return data;
   },
 
   async sendMessage({ to, message }) {
@@ -600,12 +602,16 @@ export const instagramApi = {
 
   async getConversations(limit = 20) {
     const response = await authFetch(`${ENV.API_BASE_URL}/instagram/conversations?limit=${limit}`);
-    return response.json();
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'Failed to fetch Instagram conversations');
+    return data;
   },
 
   async getMessages(igUserId, limit = 50) {
     const response = await authFetch(`${ENV.API_BASE_URL}/instagram/messages/${igUserId}?limit=${limit}`);
-    return response.json();
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'Failed to fetch Instagram messages');
+    return data;
   },
 
   async disconnect() {

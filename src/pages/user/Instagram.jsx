@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Instagram as InstagramIcon, ExternalLink, Loader2 } from 'lucide-react';
+import { Instagram as InstagramIcon, ExternalLink, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { ConnectFacebookButton } from '../../components/integrations/ConnectFacebookButton';
@@ -67,10 +67,22 @@ function ConnectPrompt() {
 export function InstagramPage() {
   const queryClient = useQueryClient();
   const setSelectedIgUserId = useChatStore((s) => s.setSelectedIgUserId);
+  const authStatus = useAuthStore((s) => s.status);
+  const workspaceId = useAuthStore((s) => s.profile?.workspace_id ?? s.profile?.workspace?.id ?? null);
+  const fetchProfile = useAuthStore((s) => s.fetchProfile);
+  const shouldFetchStatus = authStatus === 'authed' && Boolean(workspaceId);
 
-  const { data: status, isLoading } = useQuery({
-    queryKey: ['instagram_status'],
+  const {
+    data: status,
+    isLoading,
+    isFetching,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['instagram_status', workspaceId],
     queryFn: () => instagramApi.getStatus(),
+    enabled: shouldFetchStatus,
     staleTime: 60_000,
     retry: 1,
   });
@@ -79,7 +91,11 @@ export function InstagramPage() {
     setSelectedIgUserId(null);
   }, [setSelectedIgUserId]);
 
-  const workspaceId = useAuthStore((s) => s.profile?.workspace_id);
+  useEffect(() => {
+    if (authStatus === 'authed' && !workspaceId) {
+      void fetchProfile();
+    }
+  }, [authStatus, workspaceId, fetchProfile]);
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -112,10 +128,34 @@ export function InstagramPage() {
     };
   }, [workspaceId, queryClient]);
 
-  if (isLoading) {
+  if (authStatus === 'idle' || authStatus === 'loading' || !shouldFetchStatus || isLoading || isFetching) {
     return (
       <div className="-mx-4 -my-4 flex h-[calc(100vh-56px)] items-center justify-center sm:-mx-6 sm:-my-6 sm:h-[calc(100vh-64px)] lg:-mx-8 lg:-my-8">
         <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="-mx-4 -my-4 flex h-[calc(100vh-56px)] items-center justify-center bg-gray-50 px-6 sm:-mx-6 sm:-my-6 sm:h-[calc(100vh-4rem)] lg:-mx-8 lg:-my-8">
+        <div className="w-full max-w-lg rounded-xl border border-red-200 bg-white p-6 text-center shadow-sm">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+            <AlertTriangle className="h-6 w-6 text-red-600" />
+          </div>
+          <h2 className="mt-3 text-lg font-semibold text-gray-900">Could not load Instagram connection</h2>
+          <p className="mt-2 text-sm text-gray-600">
+            {error?.message || 'The Instagram status endpoint failed. Check API base URL and backend auth headers.'}
+          </p>
+          <div className="mt-4 flex items-center justify-center gap-2">
+            <Button type="button" variant="outline" onClick={() => refetch()} className="gap-2">
+              <RefreshCw className="h-4 w-4" /> Try again
+            </Button>
+            <Button type="button" variant="outline" onClick={() => navigate('/integrations')}>
+              Open Integrations
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
