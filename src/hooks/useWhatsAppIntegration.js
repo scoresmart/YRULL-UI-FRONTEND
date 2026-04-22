@@ -15,6 +15,7 @@ export function useWhatsAppIntegration() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [chooseNumberState, setChooseNumberState] = useState(null);
   const didHandleOAuth = useRef(false);
 
   const refresh = useCallback(async () => {
@@ -53,7 +54,20 @@ export function useWhatsAppIntegration() {
 
     if (oauthStatus === 'whatsapp_connected') {
       toast.success('WhatsApp Business account connected successfully!', { duration: 5000, id: 'wa-oauth-success' });
+      setChooseNumberState(null);
       refresh();
+    } else if (oauthStatus === 'choose_number') {
+      const numbersParam = params.get('numbers') || '';
+      const wsId = params.get('workspace_id') || '';
+      try {
+        const normalized = numbersParam.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+        const json = atob(padded);
+        const availableNumbers = JSON.parse(json);
+        setChooseNumberState({ numbers: availableNumbers, workspaceId: wsId });
+      } catch {
+        toast.error('Failed to parse available numbers. Please reconnect.');
+      }
     } else if (oauthStatus === 'error') {
       const errorMsg = params.get('error') || 'Connection failed';
       toast.error(`WhatsApp connection failed: ${errorMsg}`, { duration: 7000, id: 'wa-oauth-error' });
@@ -101,6 +115,23 @@ export function useWhatsAppIntegration() {
     }
   }, [workspaceId, status, refresh]);
 
+  const selectNumber = useCallback(
+    async (phoneNumberId) => {
+      setLoading(true);
+      try {
+        const result = await whatsappIntegrationApi.registerNumber(phoneNumberId);
+        setChooseNumberState(null);
+        toast.success(`Connected: ${result.display_phone}`);
+        await refresh();
+      } catch (err) {
+        toast.error(err.message || 'Failed to connect number');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [refresh],
+  );
+
   return {
     status,
     loading,
@@ -108,7 +139,9 @@ export function useWhatsAppIntegration() {
     connected: Boolean(status?.connected),
     disconnecting,
     workspaceId,
+    chooseNumberState,
     connect,
+    selectNumber,
     disconnect,
     refresh,
   };

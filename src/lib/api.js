@@ -56,6 +56,19 @@ export const whatsappIntegrationApi = {
     }
     return response.json();
   },
+
+  async registerNumber(phoneNumberId) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/whatsapp/register-number`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone_number_id: phoneNumberId }),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to register number');
+    }
+    return response.json();
+  },
 };
 
 // -- WhatsApp API -------------------------------------------------------------

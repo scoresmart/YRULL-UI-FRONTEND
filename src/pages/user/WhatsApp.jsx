@@ -84,7 +84,7 @@ export function WhatsAppPage() {
     },
   });
 
-  if (wa.loading) {
+  if (wa.loading && !wa.chooseNumberState) {
     return (
       <div className="-mx-4 -my-4 flex h-[calc(100vh-56px)] items-center justify-center bg-brand-chatBg sm:-mx-6 sm:-my-6 sm:h-[calc(100vh-64px)] lg:-mx-8 lg:-my-8">
         <div className="flex flex-col items-center gap-3">
@@ -112,7 +112,38 @@ export function WhatsAppPage() {
             </div>
           </div>
           <div className="flex flex-1 flex-col items-center justify-center bg-brand-chatBg px-4 sm:px-6">
-            <WhatsAppConnectionCard wa={wa} />
+            {wa.chooseNumberState ? (
+              <div className="w-full max-w-2xl rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
+                <h3 className="text-lg font-semibold">Choose a WhatsApp Number</h3>
+                <p className="text-sm text-muted-foreground">
+                  Multiple numbers were found on your WhatsApp Business Account. Select the one you want to
+                  connect to this workspace.
+                </p>
+                <div className="space-y-3">
+                  {wa.chooseNumberState.numbers.map((num) => (
+                    <button
+                      key={num.id}
+                      onClick={() => wa.selectNumber(num.id)}
+                      disabled={wa.loading}
+                      className="w-full flex items-center justify-between rounded-lg border border-border p-4 hover:bg-accent transition-colors text-left disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <div>
+                        <p className="font-medium">{num.display_phone}</p>
+                        <p className="text-sm text-muted-foreground">{num.verified_name}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {num.quality_rating === 'GREEN' && (
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Good quality</span>
+                        )}
+                        <span className="text-xs text-muted-foreground">{num.status}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <WhatsAppConnectionCard wa={wa} />
+            )}
           </div>
         </div>
       </div>
