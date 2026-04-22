@@ -47,6 +47,7 @@ const BroadcastComposerPage = lazy(() =>
 const BroadcastDetailPage = lazy(() =>
   import('./pages/user/BroadcastDetail').then((m) => ({ default: m.BroadcastDetailPage })),
 );
+const MetaAdsPage = lazy(() => import('./pages/user/MetaAds').then((m) => ({ default: m.MetaAdsPage })));
 const WhatsAppTemplatesPage = lazy(() =>
   import('./pages/user/WhatsAppTemplates').then((m) => ({ default: m.WhatsAppTemplatesPage })),
 );
@@ -85,7 +86,7 @@ function PageLoader() {
 
 function RootRedirect() {
   const { status, session, profile } = useAuth();
-  if (status === 'loading')
+  if (status === 'idle' || status === 'loading')
     return (
       <div className="p-6">
         <Skeleton className="h-6 w-48" />
@@ -158,6 +159,7 @@ export default function App() {
             <Route path="/broadcasts/templates" element={<WhatsAppTemplatesPage />} />
             <Route path="/broadcasts/templates/new" element={<WhatsAppTemplateComposerPage />} />
             <Route path="/broadcasts/:id" element={<BroadcastDetailPage />} />
+            <Route path="/meta-ads" element={<MetaAdsPage />} />
             <Route path="/integrations" element={<IntegrationsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>

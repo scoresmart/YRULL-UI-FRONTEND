@@ -29,6 +29,13 @@ function renderProtected(authState, { requiredRole = 'user' } = {}) {
 }
 
 describe('ProtectedRoute', () => {
+  it('shows skeleton while auth state is idle', () => {
+    useAuth.mockReturnValue({ status: 'idle', session: null, profile: null });
+    renderProtected({ status: 'idle' });
+    expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('login-page')).not.toBeInTheDocument();
+  });
+
   it('shows skeleton while loading', () => {
     useAuth.mockReturnValue({ status: 'loading', session: null, profile: null });
     renderProtected({ status: 'loading' });

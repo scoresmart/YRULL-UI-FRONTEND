@@ -6,7 +6,7 @@ export function ProtectedRoute({ children, requiredRole }) {
   const { status, session, profile } = useAuth();
   const location = useLocation();
 
-  if (status === 'loading') {
+  if (status === 'idle' || status === 'loading') {
     return (
       <div className="p-6">
         <Skeleton className="h-8 w-64" />
@@ -19,7 +19,9 @@ export function ProtectedRoute({ children, requiredRole }) {
     );
   }
 
-  if (!session) return <Navigate to="/login" replace state={{ from: location }} />;
+  if (status === 'guest' || !session) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
 
   // Allow access even if profile is null (prevents infinite skeleton)
   // Profile might not exist yet, but we can still render the page
