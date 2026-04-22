@@ -49,26 +49,54 @@ export function InboxFiltersBar({
   onChannelChange,
   channelOptions,
   onAdvancedFilter,
+  compact = false,
   className,
 }) {
   return (
-    <div className={cn('flex flex-wrap items-center gap-2', className)}>
+    <div
+      className={cn(
+        compact ? 'grid grid-cols-2 gap-2' : 'flex flex-wrap items-center gap-2',
+        className,
+      )}
+    >
       <PickMenu icon={MessageCircle} value={scopeValue} options={scopeOptions} onChange={onScopeChange} />
 
       <Button
         type="button"
         variant={unreadActive ? 'default' : 'outline'}
         size="sm"
-        className={cn('h-10 rounded-xl px-4', unreadActive ? 'bg-gray-900 text-white hover:bg-gray-800' : '')}
+        className={cn(
+          'h-10 rounded-xl px-4',
+          compact ? 'w-full justify-center' : '',
+          unreadActive ? 'bg-gray-900 text-white hover:bg-gray-800' : '',
+        )}
         onClick={onToggleUnread}
       >
         {unreadLabel}
       </Button>
 
-      <PickMenu icon={ArrowUpDown} value={sortValue} options={sortOptions} onChange={onSortChange} />
-      <PickMenu icon={MessageCircle} value={channelValue} options={channelOptions} onChange={onChannelChange} />
+      <PickMenu
+        icon={ArrowUpDown}
+        value={sortValue}
+        options={sortOptions}
+        onChange={onSortChange}
+        className={compact ? 'w-full justify-between' : ''}
+      />
+      <PickMenu
+        icon={MessageCircle}
+        value={channelValue}
+        options={channelOptions}
+        onChange={onChannelChange}
+        className={compact ? 'w-full justify-between' : ''}
+      />
 
-      <Button type="button" variant="outline" size="sm" className="h-10 gap-2 rounded-xl px-4" onClick={onAdvancedFilter}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className={cn('h-10 gap-2 rounded-xl px-4', compact ? 'w-full justify-center' : '')}
+        onClick={onAdvancedFilter}
+      >
         <Plus className="h-4 w-4" />
         Filter
         <Filter className="h-4 w-4 text-gray-500" />

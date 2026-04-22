@@ -19,7 +19,8 @@ function getContactThreadType(contact) {
     .map((value) => String(value).toLowerCase());
 
   if (candidates.some((value) => value === 'comment' || value === 'comments')) return 'comments';
-  return 'messages';
+  if (candidates.some((value) => value === 'dm' || value === 'message' || value === 'messages')) return 'messages';
+  return 'unknown';
 }
 
 const ConversationRow = memo(function ConversationRow({ contact, selected, onSelect, unreadCount }) {
@@ -91,7 +92,12 @@ export function IgConversationList() {
     }
 
     if (channel !== 'all') {
-      list = list.filter((c) => getContactThreadType(c) === channel);
+      list = list.filter((c) => {
+        const type = getContactThreadType(c);
+        // Keep unknown threads visible so filters do not hide real conversations when backend omits type metadata.
+        if (type === 'unknown') return true;
+        return type === channel;
+      });
     }
 
     if (search.trim()) {
@@ -146,6 +152,7 @@ export function IgConversationList() {
             { value: 'comments', label: 'Comments' },
           ]}
           onAdvancedFilter={() => {}}
+          compact
           className="mb-3"
         />
         <div className="relative">
