@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { whatsappIntegrationApi } from '../lib/api';
+import { authFetch, whatsappIntegrationApi } from '../lib/api';
+import { ENV } from '../lib/env';
+import { connectWhatsApp } from '../lib/whatsappConnect';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
 
@@ -85,13 +87,17 @@ export function useWhatsAppIntegration() {
       toast.error('No workspace found. Please sign in again.');
       return;
     }
+    setLoading(true);
     try {
-      const url = await whatsappIntegrationApi.startAuthorize();
-      window.location.href = url;
+      const result = await connectWhatsApp(authFetch, ENV.API_BASE_URL);
+      toast.success(`WhatsApp connected! ${result.verified_name || result.display_phone || ''}`.trim());
+      await refresh();
     } catch (err) {
-      toast.error(err.message || 'Failed to start WhatsApp connection', { id: 'wa-connect' });
+      toast.error(err.message || 'Failed to connect WhatsApp');
+    } finally {
+      setLoading(false);
     }
-  }, [workspaceId]);
+  }, [workspaceId, refresh]);
 
   const disconnect = useCallback(async () => {
     if (!workspaceId) return;
