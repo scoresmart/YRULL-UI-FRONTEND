@@ -1,4 +1,5 @@
-const WA_CONFIG_ID = import.meta.env.VITE_WA_CONFIG_ID || '';
+const META_APP_ID = import.meta.env.VITE_META_APP_ID || '1264588558984531';
+const WA_CONFIG_ID = import.meta.env.VITE_WA_CONFIG_ID || '1011042742100317';
 
 function openEmbeddedSignupPopup() {
   return new Promise((resolve, reject) => {
@@ -57,6 +58,7 @@ function openEmbeddedSignupPopup() {
         extras: {
           feature: 'whatsapp_embedded_signup',
           sessionInfoVersion: 3,
+          version: 'v4',
           setup: {},
         },
       },
@@ -65,23 +67,17 @@ function openEmbeddedSignupPopup() {
 }
 
 export async function connectWhatsApp(authFetch, apiBase) {
-  if (WA_CONFIG_ID) {
-    const { code, waba_id, phone_number_id } = await openEmbeddedSignupPopup();
-    const res = await authFetch(`${apiBase}/oauth/whatsapp/exchange-token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, waba_id, phone_number_id }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'Failed to connect WhatsApp');
-    return data;
+  if (!META_APP_ID || !WA_CONFIG_ID) {
+    throw new Error('WhatsApp Embedded Signup is not configured.');
   }
 
-  const res = await authFetch(
-    `${apiBase}/oauth/whatsapp/authorize?return_origin=${encodeURIComponent(window.location.origin)}`,
-  );
+  const { code, waba_id, phone_number_id } = await openEmbeddedSignupPopup();
+  const res = await authFetch(`${apiBase}/oauth/whatsapp/exchange-token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code, waba_id, phone_number_id }),
+  });
   const data = await res.json().catch(() => ({}));
-  if (!data.auth_url) throw new Error(data.error || 'Failed to get auth URL');
-  window.location.href = data.auth_url;
-  return new Promise(() => {});
+  if (!res.ok) throw new Error(data.error || 'Failed to connect WhatsApp');
+  return data;
 }
