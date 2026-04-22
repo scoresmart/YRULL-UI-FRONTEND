@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Send, Instagram, MessageCircle, AtSign } from 'lucide-react';
 import { cn, formatRelativeTime } from '../../lib/utils';
 import { useChatStore } from '../../store/chatStore';
@@ -30,18 +30,33 @@ export function IgChatWindow() {
   const queryClient = useQueryClient();
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [messageFilter, setMessageFilter] = useState('messages');
   const bottomRef = useRef(null);
 
   const messagesQ = useInstagramMessages(selectedIgUserId);
   const contactsQ = useInstagramContacts();
   const messages = messagesQ.data || [];
 
+  const filteredMessages = useMemo(() => {
+    if (messageFilter === 'all') return messages;
+    if (messageFilter === 'comments') {
+      return messages.filter((msg) => msg.event_type === 'comment');
+    }
+    return messages.filter((msg) => msg.event_type !== 'comment');
+  }, [messages, messageFilter]);
+
   const contact = (contactsQ.data || []).find((c) => c.ig_user_id === selectedIgUserId);
   const contactName = contact?.name || contact?.username || selectedIgUserId || '';
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length]);
+  }, [filteredMessages.length]);
+
+  useEffect(() => {
+    if (!selectedIgUserId) {
+      setMessageFilter('messages');
+    }
+  }, [selectedIgUserId]);
 
   const handleSend = async () => {
     const text = input.trim();
@@ -80,18 +95,59 @@ export function IgChatWindow() {
         </div>
       </div>
 
+      <div className="border-b border-gray-100 bg-gray-50/70 px-6 py-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setMessageFilter('messages')}
+            className={cn(
+              'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+              messageFilter === 'messages' ? 'bg-purple-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100',
+            )}
+          >
+            Messages
+          </button>
+          <button
+            type="button"
+            onClick={() => setMessageFilter('comments')}
+            className={cn(
+              'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+              messageFilter === 'comments' ? 'bg-purple-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100',
+            )}
+          >
+            Comments
+          </button>
+          <button
+            type="button"
+            onClick={() => setMessageFilter('all')}
+            className={cn(
+              'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+              messageFilter === 'all' ? 'bg-purple-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100',
+            )}
+          >
+            All
+          </button>
+        </div>
+      </div>
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
         {messagesQ.isLoading ? (
           <div className="flex justify-center py-12">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-purple-500 border-t-transparent" />
           </div>
-        ) : messages.length === 0 ? (
+        ) : filteredMessages.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-sm text-gray-400">No messages yet</p>
+            <p className="text-sm text-gray-400">
+              {messageFilter === 'comments'
+                ? 'No comments in this thread'
+                : messageFilter === 'messages'
+                  ? 'No direct messages in this thread'
+                  : 'No messages yet'}
+            </p>
           </div>
         ) : (
-          messages.map((msg, i) => {
+          filteredMessages.map((msg, i) => {
             const isOutbound = msg.direction === 'outbound';
             return (
               <div key={msg.id || i} className={cn('flex', isOutbound ? 'justify-end' : 'justify-start')}>
