@@ -7,11 +7,9 @@ import { ConnectFacebookButton } from '../../components/integrations/ConnectFace
 import { IgConversationList } from '../../components/instagram/IgConversationList';
 import { IgChatWindow } from '../../components/instagram/IgChatWindow';
 import { InstagramChannelActions } from '../../components/instagram/InstagramChannelActions';
-import { InstagramEngagementSection } from '../../components/instagram/InstagramEngagementSection';
 import { useChatStore } from '../../store/chatStore';
 import { ENV } from '../../lib/env';
 import { instagramApi } from '../../lib/api';
-import { useComments, useInstagramPosts, useMentions } from '../../lib/dataHooks';
 import { useAuthStore } from '../../store/authStore';
 import { subscribeToTableMulti } from '../../lib/realtime';
 
@@ -76,10 +74,6 @@ export function InstagramPage() {
     staleTime: 60_000,
     retry: 1,
   });
-
-  const { data: posts = [] } = useInstagramPosts();
-  const { data: comments = [] } = useComments();
-  const { data: mentions = [] } = useMentions();
 
   useEffect(() => {
     setSelectedIgUserId(null);
@@ -152,9 +146,6 @@ export function InstagramPage() {
           <InstagramChannelActions compact showHelpText />
         </div>
       </div>
-
-      <InstagramEngagementSection posts={posts} comments={comments} mentions={mentions} />
-
       <div className="flex min-h-0 flex-1">
         <IgConversationList />
         <IgChatWindow />
