@@ -16,6 +16,7 @@ import {
   Smartphone,
   Loader2,
   Megaphone,
+  BarChart3,
   X,
 } from 'lucide-react';
 import { BrandMark } from '../brand/BrandMark';
@@ -37,6 +38,7 @@ const nav = [
   { to: '/audiences', label: 'Audiences', icon: Target },
   { to: '/automations', label: 'Automations', icon: Workflow },
   { to: '/broadcasts', label: 'Broadcasts', icon: Megaphone },
+  { to: '/meta-ads', label: 'Meta Ads', icon: BarChart3 },
   { to: '/integrations', label: 'Integrations', icon: Plug },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];

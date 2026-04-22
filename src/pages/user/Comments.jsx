@@ -20,6 +20,7 @@ import { Badge } from '../../components/ui/badge';
 import { CommentCard } from '../../components/comments/CommentCard';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { PostSelector } from '../../components/comments/PostSelector';
+import { InboxFiltersBar } from '../../components/ui/InboxFiltersBar';
 import { ConnectFacebookButton } from '../../components/integrations/ConnectFacebookButton';
 import { instagramApi } from '../../lib/api';
 import {
@@ -151,6 +152,8 @@ export function CommentsPage() {
   const [postId, setPostId] = useState(null);
   const [dateRange, setDateRange] = useState('all');
   const [search, setSearch] = useState('');
+  const [needsReplyOnly, setNeedsReplyOnly] = useState(false);
+  const [sort, setSort] = useState('newest');
   const debouncedSearch = useDebouncedValue(search, 300);
   const [showSidebar, setShowSidebar] = useState(true);
 
@@ -197,8 +200,19 @@ export function CommentsPage() {
           (c.text || '').toLowerCase().includes(q) || (c.username || c.from?.username || '').toLowerCase().includes(q),
       );
     }
+
+    if (needsReplyOnly) {
+      items = items.filter((c) => !(c.reply || c.replies?.length));
+    }
+
+    items.sort((a, b) => {
+      const aTime = new Date(a.timestamp || a.created_at || 0).getTime();
+      const bTime = new Date(b.timestamp || b.created_at || 0).getTime();
+      return sort === 'oldest' ? aTime - bTime : bTime - aTime;
+    });
+
     return items;
-  }, [tab, comments, mentions, dateRange, debouncedSearch]);
+  }, [tab, comments, mentions, dateRange, debouncedSearch, needsReplyOnly, sort]);
 
   const isLoading = statusLoading || (tab === 'mentions' ? mentionsLoading : commentsLoading);
   const hasFilters = Boolean(search.trim() || postId || dateRange !== 'all');
@@ -240,20 +254,25 @@ export function CommentsPage() {
           </Button>
         </div>
 
-        {/* Tabs */}
-        <div className="mt-4 flex gap-1 overflow-x-auto">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                tab === t.key ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
-              }`}
-            >
-              <t.icon className="h-3.5 w-3.5" />
-              {t.label}
-            </button>
-          ))}
+        <div className="mt-4">
+          <InboxFiltersBar
+            scopeValue={tab}
+            onScopeChange={setTab}
+            scopeOptions={TABS.map((t) => ({ value: t.key, label: t.label }))}
+            unreadActive={needsReplyOnly}
+            onToggleUnread={() => setNeedsReplyOnly((prev) => !prev)}
+            unreadLabel="Needs Reply"
+            sortValue={sort}
+            onSortChange={setSort}
+            sortOptions={[
+              { value: 'newest', label: 'Sort: Newest' },
+              { value: 'oldest', label: 'Sort: Oldest' },
+            ]}
+            channelValue="all"
+            onChannelChange={() => {}}
+            channelOptions={[{ value: 'all', label: 'All Channels' }]}
+            onAdvancedFilter={() => setShowSidebar((prev) => !prev)}
+          />
         </div>
       </div>
 

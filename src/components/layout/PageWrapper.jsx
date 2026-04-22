@@ -8,6 +8,7 @@ const TITLES = {
   '/contacts': 'Contacts',
   '/tags': 'Tags',
   '/audiences': 'Audiences',
+  '/meta-ads': 'Meta Ads',
   '/settings': 'Settings',
   '/admin': 'Admin Overview',
 };

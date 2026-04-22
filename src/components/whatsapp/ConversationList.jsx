@@ -3,8 +3,8 @@ import { FixedSizeList as List } from 'react-window';
 import { Search, Loader2 } from 'lucide-react';
 import { cn, formatRelativeTime, initialsFromName, pastelClassFromString, formatPhone } from '../../lib/utils';
 import { Input } from '../ui/input';
-import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 import { Badge } from '../ui/badge';
+import { InboxFiltersBar } from '../ui/InboxFiltersBar';
 import { useChatStore } from '../../store/chatStore';
 import { useContacts, useMessages, useTags, useContactTags } from '../../lib/dataHooks';
 import { supabase } from '../../lib/supabase';
@@ -36,21 +36,6 @@ async function getLastMessage(waId) {
   if (error || !data) return null;
   return data;
 }
-
-const FilterTabs = memo(function FilterTabs() {
-  const filter = useChatStore((s) => s.conversationFilter);
-  const setFilter = useChatStore((s) => s.setFilter);
-  return (
-    <Tabs value={filter} onValueChange={setFilter}>
-      <TabsList className="bg-white">
-        <TabsTrigger value="all">All</TabsTrigger>
-        <TabsTrigger value="unread">Unread</TabsTrigger>
-        <TabsTrigger value="assigned">Assigned</TabsTrigger>
-        <TabsTrigger value="resolved">Resolved</TabsTrigger>
-      </TabsList>
-    </Tabs>
-  );
-});
 
 const ConversationRow = memo(function ConversationRow({
   contact,
@@ -178,8 +163,11 @@ export function ConversationList({ className }) {
   const debouncedSearch = useDebouncedValue(search, 300);
   const setSearch = useChatStore((s) => s.setSearch);
   const filter = useChatStore((s) => s.conversationFilter);
+  const sort = useChatStore((s) => s.sort);
   const selectedWaId = useChatStore((s) => s.selectedWaId);
   const setSelectedWaId = useChatStore((s) => s.setSelectedWaId);
+  const setFilter = useChatStore((s) => s.setFilter);
+  const setSort = useChatStore((s) => s.setSort);
   const queryClient = useQueryClient();
 
   const contactsQ = useContacts();
@@ -269,30 +257,29 @@ export function ConversationList({ className }) {
     }
     // Note: 'assigned' and 'resolved' filters don't apply (no such fields in schema)
 
-    // Sort by last message timestamp (newest first)
-    // Contacts with unread messages should appear first, then by last message time
+    // Sort list from the toolbar controls.
     list.sort((a, b) => {
       const aUnread = unreadCounts[a.wa_id] ?? 0;
       const bUnread = unreadCounts[b.wa_id] ?? 0;
       const aLastMsg = lastMessages[a.wa_id];
       const bLastMsg = lastMessages[b.wa_id];
-
-      // First priority: unread messages (contacts with unread appear first)
-      if (aUnread > 0 && bUnread === 0) return -1;
-      if (aUnread === 0 && bUnread > 0) return 1;
-      if (aUnread > 0 && bUnread > 0) {
-        // Both have unread - sort by unread count (more unread first)
-        if (aUnread !== bUnread) return bUnread - aUnread;
-      }
-
-      // Second priority: last message timestamp (newest first)
       const aTime = aLastMsg?.created_at ? new Date(aLastMsg.created_at).getTime() : 0;
       const bTime = bLastMsg?.created_at ? new Date(bLastMsg.created_at).getTime() : 0;
-      return bTime - aTime; // Descending (newest first)
+
+      if (sort === 'unread') {
+        if (aUnread !== bUnread) return bUnread - aUnread;
+        return bTime - aTime;
+      }
+
+      if (sort === 'oldest') {
+        return aTime - bTime;
+      }
+
+      return bTime - aTime;
     });
 
     return list;
-  }, [contactsQ.data, debouncedSearch, filter, unreadCounts, lastMessages]);
+  }, [contactsQ.data, debouncedSearch, filter, unreadCounts, lastMessages, sort]);
 
   const onSelect = useCallback(
     (waId) => {
@@ -342,12 +329,30 @@ export function ConversationList({ className }) {
           />
         </div>
         <div className="mt-3">
-          <FilterTabs />
+          <InboxFiltersBar
+            scopeValue={filter === 'assigned' || filter === 'resolved' ? filter : 'all'}
+            onScopeChange={(value) => setFilter(value)}
+            scopeOptions={[
+              { value: 'all', label: 'Open Chats' },
+              { value: 'assigned', label: 'Assigned' },
+              { value: 'resolved', label: 'Resolved' },
+            ]}
+            unreadActive={filter === 'unread'}
+            onToggleUnread={() => setFilter(filter === 'unread' ? 'all' : 'unread')}
+            sortValue={sort}
+            onSortChange={setSort}
+            sortOptions={[
+              { value: 'newest', label: 'Sort: Newest' },
+              { value: 'oldest', label: 'Sort: Oldest' },
+              { value: 'unread', label: 'Sort: Unread first' },
+            ]}
+            channelValue="all"
+            onChannelChange={() => {}}
+            channelOptions={[{ value: 'all', label: 'All Channels' }]}
+            onAdvancedFilter={() => {}}
+          />
         </div>
-        <div className="mt-3 flex items-center justify-between">
-          <div className="text-xs font-medium uppercase tracking-wide text-gray-400">Newest</div>
-          <div className="text-xs text-gray-500">{items.length} conversations</div>
-        </div>
+        <div className="mt-3 text-xs text-gray-500">{items.length} conversations</div>
       </div>
 
       <div className="flex-1 overflow-hidden">

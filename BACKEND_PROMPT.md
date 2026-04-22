@@ -2,7 +2,6 @@
 
 Copy everything below the line into a fresh Claude session in the backend repo.
 
----
 
 ## Task
 
@@ -12,12 +11,6 @@ Frontend repo: `C:\Users\hp\Desktop\Chat-UIUX` (React + Vite + Supabase). You do
 
 ## Stack
 
-- Node.js 20+, Express
-- Supabase (Postgres + Auth + Realtime) — use the **service role key** on the backend, never expose it to the frontend
-- `@supabase/supabase-js` for DB + JWT verification
-- `axios` for Meta Graph API calls
-- `crypto` (AES-256-GCM) to encrypt Meta access tokens at rest
-- Deploy target: Railway (same host the frontend already points to)
 
 ## Environment variables
 
@@ -78,12 +71,6 @@ Every handler must:
 | POST | `/webhooks/whatsapp` | Verify `X-Hub-Signature-256`. Fan out events to the correct workspace (see below). |
 
 Also stub (return `[]` or `200`) so frontend doesn't 500:
-- `GET /api/automations` `[...]`
-- `GET /api/broadcasts` `[...]`
-- `GET /api/whatsapp/templates` `[...]`
-- `GET /api/tags` `[...]`
-- `GET /api/workspace/integrations` `[...]`
-- `GET /api/workspace/channels` `[...]`
 
 These can be real later. For now they just need to not break the UI.
 
@@ -92,7 +79,6 @@ These can be real later. For now they just need to not break the UI.
 Run these **in addition** to the existing `supabase/schema.sql` in the frontend repo. Do not drop existing tables.
 
 ```sql
--- 1. Per-workspace WhatsApp integration (one row per connected workspace)
 create table if not exists public.workspace_whatsapp_integrations (
   workspace_id uuid primary key references public.workspaces(id) on delete cascade,
   waba_id text not null,                      -- WhatsApp Business Account ID
@@ -112,13 +98,10 @@ create index if not exists idx_wwi_phone_number_id on public.workspace_whatsapp_
 
 alter table public.workspace_whatsapp_integrations enable row level security;
 
--- Readable only by members of the owning workspace. Writes happen via service role (backend), so no write policy needed.
 create policy "Workspace members can read own WA integration"
   on public.workspace_whatsapp_integrations for select
   using (workspace_id = public.get_user_workspace_id(auth.uid()));
 
--- 2. WhatsApp-specific contact view that the frontend expects (wa_id, ai_intent, ai_confidence)
--- We extend the existing contacts table with optional columns rather than duplicating it.
 alter table public.contacts
   add column if not exists wa_id text,
   add column if not exists ai_intent text,
@@ -127,7 +110,6 @@ alter table public.contacts
 create unique index if not exists idx_contacts_workspace_waid
   on public.contacts(workspace_id, wa_id) where wa_id is not null;
 
--- Compatibility views so frontend queries to whatsapp_contacts / whatsapp_messages resolve
 create or replace view public.whatsapp_contacts as
   select id, workspace_id, wa_id, phone, first_name, last_name, email,
          status, notes, ai_intent, ai_confidence, created_at, last_active_at
@@ -141,7 +123,6 @@ create or replace view public.whatsapp_messages as
     from public.messages m
     join public.conversations c on c.id = m.conversation_id;
 
--- 3. Calls table
 create table if not exists public.whatsapp_calls (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
@@ -255,13 +236,6 @@ Handle `statuses[]` (delivery/read receipts) by updating the matching outbound m
 
 ## Security requirements (non-negotiable)
 
-- Never return the access token to the frontend.
-- Encrypt tokens at rest (AES-256-GCM with per-row IV).
-- Verify JWT on every request. Verify workspace membership on every request.
-- Webhook signature verification (HMAC).
-- CORS: only allow `FRONTEND_URL`.
-- Rate limit `/whatsapp/send` per workspace (e.g. 80/min — Meta's tier limit).
-- Do not log message bodies or tokens.
 
 ## Project layout
 
@@ -302,11 +276,6 @@ A brand-new user must be able to:
 
 ## Out of scope (explicitly skip)
 
-- Template management (frontend has a stub page — just return `[]`).
-- Broadcasts execution.
-- Automations engine.
-- Media upload (images/files) — text only for v1, but structure `messages.message_type` so it's easy to extend.
-- Instagram, email — separate integrations.
 
 ## Deliverables
 
