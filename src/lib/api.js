@@ -448,6 +448,16 @@ export const templatesApi = {
     if (!response.ok) throw new Error('Failed to delete template');
     return response.json();
   },
+
+  async sendTest({ to, template_name, language = 'en_US', components = [] }) {
+    const response = await authFetch(`${ENV.API_BASE_URL}/api/whatsapp/send-template`, {
+      method: 'POST',
+      body: JSON.stringify({ to, template_name, language, components }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'Failed to send template');
+    return data;
+  },
 };
 
 // -- Account API --------------------------------------------------------------

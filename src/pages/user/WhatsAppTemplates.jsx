@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, ArrowLeft, FileText, Search, CheckCircle2, Clock, XCircle, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, FileText, Search, CheckCircle2, Clock, XCircle, AlertTriangle, Send } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
@@ -24,6 +24,8 @@ export function WhatsAppTemplatesPage() {
   useDocumentTitle('WhatsApp Templates');
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const [sendTarget, setSendTarget] = useState(null); // template object
+  const [sendNumber, setSendNumber] = useState('');
 
   const templatesQ = useQuery({
     queryKey: ['whatsapp_templates'],
@@ -37,6 +39,17 @@ export function WhatsAppTemplatesPage() {
       toast.success('Template deleted');
     },
     onError: () => toast.error('Failed to delete template'),
+  });
+
+  const sendMut = useMutation({
+    mutationFn: ({ to, template_name, language }) =>
+      templatesApi.sendTest({ to, template_name, language }),
+    onSuccess: (_data, vars) => {
+      toast.success(`Sent "${vars.template_name}" to ${vars.to}`);
+      setSendTarget(null);
+      setSendNumber('');
+    },
+    onError: (e) => toast.error(e.message || 'Failed to send template'),
   });
 
   const filtered = useMemo(() => {
@@ -145,18 +158,30 @@ export function WhatsAppTemplatesPage() {
                         {t.created_at ? formatRelativeTime(t.created_at) : '—'}
                       </td>
                       <td className="px-4 py-3">
-                        {(t.status === 'PENDING' || t.status === 'REJECTED') && (
-                          <button
-                            type="button"
-                            className="rounded-lg p-2 text-red-400 hover:bg-red-50 hover:text-red-600"
-                            onClick={() => {
-                              if (window.confirm('Delete this template?')) deleteMut.mutate(t.id);
-                            }}
-                            aria-label="Delete"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
+                        <div className="flex items-center justify-end gap-1">
+                          {t.status === 'APPROVED' && (
+                            <button
+                              type="button"
+                              className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-green-600 hover:bg-green-50"
+                              onClick={() => setSendTarget(t)}
+                              aria-label="Send test"
+                            >
+                              <Send className="h-3.5 w-3.5" /> Send test
+                            </button>
+                          )}
+                          {(t.status === 'PENDING' || t.status === 'REJECTED') && (
+                            <button
+                              type="button"
+                              className="rounded-lg p-2 text-red-400 hover:bg-red-50 hover:text-red-600"
+                              onClick={() => {
+                                if (window.confirm('Delete this template?')) deleteMut.mutate(t.id);
+                              }}
+                              aria-label="Delete"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -165,6 +190,56 @@ export function WhatsAppTemplatesPage() {
             </table>
           </div>
         </Card>
+      )}
+
+      {sendTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Send "{sendTarget.name}"</h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  Sends the {sendTarget.language || 'en_US'} template to one number.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="text-gray-400 hover:text-gray-600"
+                onClick={() => { setSendTarget(null); setSendNumber(''); }}
+              >
+                <XCircle className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="mt-4 space-y-2">
+              <label className="text-sm font-medium text-gray-700">Recipient number</label>
+              <Input
+                value={sendNumber}
+                onChange={(e) => setSendNumber(e.target.value)}
+                placeholder="61451271549 or 0451271549"
+                autoFocus
+              />
+              <p className="text-xs text-gray-400">Include country code, no + or spaces.</p>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => { setSendTarget(null); setSendNumber(''); }}
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={!sendNumber.trim() || sendMut.isPending}
+                onClick={() => sendMut.mutate({
+                  to: sendNumber.trim(),
+                  template_name: sendTarget.name,
+                  language: sendTarget.language || 'en_US',
+                })}
+              >
+                {sendMut.isPending ? 'Sending...' : 'Send'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
