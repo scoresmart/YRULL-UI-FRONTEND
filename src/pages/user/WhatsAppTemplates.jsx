@@ -20,12 +20,26 @@ const STATUS_CONFIG = {
   REJECTED: { variant: 'danger', icon: XCircle, label: 'Rejected' },
 };
 
+function getBodyText(template) {
+  const comps = template?.components || [];
+  const body = comps.find((c) => (c.type || '').toUpperCase() === 'BODY');
+  return body?.text || '';
+}
+
+function countParams(text) {
+  const matches = (text || '').match(/{{\s*\d+\s*}}/g);
+  if (!matches) return 0;
+  const nums = matches.map((m) => parseInt(m.replace(/[^\d]/g, ''), 10));
+  return Math.max(...nums, 0);
+}
+
 export function WhatsAppTemplatesPage() {
   useDocumentTitle('WhatsApp Templates');
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [sendTarget, setSendTarget] = useState(null); // template object
   const [sendNumber, setSendNumber] = useState('');
+  const [paramValues, setParamValues] = useState([]);
 
   const templatesQ = useQuery({
     queryKey: ['whatsapp_templates'],
@@ -192,55 +206,96 @@ export function WhatsAppTemplatesPage() {
         </Card>
       )}
 
-      {sendTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">Send "{sendTarget.name}"</h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  Sends the {sendTarget.language || 'en_US'} template to one number.
-                </p>
+      {sendTarget && (() => {
+        const bodyText = getBodyText(sendTarget);
+        const paramCount = countParams(bodyText);
+        const allParamsFilled = paramCount === 0 || (paramValues.length >= paramCount && paramValues.slice(0, paramCount).every((v) => (v || '').trim().length > 0));
+        const canSend = sendNumber.trim().length > 0 && allParamsFilled && !sendMut.isPending;
+
+        const handleSend = () => {
+          const components = paramCount > 0
+            ? [{
+                type: 'body',
+                parameters: Array.from({ length: paramCount }, (_, i) => ({
+                  type: 'text',
+                  text: (paramValues[i] || '').trim(),
+                })),
+              }]
+            : [];
+          sendMut.mutate({
+            to: sendNumber.trim(),
+            template_name: sendTarget.name,
+            language: sendTarget.language || 'en_US',
+            components,
+          });
+        };
+
+        const close = () => {
+          setSendTarget(null);
+          setSendNumber('');
+          setParamValues([]);
+        };
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Send "{sendTarget.name}"</h2>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {sendTarget.language || 'en_US'} template
+                    {paramCount > 0 ? ` · ${paramCount} parameter${paramCount > 1 ? 's' : ''}` : ''}
+                  </p>
+                </div>
+                <button type="button" className="text-gray-400 hover:text-gray-600" onClick={close}>
+                  <XCircle className="h-5 w-5" />
+                </button>
               </div>
-              <button
-                type="button"
-                className="text-gray-400 hover:text-gray-600"
-                onClick={() => { setSendTarget(null); setSendNumber(''); }}
-              >
-                <XCircle className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="mt-4 space-y-2">
-              <label className="text-sm font-medium text-gray-700">Recipient number</label>
-              <Input
-                value={sendNumber}
-                onChange={(e) => setSendNumber(e.target.value)}
-                placeholder="61451271549 or 0451271549"
-                autoFocus
-              />
-              <p className="text-xs text-gray-400">Include country code, no + or spaces.</p>
-            </div>
-            <div className="mt-5 flex justify-end gap-2">
-              <Button
-                variant="ghost"
-                onClick={() => { setSendTarget(null); setSendNumber(''); }}
-              >
-                Cancel
-              </Button>
-              <Button
-                disabled={!sendNumber.trim() || sendMut.isPending}
-                onClick={() => sendMut.mutate({
-                  to: sendNumber.trim(),
-                  template_name: sendTarget.name,
-                  language: sendTarget.language || 'en_US',
-                })}
-              >
-                {sendMut.isPending ? 'Sending...' : 'Send'}
-              </Button>
+
+              {bodyText && (
+                <div className="mt-3 rounded-lg bg-gray-50 p-3 text-xs text-gray-600">
+                  <div className="mb-1 text-[10px] uppercase tracking-wide text-gray-400">Preview</div>
+                  {bodyText}
+                </div>
+              )}
+
+              <div className="mt-4 space-y-3">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-gray-700">Recipient number</label>
+                  <Input
+                    value={sendNumber}
+                    onChange={(e) => setSendNumber(e.target.value)}
+                    placeholder="61451271549 or 0451271549"
+                    autoFocus
+                  />
+                </div>
+
+                {Array.from({ length: paramCount }, (_, i) => (
+                  <div key={i} className="space-y-1">
+                    <label className="text-sm font-medium text-gray-700">{`Parameter {{${i + 1}}}`}</label>
+                    <Input
+                      value={paramValues[i] || ''}
+                      onChange={(e) => {
+                        const next = [...paramValues];
+                        next[i] = e.target.value;
+                        setParamValues(next);
+                      }}
+                      placeholder={`Value for {{${i + 1}}}`}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 flex justify-end gap-2">
+                <Button variant="ghost" onClick={close}>Cancel</Button>
+                <Button disabled={!canSend} onClick={handleSend}>
+                  {sendMut.isPending ? 'Sending...' : 'Send'}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
