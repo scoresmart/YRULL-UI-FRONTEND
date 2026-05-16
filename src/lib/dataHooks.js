@@ -74,6 +74,15 @@ export function useContactTags() {
   });
 }
 
+// Normalise AU/international phone into a Meta wa_id: digits only, +61 stripped to 61.
+function normaliseWaId(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  if (!digits) return '';
+  // AU local "0XXXXXXXXX" -> "61XXXXXXXXX"
+  if (digits.startsWith('0') && digits.length === 10) return '61' + digits.slice(1);
+  return digits;
+}
+
 export function useCreateContact() {
   const qc = useQueryClient();
   return useMutation({
@@ -81,34 +90,53 @@ export function useCreateContact() {
       const wsId = useAuthStore.getState().profile?.workspace_id;
       if (!wsId) throw new Error('Workspace is not available for this session');
 
+      const waId = normaliseWaId(payload.phone);
+      if (!waId) throw new Error('Enter a valid phone number');
+
+      const fullName = `${payload.first_name ?? ''} ${payload.last_name ?? ''}`.trim() || null;
+      const metadata = {};
+      if (payload.email) metadata.email = payload.email;
+      if (payload.notes) metadata.notes = payload.notes;
+      if (payload.first_name) metadata.first_name = payload.first_name;
+      if (payload.last_name) metadata.last_name = payload.last_name;
+
       if (ENV.USE_MOCK) {
         const record = {
           id: crypto.randomUUID(),
           workspace_id: wsId,
+          wa_id: waId,
           phone: payload.phone,
+          name: fullName,
           first_name: payload.first_name || null,
           last_name: payload.last_name || null,
           email: payload.email || null,
           notes: payload.notes || null,
           status: 'active',
-          created_at: new Date().toISOString(),
-          last_active_at: null,
+          metadata,
+          first_seen: new Date().toISOString(),
+          last_seen: new Date().toISOString(),
         };
         mockDb.contacts.unshift(record);
         return record;
       }
 
+      // Upsert into whatsapp_contacts so the contact appears in the same list
+      // that Contacts page renders and the chat conversation list reads from.
       const { data, error } = await supabase
-        .from('contacts')
-        .insert({
-          workspace_id: wsId,
-          phone: payload.phone,
-          first_name: payload.first_name || null,
-          last_name: payload.last_name || null,
-          email: payload.email || null,
-          notes: payload.notes || null,
-          status: 'active',
-        })
+        .from('whatsapp_contacts')
+        .upsert(
+          {
+            workspace_id: wsId,
+            wa_id: waId,
+            phone: payload.phone,
+            name: fullName,
+            source: 'manual',
+            metadata,
+            first_seen: new Date().toISOString(),
+            last_seen: new Date().toISOString(),
+          },
+          { onConflict: 'workspace_id,wa_id' },
+        )
         .select('*')
         .single();
 

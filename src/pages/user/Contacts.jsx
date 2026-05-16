@@ -42,8 +42,14 @@ export function ContactsPage() {
     const list = contactsQ.data ?? [];
     if (!q) return list;
     return list.filter((c) => {
-      const name = `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim().toLowerCase();
-      return `${name} ${c.phone} ${c.email ?? ''}`.toLowerCase().includes(q);
+      const name = (
+        c.name ||
+        `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim() ||
+        ''
+      ).toLowerCase();
+      const phone = c.phone || c.wa_id || '';
+      const email = c.email || c.metadata?.email || '';
+      return `${name} ${phone} ${email}`.toLowerCase().includes(q);
     });
   }, [contactsQ.data, search]);
 
@@ -129,7 +135,12 @@ export function ContactsPage() {
                 <tbody>
                   {paged.map((c) => {
                     const tags = tagsByContactId.get(c.id) ?? [];
-                    const name = `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim() || c.phone;
+                    const phone = c.phone || c.wa_id || '';
+                    const name =
+                      c.name ||
+                      `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim() ||
+                      phone;
+                    const email = c.email || c.metadata?.email || null;
                     return (
                       <tr
                         key={c.id}
@@ -138,9 +149,9 @@ export function ContactsPage() {
                       >
                         <td className="px-3 py-3 sm:px-4">
                           <div className="text-sm font-medium text-gray-900">{name}</div>
-                          <div className="text-xs text-gray-500 sm:text-sm">{c.phone}</div>
+                          <div className="text-xs text-gray-500 sm:text-sm">{phone}</div>
                         </td>
-                        <td className="hidden px-4 py-3 text-sm text-gray-500 md:table-cell">{c.email ?? '—'}</td>
+                        <td className="hidden px-4 py-3 text-sm text-gray-500 md:table-cell">{email ?? '—'}</td>
                         <td className="hidden px-4 py-3 lg:table-cell">
                           <div className="flex flex-wrap gap-1">
                             {tags.slice(0, 3).map((t) => (
@@ -155,7 +166,9 @@ export function ContactsPage() {
                           </div>
                         </td>
                         <td className="px-3 py-3 sm:px-4">
-                          <Badge variant={c.status === 'active' ? 'success' : 'danger'}>{c.status}</Badge>
+                          <Badge variant={c.status === 'blocked' ? 'danger' : 'success'}>
+                            {c.status || 'active'}
+                          </Badge>
                         </td>
                         <td className="px-3 py-3 sm:px-4">
                           <button
