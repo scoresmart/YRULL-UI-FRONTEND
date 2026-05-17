@@ -245,65 +245,47 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
     setDraft('');
     setSending(true);
 
+    const optimisticId = `temp_${Date.now()}_${Math.random()}`;
+    const optimisticMessage = {
+      id: optimisticId,
+      wa_id: contact.wa_id,
+      body: messageText,
+      direction: 'outbound',
+      message_type: 'text',
+      created_at: new Date().toISOString(),
+      ai_intent: null,
+    };
+
+    queryClient.setQueryData(['whatsapp_messages', selectedWaId], (oldData) => {
+      const base = oldData ?? [];
+      return [...base, optimisticMessage].sort(
+        (a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0),
+      );
+    });
+
+    setTimeout(() => {
+      if (listRef.current) {
+        listRef.current.scrollTop = listRef.current.scrollHeight;
+      }
+    }, 50);
+
     try {
-      // Send using wa_id directly (backend auto-normalizes AU phone numbers)
-      const result = await whatsappApi.sendMessage({
-        to: contact.wa_id,
-        message: messageText,
-      });
-
-      // Optimistically add the message to the cache immediately
-      // This ensures the message appears right away, even if backend hasn't stored it yet
-      const optimisticMessage = {
-        id: `temp_${Date.now()}_${Math.random()}`,
-        wa_id: contact.wa_id,
-        body: messageText,
-        direction: 'outbound',
-        message_type: 'text',
-        created_at: new Date().toISOString(),
-        ai_intent: null,
-      };
-
-      queryClient.setQueryData(['whatsapp_messages', selectedWaId], (oldData) => {
-        if (!oldData) return [optimisticMessage];
-
-        // Check if message already exists (avoid duplicates)
-        const exists = oldData.some(
-          (msg) =>
-            (msg.id && msg.id === optimisticMessage.id) ||
-            (msg.body === messageText &&
-              msg.direction === 'outbound' &&
-              msg.wa_id === contact.wa_id &&
-              Math.abs(new Date(msg.created_at).getTime() - new Date(optimisticMessage.created_at).getTime()) < 5000),
-        );
-
-        if (exists) return oldData;
-
-        // Add optimistic message and sort
-        return [...oldData, optimisticMessage].sort(
-          (a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0),
-        );
-      });
+      await whatsappApi.sendMessage({ to: contact.wa_id, message: messageText });
 
       // Refetch messages after a short delay to get the real message from backend
-      // This ensures we get the actual message ID and any backend updates
       setTimeout(async () => {
         await queryClient.invalidateQueries({ queryKey: ['whatsapp_messages', selectedWaId] });
         await queryClient.invalidateQueries({ queryKey: ['whatsapp_contacts'] });
       }, 1000);
 
-      // Mark as read
       localStorage.setItem(`lastRead_${selectedWaId}`, new Date().toISOString());
-
-      // Scroll to bottom
-      setTimeout(() => {
-        if (listRef.current) {
-          listRef.current.scrollTop = listRef.current.scrollHeight;
-        }
-      }, 100);
     } catch (error) {
-      // Error toast is shown by whatsappApi.sendMessage
-      setDraft(messageText); // Restore draft on error
+      // Roll back the optimistic message so the user doesn't see a phantom send.
+      queryClient.setQueryData(['whatsapp_messages', selectedWaId], (oldData) =>
+        (oldData ?? []).filter((m) => m.id !== optimisticId),
+      );
+      toast.error(error.message || 'Failed to send message');
+      setDraft(messageText);
     } finally {
       setSending(false);
     }
@@ -330,50 +312,23 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
 
   const templates = ['Intro', 'Pricing', 'Demo Link', 'Follow-up', 'After-hours'];
 
-  // Deduplicate messages - must be at top level (Rules of Hooks)
+  // Deduplicate by wa_message_id only. Messages without a wa_message_id
+  // (e.g. optimistic local placeholders) pass through untouched — content-based
+  // dedup masks legitimately distinct messages that happen to share text.
   const deduplicatedMessages = useMemo(() => {
     const messages = messagesQ.data ?? [];
     if (messages.length === 0) return [];
 
-    // Aggressive deduplication: multiple passes
-    const seen = new Map(); // Map of key -> first occurrence index
+    const seen = new Set();
     const result = [];
-
-    messages.forEach((msg, index) => {
-      // Include ALL messages - don't filter out automated messages or messages without body
-      // Check multiple fields for content (body, content, text, message, metadata)
-      const bodyContent =
-        (
-          msg.body ||
-          msg.content ||
-          msg.text ||
-          msg.message ||
-          (msg.metadata && typeof msg.metadata === 'object'
-            ? msg.metadata.text || msg.metadata.body || msg.metadata.content
-            : null) ||
-          ''
-        ).trim() || '[no body]';
-
-      // Create multiple keys for deduplication
-      const idKey = msg.id ? `id:${msg.id}` : null;
-      const contentKey = `content:${bodyContent}_${msg.created_at}_${msg.direction}_${msg.wa_id}`;
-      const timestampKey = `time:${msg.created_at}_${bodyContent}_${msg.direction}_${msg.wa_id}`;
-
-      // Check all possible keys
-      let isDuplicate = false;
-      if (idKey && seen.has(idKey)) isDuplicate = true;
-      if (!isDuplicate && seen.has(contentKey)) isDuplicate = true;
-      if (!isDuplicate && seen.has(timestampKey)) isDuplicate = true;
-
-      if (!isDuplicate) {
-        // Mark all keys as seen
-        if (idKey) seen.set(idKey, index);
-        seen.set(contentKey, index);
-        seen.set(timestampKey, index);
-        result.push(msg);
+    for (const msg of messages) {
+      const key = msg.wa_message_id;
+      if (key) {
+        if (seen.has(key)) continue;
+        seen.add(key);
       }
-    });
-
+      result.push(msg);
+    }
     return result;
   }, [messagesQ.data]);
 

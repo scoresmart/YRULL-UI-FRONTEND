@@ -1,4 +1,4 @@
-﻿import { ENV } from './env';
+import { ENV } from './env';
 import toast from 'react-hot-toast';
 import { supabase } from './supabase';
 
@@ -21,54 +21,55 @@ export async function authFetch(url, options = {}) {
   return fetch(url, { ...options, headers });
 }
 
+/**
+ * Wrapper that performs an authFetch, parses JSON, and on failure logs the raw
+ * response body to the console and throws an Error carrying the backend's
+ * own error/message field (never the generic placeholder). This is the only
+ * sanctioned way to talk to our API — never swallow with `.catch(() => ({}))`.
+ */
+async function apiJSON(method, path, init = {}) {
+  const url = `${ENV.API_BASE_URL}${path}`;
+  const response = await authFetch(url, { method, ...init });
+  let body = null;
+  const text = await response.text();
+  if (text) {
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = { raw: text };
+    }
+  } else {
+    body = {};
+  }
+  if (!response.ok) {
+    console.error(`API ${method} ${path} → ${response.status}`, body);
+    const msg =
+      (body && (body.error || body.message || body.detail)) ||
+      `${response.status} ${response.statusText || 'Request failed'}`;
+    throw new Error(msg);
+  }
+  return body;
+}
+
 // -- WhatsApp Integration (workspace-scoped) ----------------------------------
 
 export const whatsappIntegrationApi = {
-  async getStatus() {
-    const response = await authFetch(`${ENV.API_BASE_URL}/whatsapp/status`);
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || 'Failed to fetch WhatsApp status');
-    }
-    return response.json();
-  },
+  getStatus: () => apiJSON('GET', '/whatsapp/status'),
 
   async startAuthorize() {
     const returnOrigin = window.location.origin;
     const qs = `?return_origin=${encodeURIComponent(returnOrigin)}`;
-    const response = await authFetch(`${ENV.API_BASE_URL}/oauth/whatsapp/authorize${qs}`);
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || 'Failed to start WhatsApp authorization');
-    }
-    const data = await response.json();
+    const data = await apiJSON('GET', `/oauth/whatsapp/authorize${qs}`);
     if (!data.auth_url) throw new Error('Backend did not return an auth_url');
     return data.auth_url;
   },
 
-  async disconnect() {
-    const response = await authFetch(`${ENV.API_BASE_URL}/oauth/whatsapp/disconnect`, {
-      method: 'POST',
-    });
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || 'Failed to disconnect WhatsApp');
-    }
-    return response.json();
-  },
+  disconnect: () => apiJSON('POST', '/oauth/whatsapp/disconnect'),
 
-  async registerNumber(phoneNumberId) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/whatsapp/register-number`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+  registerNumber: (phoneNumberId) =>
+    apiJSON('POST', '/whatsapp/register-number', {
       body: JSON.stringify({ phone_number_id: phoneNumberId }),
-    });
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || 'Failed to register number');
-    }
-    return response.json();
-  },
+    }),
 };
 
 // -- WhatsApp API -------------------------------------------------------------
@@ -76,14 +77,7 @@ export const whatsappIntegrationApi = {
 export const whatsappApi = {
   async sendMessage({ to, message }) {
     try {
-      const response = await authFetch(`${ENV.API_BASE_URL}/whatsapp/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to, message }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to send message');
-      return data;
+      return await apiJSON('POST', '/whatsapp/send', { body: JSON.stringify({ to, message }) });
     } catch (error) {
       toast.error(error.message || 'Failed to send message');
       throw error;
@@ -95,14 +89,7 @@ export const whatsappApi = {
       const body = { to };
       if (message) body.message = message;
       if (displayText) body.display_text = displayText;
-      const response = await authFetch(`${ENV.API_BASE_URL}/whatsapp/call-button`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to send call button');
-      return data;
+      return await apiJSON('POST', '/whatsapp/call-button', { body: JSON.stringify(body) });
     } catch (error) {
       toast.error(error.message || 'Failed to send call button');
       throw error;
@@ -110,634 +97,198 @@ export const whatsappApi = {
   },
 
   async getCallHistory({ limit = 50, direction } = {}) {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (direction) params.set('direction', direction);
     try {
-      const params = new URLSearchParams({ limit: String(limit) });
-      if (direction) params.set('direction', direction);
-      const response = await authFetch(`${ENV.API_BASE_URL}/whatsapp/calls?${params}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to fetch call history');
-      return data;
+      return await apiJSON('GET', `/whatsapp/calls?${params}`);
     } catch (error) {
       toast.error(error.message || 'Failed to fetch call history');
       throw error;
     }
   },
 
-  async getPendingCalls() {
-    const response = await authFetch(`${ENV.API_BASE_URL}/whatsapp/calls/pending`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    return response.json();
-  },
+  // Pending calls endpoint requires X-Workspace-Id (backend @require_workspace).
+  // authFetch already attaches the header, so callers don't need to thread it.
+  getPendingCalls: () => apiJSON('GET', '/whatsapp/calls/pending'),
 
-  async acceptCall({ call_id, sdp, sdp_type = 'answer' }) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/whatsapp/call/accept`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ call_id, sdp, sdp_type }),
-    });
-    return response.json();
-  },
+  acceptCall: ({ call_id, sdp, sdp_type = 'answer' }) =>
+    apiJSON('POST', '/whatsapp/call/accept', { body: JSON.stringify({ call_id, sdp, sdp_type }) }),
 
-  async rejectCall(call_id) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/whatsapp/call/reject`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ call_id }),
-    });
-    return response.json();
-  },
+  rejectCall: (call_id) =>
+    apiJSON('POST', '/whatsapp/call/reject', { body: JSON.stringify({ call_id }) }),
 
-  async hangupCall(call_id) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/whatsapp/call/hangup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ call_id }),
-    });
-    return response.json();
-  },
+  hangupCall: (call_id) =>
+    apiJSON('POST', '/whatsapp/call/hangup', { body: JSON.stringify({ call_id }) }),
+};
+
+// -- Conversations API --------------------------------------------------------
+
+export const conversationsApi = {
+  list: () => apiJSON('GET', '/whatsapp/conversations'),
 };
 
 // -- Automations API ----------------------------------------------------------
 
 export const automationsApi = {
-  async list() {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/automations`);
-    if (!response.ok) throw new Error('Failed to fetch automations');
-    return response.json();
-  },
-
-  async get(id) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/automations/${id}`);
-    if (!response.ok) throw new Error('Failed to fetch automation');
-    return response.json();
-  },
-
-  async create(data) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/automations`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) throw new Error('Failed to create automation');
-    return response.json();
-  },
-
-  async update(id, data) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/automations/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) throw new Error('Failed to update automation');
-    return response.json();
-  },
-
-  async delete(id) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/automations/${id}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) throw new Error('Failed to delete automation');
-    return response.json();
-  },
-
-  async getRuns(id, limit = 50) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/automations/${id}/runs?limit=${limit}`);
-    if (!response.ok) throw new Error('Failed to fetch runs');
-    return response.json();
-  },
-
-  async getLogs(id, limit = 100) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/automations/${id}/logs?limit=${limit}`);
-    if (!response.ok) throw new Error('Failed to fetch logs');
-    return response.json();
-  },
-
-  async trigger(id, waId) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/automations/${id}/trigger`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ wa_id: waId }),
-    });
-    if (!response.ok) throw new Error('Failed to trigger automation');
-    return response.json();
-  },
-
-  async stopRun(runId) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/automations/runs/${runId}/stop`, {
-      method: 'POST',
-    });
-    if (!response.ok) throw new Error('Failed to stop run');
-    return response.json();
-  },
+  list: () => apiJSON('GET', '/api/automations'),
+  get: (id) => apiJSON('GET', `/api/automations/${id}`),
+  create: (data) => apiJSON('POST', '/api/automations', { body: JSON.stringify(data) }),
+  update: (id, data) => apiJSON('PUT', `/api/automations/${id}`, { body: JSON.stringify(data) }),
+  delete: (id) => apiJSON('DELETE', `/api/automations/${id}`),
+  getRuns: (id, limit = 50) => apiJSON('GET', `/api/automations/${id}/runs?limit=${limit}`),
+  getLogs: (id, limit = 100) => apiJSON('GET', `/api/automations/${id}/logs?limit=${limit}`),
+  trigger: (id, waId) =>
+    apiJSON('POST', `/api/automations/${id}/trigger`, { body: JSON.stringify({ wa_id: waId }) }),
+  stopRun: (runId) => apiJSON('POST', `/api/automations/runs/${runId}/stop`),
 };
 
 // -- Integrations API ---------------------------------------------------------
 
 export const integrationsApi = {
-  async list() {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/integrations`);
-    if (!response.ok) throw new Error('Failed to fetch integrations');
-    return response.json();
-  },
-
-  async update(key, values) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/integrations/${key}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(values),
-    });
-    if (!response.ok) throw new Error('Failed to update integration');
-    return response.json();
-  },
+  list: () => apiJSON('GET', '/api/integrations'),
+  update: (key, values) => apiJSON('PUT', `/api/integrations/${key}`, { body: JSON.stringify(values) }),
 };
 
 // -- Workspace Members API ----------------------------------------------------
 
 export const workspaceMembersApi = {
-  // TODO: backend endpoint — GET /api/workspace/members
-  async list() {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/workspace/members`);
-    if (!response.ok) throw new Error('Failed to fetch members');
-    return response.json();
-  },
-
-  // TODO: backend endpoint — POST /api/workspace/invites
-  async invite({ email, role }) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/workspace/invites`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, role }),
-    });
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || 'Failed to send invite');
-    }
-    return response.json();
-  },
-
-  // TODO: backend endpoint — DELETE /api/workspace/invites/:id
-  async revokeInvite(inviteId) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/workspace/invites/${inviteId}`, { method: 'DELETE' });
-    if (!response.ok) throw new Error('Failed to revoke invite');
-    return response.json();
-  },
-
-  // TODO: backend endpoint — POST /api/workspace/invites/:id/resend
-  async resendInvite(inviteId) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/workspace/invites/${inviteId}/resend`, {
-      method: 'POST',
-    });
-    if (!response.ok) throw new Error('Failed to resend invite');
-    return response.json();
-  },
-
-  // TODO: backend endpoint — PATCH /api/workspace/members/:id/role
-  async changeRole(memberId, role) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/workspace/members/${memberId}/role`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role }),
-    });
-    if (!response.ok) throw new Error('Failed to change role');
-    return response.json();
-  },
-
-  // TODO: backend endpoint — DELETE /api/workspace/members/:id
-  async removeMember(memberId) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/workspace/members/${memberId}`, { method: 'DELETE' });
-    if (!response.ok) throw new Error('Failed to remove member');
-    return response.json();
-  },
+  list: () => apiJSON('GET', '/api/workspace/members'),
+  invite: ({ email, role }) =>
+    apiJSON('POST', '/api/workspace/invites', { body: JSON.stringify({ email, role }) }),
+  revokeInvite: (inviteId) => apiJSON('DELETE', `/api/workspace/invites/${inviteId}`),
+  resendInvite: (inviteId) => apiJSON('POST', `/api/workspace/invites/${inviteId}/resend`),
+  changeRole: (memberId, role) =>
+    apiJSON('PATCH', `/api/workspace/members/${memberId}/role`, { body: JSON.stringify({ role }) }),
+  removeMember: (memberId) => apiJSON('DELETE', `/api/workspace/members/${memberId}`),
 };
 
 // -- Notification Preferences API ---------------------------------------------
 
 export const notificationPrefsApi = {
-  // TODO: backend endpoint — GET /api/notification-preferences
-  async get() {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/notification-preferences`);
-    if (!response.ok) throw new Error('Failed to fetch notification preferences');
-    return response.json();
-  },
-
-  // TODO: backend endpoint — PUT /api/notification-preferences
-  async update(key, enabled) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/notification-preferences`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, enabled }),
-    });
-    if (!response.ok) throw new Error('Failed to update notification preferences');
-    return response.json();
-  },
+  get: () => apiJSON('GET', '/api/notification-preferences'),
+  update: (key, enabled) =>
+    apiJSON('PUT', '/api/notification-preferences', { body: JSON.stringify({ key, enabled }) }),
 };
 
 // -- Analytics API ------------------------------------------------------------
 
 export const analyticsApi = {
-  // TODO: backend endpoint — GET /api/analytics/dashboard
-  async getDashboard() {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/analytics/dashboard`);
-    if (!response.ok) throw new Error('Failed to fetch dashboard analytics');
-    return response.json();
-  },
+  getDashboard: () => apiJSON('GET', '/api/analytics/dashboard'),
 };
 
 // -- Broadcasts API -----------------------------------------------------------
 
 export const broadcastsApi = {
-  async list({ status } = {}) {
+  list: ({ status } = {}) => {
     const params = new URLSearchParams();
     if (status) params.set('status', status);
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/broadcasts?${params}`);
-    if (!response.ok) throw new Error('Failed to fetch broadcasts');
-    return response.json();
+    return apiJSON('GET', `/api/broadcasts?${params}`);
   },
-
-  async get(id) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/broadcasts/${id}`);
-    if (!response.ok) throw new Error('Failed to fetch broadcast');
-    return response.json();
-  },
-
-  async create(data) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/broadcasts`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) throw new Error('Failed to create broadcast');
-    return response.json();
-  },
-
-  async update(id, data) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/broadcasts/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) throw new Error('Failed to update broadcast');
-    return response.json();
-  },
-
-  async delete(id) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/broadcasts/${id}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) throw new Error('Failed to delete broadcast');
-    return response.json();
-  },
-
-  async send(id) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/broadcasts/${id}/send`, {
-      method: 'POST',
-    });
-    if (!response.ok) throw new Error('Failed to send broadcast');
-    return response.json();
-  },
-
-  async cancel(id) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/broadcasts/${id}/cancel`, {
-      method: 'POST',
-    });
-    if (!response.ok) throw new Error('Failed to cancel broadcast');
-    return response.json();
-  },
-
-  async estimateAudience(filter) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/broadcasts/estimate`, {
-      method: 'POST',
-      body: JSON.stringify(filter),
-    });
-    if (!response.ok) throw new Error('Failed to estimate audience');
-    return response.json();
-  },
+  get: (id) => apiJSON('GET', `/api/broadcasts/${id}`),
+  create: (data) => apiJSON('POST', '/api/broadcasts', { body: JSON.stringify(data) }),
+  update: (id, data) => apiJSON('PATCH', `/api/broadcasts/${id}`, { body: JSON.stringify(data) }),
+  delete: (id) => apiJSON('DELETE', `/api/broadcasts/${id}`),
+  send: (id) => apiJSON('POST', `/api/broadcasts/${id}/send`),
+  cancel: (id) => apiJSON('POST', `/api/broadcasts/${id}/cancel`),
+  estimateAudience: (filter) =>
+    apiJSON('POST', '/api/broadcasts/estimate', { body: JSON.stringify(filter) }),
 };
 
 // -- WhatsApp Templates API ---------------------------------------------------
 
 export const templatesApi = {
-  async list() {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/whatsapp/templates`);
-    if (!response.ok) throw new Error('Failed to fetch templates');
-    return response.json();
-  },
-
-  async get(id) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/whatsapp/templates/${id}`);
-    if (!response.ok) throw new Error('Failed to fetch template');
-    return response.json();
-  },
-
-  async create(data) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/whatsapp/templates`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) throw new Error('Failed to create template');
-    return response.json();
-  },
-
-  async delete(id) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/whatsapp/templates/${id}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) throw new Error('Failed to delete template');
-    return response.json();
-  },
-
-  async sendTest({ to, template_name, language = 'en_US', components = [] }) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/whatsapp/send-template`, {
-      method: 'POST',
+  list: () => apiJSON('GET', '/api/whatsapp/templates'),
+  get: (id) => apiJSON('GET', `/api/whatsapp/templates/${id}`),
+  create: (data) => apiJSON('POST', '/api/whatsapp/templates', { body: JSON.stringify(data) }),
+  delete: (id) => apiJSON('DELETE', `/api/whatsapp/templates/${id}`),
+  // language is required — backend may try alternates but the frontend should
+  // always send the actual template language, never a guessed default.
+  sendTest: ({ to, template_name, language, components = [] }) => {
+    if (!language) throw new Error('templatesApi.sendTest: language is required');
+    return apiJSON('POST', '/api/whatsapp/send-template', {
       body: JSON.stringify({ to, template_name, language, components }),
     });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || 'Failed to send template');
-    return data;
   },
 };
 
 // -- Account API --------------------------------------------------------------
 
 export const accountApi = {
-  // TODO: backend endpoint — DELETE /auth/account
-  async deleteAccount() {
-    const response = await authFetch(`${ENV.API_BASE_URL}/auth/account`, { method: 'DELETE' });
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || 'Failed to delete account');
-    }
-    return response.json();
-  },
+  deleteAccount: () => apiJSON('DELETE', '/auth/account'),
 };
 
 // -- Workspace Integrations API (multi-tenant) --------------------------------
 
 export const workspaceIntegrationsApi = {
-  async list() {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/workspace/integrations`);
-    if (!response.ok) throw new Error('Failed to fetch workspace integrations');
-    return response.json();
-  },
-
-  async update(key, config) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/workspace/integrations/${key}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(config),
-    });
-    if (!response.ok) throw new Error('Failed to update workspace integration');
-    return response.json();
-  },
-
-  async listChannels() {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/workspace/channels`);
-    if (!response.ok) throw new Error('Failed to fetch channels');
-    return response.json();
-  },
+  list: () => apiJSON('GET', '/api/workspace/integrations'),
+  update: (key, config) =>
+    apiJSON('PUT', `/api/workspace/integrations/${key}`, { body: JSON.stringify(config) }),
+  listChannels: () => apiJSON('GET', '/api/workspace/channels'),
 };
 
 // -- Claude Prompt API --------------------------------------------------------
 
 export const claudePromptApi = {
-  async get() {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/claude-prompt`);
-    if (!response.ok) throw new Error('Failed to fetch Claude prompt');
-    return response.json();
-  },
-
-  async update(prompt) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/claude-prompt`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt }),
-    });
-    if (!response.ok) throw new Error('Failed to update Claude prompt');
-    return response.json();
-  },
+  get: () => apiJSON('GET', '/api/claude-prompt'),
+  update: (prompt) => apiJSON('PUT', '/api/claude-prompt', { body: JSON.stringify({ prompt }) }),
 };
 
 // -- Tags API -----------------------------------------------------------------
 
 export const tagsApi = {
-  async list() {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/tags`);
-    if (!response.ok) throw new Error('Failed to fetch tags');
-    return response.json();
-  },
-
-  async create({ name, color, description }) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/tags`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, color, description }),
-    });
-    if (!response.ok) throw new Error('Failed to create tag');
-    return response.json();
-  },
-
-  async delete(id) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/tags/${id}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) throw new Error('Failed to delete tag');
-    return response.json();
-  },
-
-  async applyToContact(waId, tagId) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/tags/${tagId}/apply`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ wa_id: waId }),
-    });
-    if (!response.ok) throw new Error('Failed to apply tag');
-    return response.json();
-  },
-
-  async removeFromContact(waId, tagId) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/tags/${tagId}/remove`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ wa_id: waId }),
-    });
-    if (!response.ok) throw new Error('Failed to remove tag');
-    return response.json();
-  },
-
-  async listContactTags() {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/contact-tags`);
-    if (!response.ok) throw new Error('Failed to fetch contact tags');
-    return response.json();
-  },
+  list: () => apiJSON('GET', '/api/tags'),
+  create: ({ name, color, description }) =>
+    apiJSON('POST', '/api/tags', { body: JSON.stringify({ name, color, description }) }),
+  delete: (id) => apiJSON('DELETE', `/api/tags/${id}`),
+  applyToContact: (waId, tagId) =>
+    apiJSON('POST', `/api/tags/${tagId}/apply`, { body: JSON.stringify({ wa_id: waId }) }),
+  removeFromContact: (waId, tagId) =>
+    apiJSON('POST', `/api/tags/${tagId}/remove`, { body: JSON.stringify({ wa_id: waId }) }),
+  listContactTags: () => apiJSON('GET', '/api/contact-tags'),
 };
 
 // -- Notes API ----------------------------------------------------------------
 
 export const notesApi = {
-  async list(waId) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/notes/${waId}`);
-    if (!response.ok) throw new Error('Failed to fetch notes');
-    return response.json();
-  },
-
-  async create(waId, note) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/notes/${waId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ note }),
-    });
-    if (!response.ok) throw new Error('Failed to create note');
-    return response.json();
-  },
-
-  async delete(waId, noteId) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/api/notes/${waId}/${noteId}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) throw new Error('Failed to delete note');
-    return response.json();
-  },
+  list: (waId) => apiJSON('GET', `/api/notes/${waId}`),
+  create: (waId, note) =>
+    apiJSON('POST', `/api/notes/${waId}`, { body: JSON.stringify({ note }) }),
+  delete: (waId, noteId) => apiJSON('DELETE', `/api/notes/${waId}/${noteId}`),
 };
 
 // -- Instagram API ------------------------------------------------------------
 
 export const instagramApi = {
-  async getStatus() {
-    const response = await authFetch(`${ENV.API_BASE_URL}/instagram/status`);
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || 'Failed to fetch Instagram status');
-    return data;
-  },
-
-  async sendMessage({ to, message }) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/instagram/send`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to, message }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Failed to send message');
-    return data;
-  },
-
-  async getConversations(limit = 20) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/instagram/conversations?limit=${limit}`);
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || 'Failed to fetch Instagram conversations');
-    return data;
-  },
-
-  async getMessages(igUserId, limit = 50) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/instagram/messages/${igUserId}?limit=${limit}`);
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || 'Failed to fetch Instagram messages');
-    return data;
-  },
-
-  async disconnect() {
-    const response = await authFetch(`${ENV.API_BASE_URL}/oauth/instagram/disconnect`, {
-      method: 'POST',
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Failed to disconnect');
-    return data;
-  },
-
-  async replyToComment({ commentId, message }) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/instagram/comment/reply`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+  getStatus: () => apiJSON('GET', '/instagram/status'),
+  sendMessage: ({ to, message }) =>
+    apiJSON('POST', '/instagram/send', { body: JSON.stringify({ to, message }) }),
+  getConversations: (limit = 20) => apiJSON('GET', `/instagram/conversations?limit=${limit}`),
+  getMessages: (igUserId, limit = 50) =>
+    apiJSON('GET', `/instagram/messages/${igUserId}?limit=${limit}`),
+  disconnect: () => apiJSON('POST', '/oauth/instagram/disconnect'),
+  replyToComment: ({ commentId, message }) =>
+    apiJSON('POST', '/instagram/comment/reply', {
       body: JSON.stringify({ comment_id: commentId, message }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Failed to reply to comment');
-    return data;
-  },
-
-  // TODO: backend endpoint — GET /instagram/comments
-  async listComments({ post_id, status, cursor } = {}) {
+    }),
+  listComments: ({ post_id, status, cursor } = {}) => {
     const params = new URLSearchParams();
     if (post_id) params.set('post_id', post_id);
     if (status) params.set('status', status);
     if (cursor) params.set('cursor', cursor);
-    const response = await authFetch(`${ENV.API_BASE_URL}/instagram/comments?${params}`);
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || 'Failed to fetch comments');
-    }
-    return response.json();
+    return apiJSON('GET', `/instagram/comments?${params}`);
   },
-
-  // TODO: backend endpoint — GET /instagram/comments/:id
-  async getComment(commentId) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/instagram/comments/${commentId}`);
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || 'Failed to fetch comment');
-    }
-    return response.json();
-  },
-
-  // TODO: backend endpoint — POST /instagram/comments/:id/hide
-  async hideComment(commentId) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/instagram/comments/${commentId}/hide`, {
-      method: 'POST',
-    });
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || 'Failed to hide comment');
-    }
-    return response.json();
-  },
-
-  // TODO: backend endpoint — POST /instagram/comments/:id/unhide
-  async unhideComment(commentId) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/instagram/comments/${commentId}/unhide`, {
-      method: 'POST',
-    });
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || 'Failed to unhide comment');
-    }
-    return response.json();
-  },
-
-  // TODO: backend endpoint — DELETE /instagram/comments/:id
-  async deleteComment(commentId) {
-    const response = await authFetch(`${ENV.API_BASE_URL}/instagram/comments/${commentId}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || 'Failed to delete comment');
-    }
-    return response.json();
-  },
-
-  // TODO: backend endpoint — GET /instagram/mentions
-  async listMentions({ cursor } = {}) {
+  getComment: (commentId) => apiJSON('GET', `/instagram/comments/${commentId}`),
+  hideComment: (commentId) => apiJSON('POST', `/instagram/comments/${commentId}/hide`),
+  unhideComment: (commentId) => apiJSON('POST', `/instagram/comments/${commentId}/unhide`),
+  deleteComment: (commentId) => apiJSON('DELETE', `/instagram/comments/${commentId}`),
+  listMentions: ({ cursor } = {}) => {
     const params = new URLSearchParams();
     if (cursor) params.set('cursor', cursor);
-    const response = await authFetch(`${ENV.API_BASE_URL}/instagram/mentions?${params}`);
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || 'Failed to fetch mentions');
-    }
-    return response.json();
+    return apiJSON('GET', `/instagram/mentions?${params}`);
   },
-
-  // TODO: backend endpoint — GET /instagram/media
-  async listPosts({ cursor } = {}) {
+  listPosts: ({ cursor } = {}) => {
     const params = new URLSearchParams();
     if (cursor) params.set('cursor', cursor);
-    const response = await authFetch(`${ENV.API_BASE_URL}/instagram/media?${params}`);
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || 'Failed to fetch posts');
-    }
-    return response.json();
+    return apiJSON('GET', `/instagram/media?${params}`);
   },
 };

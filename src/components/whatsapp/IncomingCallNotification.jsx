@@ -1,10 +1,12 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { Phone, PhoneOff, X, Mic, MicOff } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { whatsappApi } from '../../lib/api';
 import { useContacts } from '../../lib/dataHooks';
 import { cn, formatPhone, initialsFromName, pastelClassFromString } from '../../lib/utils';
 import { Button } from '../ui/button';
+import { subscribeToTableMulti } from '../../lib/realtime';
+import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
 
 /**
@@ -80,15 +82,41 @@ export function IncomingCallNotification() {
   }, []);
 
   const contactsQ = useContacts();
+  const queryClient = useQueryClient();
+  const workspaceId = useAuthStore((s) => s.profile?.workspace_id);
 
-  // Poll for pending calls with SDP (every 2 seconds)
+  // Realtime is the primary signal — Supabase pushes new whatsapp_calls rows
+  // and we refetch /whatsapp/calls/pending immediately. The HTTP poll is now
+  // only a safety net (raised from 2s → 10s) for missed realtime events.
   const pendingCallsQ = useQuery({
     queryKey: ['whatsapp_pending_calls'],
     queryFn: () => whatsappApi.getPendingCalls(),
-    refetchInterval: 2000,
+    refetchInterval: 10000,
     refetchIntervalInBackground: true,
     enabled: callState === 'idle' || callState === 'ringing',
   });
+
+  useEffect(() => {
+    if (!workspaceId) return;
+    const cleanup = subscribeToTableMulti({
+      table: 'whatsapp_calls',
+      workspaceId,
+      listeners: [
+        {
+          event: 'INSERT',
+          callback: (payload) => {
+            const row = payload?.new || {};
+            const event = String(row.event || '').toLowerCase();
+            const direction = row.direction;
+            if (event === 'connect' && direction === 'USER_INITIATED') {
+              queryClient.invalidateQueries({ queryKey: ['whatsapp_pending_calls'] });
+            }
+          },
+        },
+      ],
+    });
+    return cleanup;
+  }, [workspaceId, queryClient]);
 
   // Also poll call history for detection fallback
   // Poll more frequently when active to detect when other person hangs up

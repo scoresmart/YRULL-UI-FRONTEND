@@ -121,13 +121,28 @@ async function authFetchWithFallback(paths: string[], init?: RequestInit): Promi
   throw new Error('Failed to reach backend API');
 }
 
-async function readErrorMessage(response: Response, fallback: string): Promise<string> {
+async function readErrorMessage(response: Response, fallback: string, method = 'GET', path = ''): Promise<string> {
+  let body: { error?: string; message?: string; detail?: string; raw?: string } | null = null;
   try {
-    const data = (await response.json()) as { error?: string; message?: string; detail?: string };
-    return data.error || data.message || data.detail || fallback;
+    const text = await response.text();
+    if (text) {
+      try {
+        body = JSON.parse(text);
+      } catch {
+        body = { raw: text };
+      }
+    }
   } catch {
-    return fallback;
+    body = null;
   }
+  console.error(`API ${method} ${path} → ${response.status}`, body);
+  return (
+    body?.error ||
+    body?.message ||
+    body?.detail ||
+    `${response.status} ${response.statusText || ''}`.trim() ||
+    fallback
+  );
 }
 
 function normalizeNumbersPayload(raw: unknown): WhatsAppNumberRecord[] {
@@ -163,22 +178,24 @@ function normalizeMutationPayload<T extends object>(raw: unknown): T {
 
 export const whatsappManagerApi = {
   async getNumbers(): Promise<WhatsAppNumberRecord[]> {
-    const response = await authFetchWithFallback(['/api/whatsapp/numbers', '/whatsapp/numbers']);
+    const paths = ['/api/whatsapp/numbers', '/whatsapp/numbers'];
+    const response = await authFetchWithFallback(paths);
     if (!response.ok) {
-      throw new Error(await readErrorMessage(response, 'Failed to load WhatsApp numbers'));
+      throw new Error(await readErrorMessage(response, 'Failed to load WhatsApp numbers', 'GET', paths[0]));
     }
     const json = await response.json();
     return normalizeNumbersPayload(json);
   },
 
   async registerNumber(payload: RegisterNumberPayload): Promise<RegisterNumberResponse> {
-    const response = await authFetchWithFallback(['/api/whatsapp/register-number', '/whatsapp/register-number'], {
+    const paths = ['/api/whatsapp/register-number', '/whatsapp/register-number'];
+    const response = await authFetchWithFallback(paths, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     if (!response.ok) {
-      throw new Error(await readErrorMessage(response, 'Failed to register number'));
+      throw new Error(await readErrorMessage(response, 'Failed to register number', 'POST', paths[0]));
     }
     const json = await response.json().catch(() => ({}));
     return normalizeMutationPayload<RegisterNumberResponse>(json);
@@ -186,49 +203,48 @@ export const whatsappManagerApi = {
 
   async listTemplates(refresh?: boolean): Promise<WhatsAppTemplateListItem[]> {
     const qs = refresh ? '?refresh=1' : '';
-    const response = await authFetchWithFallback([
-      `/api/templates/list${qs}`,
-      '/api/whatsapp/templates',
-    ]);
+    const paths = [`/api/templates/list${qs}`, '/api/whatsapp/templates'];
+    const response = await authFetchWithFallback(paths);
     if (!response.ok) {
-      throw new Error(await readErrorMessage(response, 'Failed to load templates'));
+      throw new Error(await readErrorMessage(response, 'Failed to load templates', 'GET', paths[0]));
     }
     const json = await response.json();
     return normalizeTemplatesPayload(json);
   },
 
   async createTemplate(payload: CreateTemplatePayload): Promise<TemplateMutationResponse> {
-    const response = await authFetchWithFallback(['/api/templates/create'], {
+    const paths = ['/api/templates/create'];
+    const response = await authFetchWithFallback(paths, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     if (!response.ok) {
-      throw new Error(await readErrorMessage(response, 'Failed to create template'));
+      throw new Error(await readErrorMessage(response, 'Failed to create template', 'POST', paths[0]));
     }
     const json = await response.json().catch(() => ({}));
     return normalizeMutationPayload<TemplateMutationResponse>(json);
   },
 
   async editTemplate(id: string, payload: CreateTemplatePayload): Promise<TemplateMutationResponse> {
-    const response = await authFetchWithFallback([`/api/templates/${encodeURIComponent(id)}/edit`], {
+    const paths = [`/api/templates/${encodeURIComponent(id)}/edit`];
+    const response = await authFetchWithFallback(paths, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     if (!response.ok) {
-      throw new Error(await readErrorMessage(response, 'Failed to save template'));
+      throw new Error(await readErrorMessage(response, 'Failed to save template', 'PUT', paths[0]));
     }
     const json = await response.json().catch(() => ({}));
     return normalizeMutationPayload<TemplateMutationResponse>(json);
   },
 
   async deleteTemplate(id: string, _name?: string): Promise<void> {
-    const response = await authFetchWithFallback([`/api/templates/${encodeURIComponent(id)}`], {
-      method: 'DELETE',
-    });
+    const paths = [`/api/templates/${encodeURIComponent(id)}`];
+    const response = await authFetchWithFallback(paths, { method: 'DELETE' });
     if (!response.ok) {
-      throw new Error(await readErrorMessage(response, 'Failed to delete template'));
+      throw new Error(await readErrorMessage(response, 'Failed to delete template', 'DELETE', paths[0]));
     }
   },
 };

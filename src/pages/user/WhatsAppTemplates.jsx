@@ -222,10 +222,14 @@ export function WhatsAppTemplatesPage() {
                 })),
               }]
             : [];
+          if (!sendTarget.language) {
+            toast.error('Template is missing a language; cannot send.');
+            return;
+          }
           sendMut.mutate({
             to: sendNumber.trim(),
             template_name: sendTarget.name,
-            language: sendTarget.language || 'en_US',
+            language: sendTarget.language,
             components,
           });
         };

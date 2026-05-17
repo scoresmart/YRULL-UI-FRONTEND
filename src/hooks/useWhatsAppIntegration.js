@@ -42,6 +42,18 @@ export function useWhatsAppIntegration() {
     refresh();
   }, [refresh]);
 
+  // Auth store can hydrate after this hook mounts — the first refresh() then
+  // bails out with no workspace_id and the backend 400s anything that needs it.
+  // Re-fetch once workspace_id transitions to a defined value.
+  const lastWorkspaceIdRef = useRef(workspaceId);
+  useEffect(() => {
+    if (workspaceId && lastWorkspaceIdRef.current !== workspaceId) {
+      lastWorkspaceIdRef.current = workspaceId;
+      setLoading(true);
+      refresh();
+    }
+  }, [workspaceId, refresh]);
+
   // Handle OAuth return via URL hash
   useEffect(() => {
     if (didHandleOAuth.current) return;
@@ -67,8 +79,9 @@ export function useWhatsAppIntegration() {
         const json = atob(padded);
         const availableNumbers = JSON.parse(json);
         setChooseNumberState({ numbers: availableNumbers, workspaceId: wsId });
-      } catch {
-        toast.error('Failed to parse available numbers. Please reconnect.');
+      } catch (err) {
+        console.error('OAuth hash parse failed:', err, { hash: window.location.hash });
+        toast.error(`Failed to parse available numbers: ${err.message}. Please reconnect.`);
       }
     } else if (oauthStatus === 'error') {
       const errorMsg = params.get('error') || 'Connection failed';

@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { ENV } from './env';
 import { supabase } from './supabase';
 import { mockDb } from './mockData';
-import { tagsApi, instagramApi } from './api';
+import { tagsApi, instagramApi, conversationsApi } from './api';
 import { useAuthStore } from '../store/authStore';
 
 async function fromSupabase(table, opts = {}) {
@@ -50,12 +50,11 @@ export function useContacts() {
     queryKey: ['whatsapp_contacts'],
     queryFn: async () => {
       if (ENV.USE_MOCK) return mockDb.contacts;
-      const { data, error } = await supabase
-        .from('whatsapp_contacts')
-        .select('*')
-        .order('last_seen', { ascending: false });
-      if (error) throw error;
-      return data;
+      // Route through workspace-scoped backend endpoint instead of hitting
+      // whatsapp_contacts directly with the anon key — backend enforces
+      // workspace isolation via @require_workspace.
+      const data = await conversationsApi.list();
+      return Array.isArray(data) ? data : (data?.data ?? []);
     },
   });
 }
