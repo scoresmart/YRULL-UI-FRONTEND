@@ -18,8 +18,6 @@ import {
   Megaphone,
   BarChart3,
   X,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
 import { BrandMark } from '../brand/BrandMark';
 import { WorkspaceSwitcher } from './WorkspaceSwitcher';
@@ -51,7 +49,8 @@ export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [loggingOut, setLoggingOut] = useState(false);
-  const { open, close, collapsed, toggleCollapse } = useSidebar();
+  const { open, close } = useSidebar();
+  const isCollapsed = isDesktop && location.pathname.startsWith('/whatsapp');
   const isDesktop = useIsDesktop();
 
   useEffect(() => {
@@ -72,28 +71,16 @@ export function Sidebar() {
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between px-5 pt-6">
         <BrandMark variant="dark" className="text-lg" />
-        <div className="flex items-center gap-1">
-          {isDesktop && (
-            <button
-              type="button"
-              onClick={toggleCollapse}
-              className="rounded-lg p-1.5 text-gray-400 hover:bg-[#1A1A1A] hover:text-white"
-              aria-label="Collapse sidebar"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-          )}
-          {!isDesktop && (
-            <button
-              type="button"
-              onClick={close}
-              className="rounded-lg p-2 text-gray-400 hover:bg-[#1A1A1A] hover:text-white lg:hidden"
-              aria-label="Close menu"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          )}
-        </div>
+        {!isDesktop && (
+          <button
+            type="button"
+            onClick={close}
+            className="rounded-lg p-2 text-gray-400 hover:bg-[#1A1A1A] hover:text-white lg:hidden"
+            aria-label="Close menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
       </div>
       <div className="mt-2 px-2">
         <WorkspaceSwitcher />
@@ -160,7 +147,7 @@ export function Sidebar() {
   );
 
   if (isDesktop) {
-    if (collapsed) {
+    if (isCollapsed) {
       return (
         <aside className="fixed left-0 top-0 z-40 h-screen w-16 bg-brand-sidebar text-brand-sidebarText">
           <div className="flex h-full flex-col items-center py-4">
@@ -192,7 +179,7 @@ export function Sidebar() {
               })}
             </nav>
 
-            {/* Bottom: avatar + expand button */}
+            {/* Bottom: avatar */}
             <div className="flex flex-col items-center gap-2 border-t border-white/10 pt-3 w-full">
               <div
                 className={cn('flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold', avatarCls)}
@@ -200,14 +187,6 @@ export function Sidebar() {
               >
                 {initialsFromName(name)}
               </div>
-              <button
-                onClick={toggleCollapse}
-                className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#1A1A1A] hover:text-white"
-                title="Expand sidebar"
-                type="button"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
             </div>
           </div>
         </aside>
