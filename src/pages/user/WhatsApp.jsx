@@ -12,7 +12,7 @@ import { ENV } from '../../lib/env';
 import { useChatStore } from '../../store/chatStore';
 import { useContacts, useTags, useContactTags } from '../../lib/dataHooks';
 import { cn } from '../../lib/utils';
-import { MessageSquare, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MessageSquare, Loader2, ChevronLeft, ChevronRight, Users, UserCheck, Clock, Plus } from 'lucide-react';
 
 function tagColorDot(color) {
   return color === 'green'
@@ -54,9 +54,23 @@ function LabelsSidebar({ collapsed, onToggle }) {
 
   const itemCls = (active) =>
     cn(
-      'flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors',
-      active ? 'bg-green-50 text-green-700 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+      'flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors',
+      active
+        ? 'bg-green-50 text-green-700 font-semibold'
+        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
     );
+
+  const countBadge = (n, active) =>
+    n > 0 ? (
+      <span
+        className={cn(
+          'ml-auto text-xs font-medium tabular-nums',
+          active ? 'text-green-600' : 'text-gray-400',
+        )}
+      >
+        {n}
+      </span>
+    ) : null;
 
   if (collapsed) {
     return (
@@ -74,13 +88,14 @@ function LabelsSidebar({ collapsed, onToggle }) {
   }
 
   return (
-    <div className="flex w-[200px] flex-shrink-0 flex-col border-r border-gray-200 bg-white">
-      <div className="flex items-center justify-between px-3 py-3 border-b border-gray-100">
-        <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Inbox</span>
+    <div className="flex w-[220px] flex-shrink-0 flex-col border-r border-gray-200 bg-white">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100">
+        <span className="text-sm font-semibold text-gray-800">Inbox</span>
         <button
           type="button"
           onClick={onToggle}
-          className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+          className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
           aria-label="Collapse sidebar"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -88,14 +103,15 @@ function LabelsSidebar({ collapsed, onToggle }) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
+        {/* ── Fixed filters ── */}
         <button
           type="button"
           className={itemCls(!tagFilter && filter === 'all')}
           onClick={() => { setTagFilter(null); setFilter('all'); }}
         >
-          <MessageSquare className="h-4 w-4 shrink-0" />
-          <span className="flex-1 truncate">All Chats</span>
-          {totalCount > 0 && <span className="text-xs text-gray-400">{totalCount}</span>}
+          <MessageSquare className="h-4 w-4 shrink-0 opacity-70" />
+          <span className="flex-1 truncate">All chats</span>
+          {countBadge(totalCount, !tagFilter && filter === 'all')}
         </button>
 
         <button
@@ -103,31 +119,58 @@ function LabelsSidebar({ collapsed, onToggle }) {
           className={itemCls(!tagFilter && filter === 'unread')}
           onClick={() => { setTagFilter(null); setFilter('unread'); }}
         >
-          <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-            <span className="h-2 w-2 rounded-full bg-green-500" />
-          </span>
-          <span className="flex-1 truncate">Unread</span>
+          <Users className="h-4 w-4 shrink-0 opacity-70" />
+          <span className="flex-1 truncate">Unassigned</span>
         </button>
 
+        <button
+          type="button"
+          className={itemCls(false)}
+          onClick={() => { setTagFilter(null); setFilter('all'); }}
+        >
+          <UserCheck className="h-4 w-4 shrink-0 opacity-70" />
+          <span className="flex-1 truncate">Assigned to me</span>
+        </button>
+
+        <button type="button" className={itemCls(false)}>
+          <Clock className="h-4 w-4 shrink-0 opacity-70" />
+          <span className="flex-1 truncate">Reminders</span>
+        </button>
+
+        {/* ── Labels ── */}
         {tags.length > 0 && (
           <>
-            <div className="px-2 pt-4 pb-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Labels</span>
-            </div>
-            {tags.map((tag) => (
+            <div className="flex items-center justify-between px-2.5 pt-4 pb-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Labels</span>
               <button
-                key={tag.id}
                 type="button"
-                className={itemCls(tagFilter === tag.id)}
-                onClick={() => { setTagFilter(tag.id); setFilter('all'); }}
+                className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                title="Manage labels"
+                onClick={() => window.location.href = '/tags'}
               >
-                <span className={cn('h-2 w-2 shrink-0 rounded-full', tagColorDot(tag.color))} />
-                <span className="flex-1 truncate">{tag.name}</span>
-                {tagCounts[tag.id] > 0 && (
-                  <span className="text-xs text-gray-400">{tagCounts[tag.id]}</span>
-                )}
+                <Plus className="h-3.5 w-3.5" />
               </button>
-            ))}
+            </div>
+            {tags.map((tag) => {
+              const active = tagFilter === tag.id;
+              return (
+                <button
+                  key={tag.id}
+                  type="button"
+                  className={itemCls(active)}
+                  onClick={() => { setTagFilter(tag.id); setFilter('all'); }}
+                >
+                  <span
+                    className={cn(
+                      'h-3.5 w-3.5 shrink-0 rounded-sm',
+                      tagColorDot(tag.color),
+                    )}
+                  />
+                  <span className="flex-1 truncate">{tag.name}</span>
+                  {countBadge(tagCounts[tag.id] ?? 0, active)}
+                </button>
+              );
+            })}
           </>
         )}
       </div>

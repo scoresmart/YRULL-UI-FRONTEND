@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo, useState, useEffect, useRef } from 'react';
-import { ChevronDown, Pencil, Plus, X, PhoneIncoming, PhoneOutgoing, Trash2 } from 'lucide-react';
+import { ChevronDown, Pencil, Plus, X, Phone, Clock, PhoneIncoming, PhoneOutgoing, Trash2 } from 'lucide-react';
 import { cn, initialsFromName, pastelClassFromString, formatRelativeTime, formatPhone } from '../../lib/utils';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
@@ -196,146 +196,89 @@ export function ContactInfoPanel({ onClose }) {
 
   return (
     <div className="flex h-full w-[300px] flex-shrink-0 flex-col border-l border-brand-border bg-white">
-      <div className="h-16 border-b border-brand-border px-5 py-4">
-        <div className="text-sm font-semibold text-gray-900">Contact</div>
+      {/* Header — contact name + close button */}
+      <div className="flex h-14 items-center justify-between border-b border-brand-border px-4">
+        <span className="text-sm font-semibold text-gray-900 truncate">{name}</span>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onEditContact}
+            className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            aria-label="Edit contact"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+              aria-label="Close panel"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-auto">
-        <Section title="Contact Details">
-          <div className="flex items-start gap-3">
-            <div
-              className={cn('flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold', avatarCls)}
-            >
-              {initialsFromName(name)}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <div className="truncate text-base font-semibold text-gray-900">{name}</div>
-                <button type="button" className="rounded-md p-1 text-gray-500 hover:bg-gray-100" aria-label="Edit name">
-                  <Pencil className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="mt-1 text-sm text-gray-500">{displayPhone || '—'}</div>
-              {contact?.source ? (
-                <div className="mt-1 inline-flex items-center gap-1.5">
-                  <span
-                    className={cn(
-                      'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-                      contact.source === 'TIKTOK'
-                        ? 'bg-gray-900 text-white'
-                        : contact.source === 'META'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-gray-100 text-gray-600',
-                    )}
-                  >
-                    {contact.source}
-                  </span>
-                </div>
-              ) : null}
-              {contact?.campaign_name ? (
-                <div className="mt-1 text-xs text-gray-400">Campaign: {contact.campaign_name}</div>
-              ) : null}
-              {contact?.ad_id ? <div className="mt-0.5 text-xs text-gray-400">Ad ID: {contact.ad_id}</div> : null}
-            </div>
+        {/* Avatar + name block */}
+        <div className="flex flex-col items-center gap-2 px-5 py-5 border-b border-gray-100">
+          <div
+            className={cn(
+              'flex h-16 w-16 items-center justify-center rounded-full text-xl font-bold',
+              avatarCls,
+            )}
+          >
+            {initialsFromName(name)}
           </div>
+          <div className="text-center">
+            <div className="text-base font-semibold text-gray-900">{name}</div>
+            {contact?.source ? (
+              <span
+                className={cn(
+                  'mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                  contact.source === 'TIKTOK'
+                    ? 'bg-gray-900 text-white'
+                    : contact.source === 'META'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-gray-100 text-gray-600',
+                )}
+              >
+                {contact.source}
+              </span>
+            ) : null}
+          </div>
+        </div>
 
-          {/* Tags Display */}
-          {appliedTags.length > 0 && (
-            <div className="mt-3">
-              <div className="mb-2 text-xs font-medium text-gray-500 uppercase tracking-wide">Tags</div>
-              <div className="flex flex-wrap gap-2">
-                {appliedTags.map((tag) => (
-                  <span
-                    key={tag.id}
-                    className={cn(
-                      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium',
-                      tag.color === 'green'
-                        ? 'bg-green-100 text-green-700 border border-green-200'
-                        : tag.color === 'blue'
-                          ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                          : tag.color === 'purple'
-                            ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                            : tag.color === 'orange'
-                              ? 'bg-amber-100 text-amber-700 border border-amber-200'
-                              : tag.color === 'red'
-                                ? 'bg-red-100 text-red-700 border border-red-200'
-                                : 'bg-gray-100 text-gray-700 border border-gray-200',
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'h-2 w-2 rounded-full',
-                        tag.color === 'green'
-                          ? 'bg-green-500'
-                          : tag.color === 'blue'
-                            ? 'bg-blue-500'
-                            : tag.color === 'purple'
-                              ? 'bg-purple-500'
-                              : tag.color === 'orange'
-                                ? 'bg-amber-500'
-                                : tag.color === 'red'
-                                  ? 'bg-red-500'
-                                  : 'bg-gray-500',
-                      )}
-                    />
-                    {tag.name}
-                  </span>
-                ))}
-              </div>
+        {/* Quick info rows */}
+        <div className="border-b border-gray-100 px-5 py-4 space-y-3 text-sm">
+          <div className="flex items-center gap-3">
+            <Phone className="h-4 w-4 shrink-0 text-gray-400" />
+            <span className="text-gray-800 font-medium">{displayPhone || '—'}</span>
+          </div>
+          {contact?.campaign_name && (
+            <div className="flex items-start gap-3">
+              <span className="h-4 w-4 shrink-0 text-gray-400 text-xs font-bold mt-0.5">Cmp</span>
+              <span className="text-gray-700 truncate">{contact.campaign_name}</span>
             </div>
           )}
-
-          <Button variant="outline" className="mt-4 w-full" onClick={onEditContact}>
+          {contact?.first_seen && (
+            <div className="flex items-center gap-3">
+              <Clock className="h-4 w-4 shrink-0 text-gray-400" />
+              <span className="text-gray-700">First seen {formatRelativeTime(contact.first_seen)}</span>
+            </div>
+          )}
+          {contact?.ad_id && (
+            <div className="flex items-center gap-3">
+              <span className="h-4 w-4 shrink-0 text-gray-400 text-xs font-bold">Ad</span>
+              <span className="text-gray-700 font-mono text-xs truncate">{contact.ad_id}</span>
+            </div>
+          )}
+          <Button variant="outline" size="sm" className="w-full mt-1" onClick={onEditContact}>
             Edit Contact
           </Button>
-        </Section>
-
-        <Section title="Contact Info">
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Phone:</span>
-              <span className="text-gray-900">{displayPhone || '—'}</span>
-            </div>
-            {contact?.source && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Source:</span>
-                <span className="text-gray-900">{contact.source}</span>
-              </div>
-            )}
-            {contact?.campaign_name && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Campaign:</span>
-                <span className="text-right text-gray-900 max-w-[150px] truncate">{contact.campaign_name}</span>
-              </div>
-            )}
-            {contact?.ad_id && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Ad ID:</span>
-                <span className="text-right text-gray-900 max-w-[150px] truncate font-mono text-xs">
-                  {contact.ad_id}
-                </span>
-              </div>
-            )}
-            {contact?.metadata?.adset_name && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Ad Set:</span>
-                <span className="text-right text-gray-900 max-w-[150px] truncate">{contact.metadata.adset_name}</span>
-              </div>
-            )}
-            {contact?.metadata?.ad_name && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Ad Name:</span>
-                <span className="text-right text-gray-900 max-w-[150px] truncate">{contact.metadata.ad_name}</span>
-              </div>
-            )}
-            {contact?.first_seen && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">First seen:</span>
-                <span className="text-gray-900">{formatRelativeTime(contact.first_seen)}</span>
-              </div>
-            )}
-          </div>
-        </Section>
+        </div>
 
         <Section title="Notes">
           <Textarea
