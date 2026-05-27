@@ -165,6 +165,7 @@ export function ConversationList({ className }) {
   const setSearch = useChatStore((s) => s.setSearch);
   const filter = useChatStore((s) => s.conversationFilter);
   const sort = useChatStore((s) => s.sort);
+  const tagFilter = useChatStore((s) => s.tagFilter);
   const selectedWaId = useChatStore((s) => s.selectedWaId);
   const setSelectedWaId = useChatStore((s) => s.setSelectedWaId);
   const setFilter = useChatStore((s) => s.setFilter);
@@ -264,6 +265,16 @@ export function ConversationList({ className }) {
     }
     // Note: 'assigned' and 'resolved' filters don't apply (no such fields in schema)
 
+    // Filter by label/tag
+    if (tagFilter) {
+      const taggedContactIds = new Set(
+        (contactTagsQ.data ?? [])
+          .filter((ct) => ct.tag_id === tagFilter)
+          .map((ct) => ct.contact_id),
+      );
+      list = list.filter((c) => taggedContactIds.has(c.id));
+    }
+
     // Sort list from the toolbar controls.
     list.sort((a, b) => {
       const aUnread = unreadCounts[a.wa_id] ?? 0;
@@ -286,7 +297,7 @@ export function ConversationList({ className }) {
     });
 
     return list;
-  }, [contactsQ.data, debouncedSearch, filter, unreadCounts, lastMessages, sort]);
+  }, [contactsQ.data, debouncedSearch, filter, unreadCounts, lastMessages, sort, tagFilter, contactTagsQ.data]);
 
   const onSelect = useCallback(
     (waId) => {

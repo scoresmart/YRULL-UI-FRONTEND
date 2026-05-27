@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { ConversationList } from '../../components/whatsapp/ConversationList';
 import { ChatWindow } from '../../components/whatsapp/ChatWindow';
@@ -10,7 +10,130 @@ import { useWhatsAppIntegration } from '../../hooks/useWhatsAppIntegration';
 import { useIsMobile, useIsDesktop } from '../../hooks/useMediaQuery';
 import { ENV } from '../../lib/env';
 import { useChatStore } from '../../store/chatStore';
-import { MessageSquare, Loader2 } from 'lucide-react';
+import { useContacts, useTags, useContactTags } from '../../lib/dataHooks';
+import { cn } from '../../lib/utils';
+import { MessageSquare, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+
+function tagColorDot(color) {
+  return color === 'green'
+    ? 'bg-green-500'
+    : color === 'blue'
+      ? 'bg-blue-500'
+      : color === 'purple'
+        ? 'bg-purple-500'
+        : color === 'orange'
+          ? 'bg-amber-500'
+          : color === 'red'
+            ? 'bg-red-500'
+            : 'bg-gray-400';
+}
+
+function LabelsSidebar({ collapsed, onToggle }) {
+  const tagsQ = useTags();
+  const contactTagsQ = useContactTags();
+  const contactsQ = useContacts();
+  const tagFilter = useChatStore((s) => s.tagFilter);
+  const setTagFilter = useChatStore((s) => s.setTagFilter);
+  const filter = useChatStore((s) => s.conversationFilter);
+  const setFilter = useChatStore((s) => s.setFilter);
+
+  const tags = tagsQ.data ?? [];
+  const contacts = contactsQ.data ?? [];
+  const contactTags = contactTagsQ.data ?? [];
+
+  const totalCount = contacts.length;
+
+  const tagCounts = useMemo(() => {
+    const counts = {};
+    for (const tag of tags) {
+      const ids = new Set(contactTags.filter((ct) => ct.tag_id === tag.id).map((ct) => ct.contact_id));
+      counts[tag.id] = contacts.filter((c) => ids.has(c.id)).length;
+    }
+    return counts;
+  }, [tags, contactTags, contacts]);
+
+  const itemCls = (active) =>
+    cn(
+      'flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors',
+      active ? 'bg-green-50 text-green-700 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+    );
+
+  if (collapsed) {
+    return (
+      <div className="flex w-10 flex-shrink-0 flex-col items-center border-r border-gray-200 bg-white py-3 gap-1">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+          aria-label="Expand sidebar"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex w-[200px] flex-shrink-0 flex-col border-r border-gray-200 bg-white">
+      <div className="flex items-center justify-between px-3 py-3 border-b border-gray-100">
+        <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Inbox</span>
+        <button
+          type="button"
+          onClick={onToggle}
+          className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+          aria-label="Collapse sidebar"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
+        <button
+          type="button"
+          className={itemCls(!tagFilter && filter === 'all')}
+          onClick={() => { setTagFilter(null); setFilter('all'); }}
+        >
+          <MessageSquare className="h-4 w-4 shrink-0" />
+          <span className="flex-1 truncate">All Chats</span>
+          {totalCount > 0 && <span className="text-xs text-gray-400">{totalCount}</span>}
+        </button>
+
+        <button
+          type="button"
+          className={itemCls(!tagFilter && filter === 'unread')}
+          onClick={() => { setTagFilter(null); setFilter('unread'); }}
+        >
+          <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+            <span className="h-2 w-2 rounded-full bg-green-500" />
+          </span>
+          <span className="flex-1 truncate">Unread</span>
+        </button>
+
+        {tags.length > 0 && (
+          <>
+            <div className="px-2 pt-4 pb-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Labels</span>
+            </div>
+            {tags.map((tag) => (
+              <button
+                key={tag.id}
+                type="button"
+                className={itemCls(tagFilter === tag.id)}
+                onClick={() => { setTagFilter(tag.id); setFilter('all'); }}
+              >
+                <span className={cn('h-2 w-2 shrink-0 rounded-full', tagColorDot(tag.color))} />
+                <span className="flex-1 truncate">{tag.name}</span>
+                {tagCounts[tag.id] > 0 && (
+                  <span className="text-xs text-gray-400">{tagCounts[tag.id]}</span>
+                )}
+              </button>
+            ))}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function WhatsAppPage() {
   const queryClient = useQueryClient();
@@ -20,7 +143,8 @@ export function WhatsAppPage() {
   const wa = useWhatsAppIntegration();
   const isMobile = useIsMobile();
   const isDesktop = useIsDesktop();
-  const [showContactInfo, setShowContactInfo] = useState(false);
+  const [showContactInfo, setShowContactInfo] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     setSelectedWaId(null);
@@ -152,13 +276,18 @@ export function WhatsAppPage() {
 
   const showList = isMobile ? !selectedWaId : true;
   const showThread = isMobile ? !!selectedWaId : true;
-  const showInfo = isDesktop || showContactInfo;
 
   return (
     <div className="-mx-4 -my-4 h-[calc(100vh-56px)] sm:-mx-6 sm:-my-6 sm:h-[calc(100vh-64px)] lg:-mx-8 lg:-my-8">
       <WhatsAppConnectionCard wa={wa} compact />
 
       <div className="flex h-[calc(100%-56px)]">
+        {!isMobile && (
+          <LabelsSidebar
+            collapsed={sidebarCollapsed}
+            onToggle={() => setSidebarCollapsed((v) => !v)}
+          />
+        )}
         {showList && <ConversationList className={isMobile ? 'w-full' : 'w-[320px]'} />}
         {showThread && (
           <ChatWindow
@@ -168,8 +297,8 @@ export function WhatsAppPage() {
             className="flex-1"
           />
         )}
-        {showInfo && !isMobile && (
-          <ContactInfoPanel onClose={!isDesktop ? () => setShowContactInfo(false) : undefined} />
+        {showContactInfo && !isMobile && (
+          <ContactInfoPanel onClose={() => setShowContactInfo(false)} />
         )}
       </div>
       <IncomingCallNotification />

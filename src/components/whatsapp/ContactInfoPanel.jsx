@@ -8,7 +8,7 @@ import { useChatStore } from '../../store/chatStore';
 import { useContactStore } from '../../store/contactStore';
 import { useContacts, useTags, useContactTags } from '../../lib/dataHooks';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { whatsappApi, notesApi } from '../../lib/api';
+import { whatsappApi, notesApi, tagsApi } from '../../lib/api';
 import toast from 'react-hot-toast';
 
 const Section = memo(function Section({ title, children, defaultOpen = true }) {
@@ -39,6 +39,8 @@ export function ContactInfoPanel({ onClose }) {
 
   const [noteText, setNoteText] = useState('');
   const [savingNote, setSavingNote] = useState(false);
+  const [showTagDropdown, setShowTagDropdown] = useState(false);
+  const [addingTagId, setAddingTagId] = useState(null);
 
   const contact = useMemo(
     () => (contactsQ.data ?? []).find((c) => c.wa_id === selectedWaId) ?? null,
@@ -57,6 +59,12 @@ export function ContactInfoPanel({ onClose }) {
     // Get the full tag objects
     return tagsQ.data.filter((tag) => matchingTagIds.includes(tag.id));
   }, [tagsQ.data, contactTagsQ.data, contact]);
+
+  // Tags not yet applied to this contact
+  const availableTags = useMemo(() => {
+    const appliedIds = new Set(appliedTags.map((t) => t.id));
+    return (tagsQ.data ?? []).filter((t) => !appliedIds.has(t.id));
+  }, [tagsQ.data, appliedTags]);
 
   const name = contact?.name || formatPhone(contact?.wa_id) || '—';
   const avatarCls = pastelClassFromString(contact?.wa_id ?? contact?.id);
@@ -149,6 +157,38 @@ export function ContactInfoPanel({ onClose }) {
         toast.success('Note deleted');
       } catch (err) {
         toast.error(err.message || 'Failed to delete note');
+      }
+    },
+    [selectedWaId, queryClient],
+  );
+
+  const handleAddTag = useCallback(
+    async (tagId) => {
+      if (!selectedWaId) return;
+      setAddingTagId(tagId);
+      try {
+        await tagsApi.applyToContact(selectedWaId, tagId);
+        await queryClient.invalidateQueries({ queryKey: ['contact_tags'] });
+        toast.success('Tag added');
+      } catch (err) {
+        toast.error(err.message || 'Failed to add tag');
+      } finally {
+        setAddingTagId(null);
+        setShowTagDropdown(false);
+      }
+    },
+    [selectedWaId, queryClient],
+  );
+
+  const handleRemoveTag = useCallback(
+    async (tagId) => {
+      if (!selectedWaId) return;
+      try {
+        await tagsApi.removeFromContact(selectedWaId, tagId);
+        await queryClient.invalidateQueries({ queryKey: ['contact_tags'] });
+        toast.success('Tag removed');
+      } catch (err) {
+        toast.error(err.message || 'Failed to remove tag');
       }
     },
     [selectedWaId, queryClient],
@@ -335,14 +375,104 @@ export function ContactInfoPanel({ onClose }) {
           </div>
         </Section>
 
-        <Section title="Audience Membership" defaultOpen={false}>
+        <Section title="Tags">
           <div className="flex flex-wrap gap-2">
-            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
-              Warm Pipeline
-            </span>
-            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
-              VIP - Active &lt; 7 days
-            </span>
+            {appliedTags.map((tag) => (
+              <span
+                key={tag.id}
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium',
+                  tag.color === 'green'
+                    ? 'bg-green-100 text-green-700 border border-green-200'
+                    : tag.color === 'blue'
+                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                      : tag.color === 'purple'
+                        ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                        : tag.color === 'orange'
+                          ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                          : tag.color === 'red'
+                            ? 'bg-red-100 text-red-700 border border-red-200'
+                            : 'bg-gray-100 text-gray-700 border border-gray-200',
+                )}
+              >
+                <span
+                  className={cn(
+                    'h-1.5 w-1.5 rounded-full',
+                    tag.color === 'green'
+                      ? 'bg-green-500'
+                      : tag.color === 'blue'
+                        ? 'bg-blue-500'
+                        : tag.color === 'purple'
+                          ? 'bg-purple-500'
+                          : tag.color === 'orange'
+                            ? 'bg-amber-500'
+                            : tag.color === 'red'
+                              ? 'bg-red-500'
+                              : 'bg-gray-500',
+                  )}
+                />
+                {tag.name}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveTag(tag.id)}
+                  className="ml-0.5 rounded-full p-0.5 hover:bg-black/10"
+                  aria-label={`Remove ${tag.name}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+
+            {/* Add tag button */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowTagDropdown((v) => !v)}
+                className="inline-flex items-center gap-1 rounded-full border border-dashed border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors"
+              >
+                <Plus className="h-3 w-3" />
+                Add tag
+              </button>
+              {showTagDropdown && (
+                <>
+                  {/* Backdrop to close dropdown */}
+                  <div className="fixed inset-0 z-10" onClick={() => setShowTagDropdown(false)} />
+                  <div className="absolute left-0 top-full z-20 mt-1 w-48 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+                    {availableTags.length === 0 ? (
+                      <div className="px-3 py-2 text-xs text-gray-400">No more tags available</div>
+                    ) : (
+                      availableTags.map((tag) => (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          disabled={addingTagId === tag.id}
+                          onClick={() => handleAddTag(tag.id)}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                        >
+                          <span
+                            className={cn(
+                              'h-2 w-2 shrink-0 rounded-full',
+                              tag.color === 'green'
+                                ? 'bg-green-500'
+                                : tag.color === 'blue'
+                                  ? 'bg-blue-500'
+                                  : tag.color === 'purple'
+                                    ? 'bg-purple-500'
+                                    : tag.color === 'orange'
+                                      ? 'bg-amber-500'
+                                      : tag.color === 'red'
+                                        ? 'bg-red-500'
+                                        : 'bg-gray-400',
+                            )}
+                          />
+                          {tag.name}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </Section>
 
