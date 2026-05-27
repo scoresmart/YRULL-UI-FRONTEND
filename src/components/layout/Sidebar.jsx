@@ -50,8 +50,8 @@ export function Sidebar() {
   const location = useLocation();
   const [loggingOut, setLoggingOut] = useState(false);
   const { open, close } = useSidebar();
-  const isCollapsed = isDesktop && location.pathname.startsWith('/whatsapp');
   const isDesktop = useIsDesktop();
+  const isCollapsed = isDesktop && location.pathname.startsWith('/whatsapp');
 
   useEffect(() => {
     if (!isDesktop) close();
