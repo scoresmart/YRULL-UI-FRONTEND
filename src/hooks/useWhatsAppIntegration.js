@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
  */
 export function useWhatsAppIntegration() {
   const profile = useAuthStore((s) => s.profile);
+  const authStatus = useAuthStore((s) => s.status); // idle | loading | authed | guest
   const workspaceId = profile?.workspace_id;
 
   const [status, setStatus] = useState(null);
@@ -153,7 +154,9 @@ export function useWhatsAppIntegration() {
 
   return {
     status,
-    loading,
+    // Keep loading true while auth store is still hydrating so the UI never
+    // briefly flashes the "Connect WhatsApp" card on refresh.
+    loading: loading || authStatus === 'idle' || authStatus === 'loading',
     error,
     connected: Boolean(status?.connected),
     disconnecting,
