@@ -19,6 +19,7 @@ import {
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
+import { Switch } from '../../components/ui/switch';
 import { cn } from '../../lib/utils';
 import { automationsApi, claudePromptApi } from '../../lib/api';
 import toast from 'react-hot-toast';
@@ -33,6 +34,10 @@ export function AutomationsPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [triggerFilter, setTriggerFilter] = useState('');
   const [editingPrompt, setEditingPrompt] = useState(false);
+  const [systemAutoActive, setSystemAutoActive] = useState(
+    () => localStorage.getItem('systemAutoActive') !== 'false',
+  );
+  const [togglingId, setTogglingId] = useState(null);
   const [systemPrompt, setSystemPrompt] = useState('');
   const [savingPrompt, setSavingPrompt] = useState(false);
   const [livePrompt, setLivePrompt] = useState('');
@@ -98,6 +103,23 @@ Rules:
       toast.error('Failed to load automations');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggle = async (automation) => {
+    const newStatus = automation.status === 'live' ? 'paused' : 'live';
+    setTogglingId(automation.id);
+    // Optimistic update
+    setAutomations((prev) => prev.map((a) => (a.id === automation.id ? { ...a, status: newStatus } : a)));
+    try {
+      await automationsApi.update(automation.id, { status: newStatus });
+      toast.success(newStatus === 'live' ? 'Automation activated' : 'Automation paused', { id: 'auto-toggle' });
+    } catch (err) {
+      // Rollback
+      setAutomations((prev) => prev.map((a) => (a.id === automation.id ? { ...a, status: automation.status } : a)));
+      toast.error('Failed to update automation');
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -271,7 +293,16 @@ Rules:
                           new message
                         </span>
                       </div>
-                      <div className="w-32 text-right text-sm text-gray-500">Always on</div>
+                      <div className="w-32 flex items-center justify-end">
+                        <Switch
+                          checked={systemAutoActive}
+                          onCheckedChange={(checked) => {
+                            setSystemAutoActive(checked);
+                            localStorage.setItem('systemAutoActive', String(checked));
+                            toast.success(checked ? 'AI Auto-Reply activated' : 'AI Auto-Reply paused', { id: 'sys-auto-toggle' });
+                          }}
+                        />
+                      </div>
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => navigate(`/automations/${sa.id}`)}
@@ -495,6 +526,12 @@ Rules:
                     </div>
                     <div className="w-32 text-right text-sm text-gray-600">{formatDate(automation.updated_at)}</div>
                     <div className="flex items-center gap-1">
+                      <Switch
+                        checked={automation.status === 'live'}
+                        disabled={togglingId === automation.id}
+                        onCheckedChange={() => handleToggle(automation)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
                       <button
                         onClick={() => navigate(`/automations/${automation.id}`)}
                         className="rounded-lg bg-blue-50 p-2 text-blue-600 hover:bg-blue-100 hover:text-blue-700 transition-colors"
