@@ -1,10 +1,11 @@
 import { memo, useCallback, useMemo, useEffect, useState, useRef } from 'react';
 import { FixedSizeList as List } from 'react-window';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, SlidersHorizontal, Check, ChevronDown } from 'lucide-react';
 import { cn, formatRelativeTime, initialsFromName, pastelClassFromString, formatPhone } from '../../lib/utils';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { InboxFiltersBar } from '../ui/InboxFiltersBar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { Button } from '../ui/button';
 import { useChatStore } from '../../store/chatStore';
 import { useContacts, useMessages, useTags, useContactTags } from '../../lib/dataHooks';
 import { supabase } from '../../lib/supabase';
@@ -176,6 +177,7 @@ export function ConversationList({ className }) {
   const [unreadCounts, setUnreadCounts] = useState({});
   const [lastMessages, setLastMessages] = useState({});
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
+  const hasLoadedOnceRef = useRef(false);
   const refreshUnreadCountsRef = useRef(null);
 
   // Fetch unread counts and last messages for all contacts
@@ -185,7 +187,11 @@ export function ConversationList({ className }) {
       return;
     }
 
-    setIsLoadingMessages(true);
+    // Only show the loading spinner on the very first load; subsequent background
+    // refreshes (30s poll, real-time events) should update silently.
+    if (!hasLoadedOnceRef.current) {
+      setIsLoadingMessages(true);
+    }
     const counts = {};
     const messages = {};
 
@@ -198,6 +204,7 @@ export function ConversationList({ className }) {
     setUnreadCounts(counts);
     setLastMessages(messages);
     setIsLoadingMessages(false);
+    hasLoadedOnceRef.current = true;
   }, [contactsQ.data]);
 
   // Store ref so we can call it from outside
@@ -328,31 +335,55 @@ export function ConversationList({ className }) {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="mt-3">
-          <InboxFiltersBar
-            scopeValue={filter === 'assigned' || filter === 'resolved' ? filter : 'all'}
-            onScopeChange={(value) => setFilter(value)}
-            scopeOptions={[
-              { value: 'all', label: 'Open Chats' },
-              { value: 'assigned', label: 'Assigned' },
-              { value: 'resolved', label: 'Resolved' },
-            ]}
-            unreadActive={filter === 'unread'}
-            onToggleUnread={() => setFilter(filter === 'unread' ? 'all' : 'unread')}
-            sortValue={sort}
-            onSortChange={setSort}
-            sortOptions={[
-              { value: 'newest', label: 'Sort: Newest' },
-              { value: 'oldest', label: 'Sort: Oldest' },
-              { value: 'unread', label: 'Sort: Unread first' },
-            ]}
-            channelValue="all"
-            onChannelChange={() => {}}
-            channelOptions={[{ value: 'all', label: 'All Channels' }]}
-            onAdvancedFilter={() => {}}
-          />
+        <div className="mt-3 flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 flex-1 justify-between gap-1.5 rounded-lg border-gray-200 px-3 text-xs font-medium text-gray-700"
+              >
+                <span className="flex items-center gap-1.5">
+                  <SlidersHorizontal className="h-3.5 w-3.5 text-gray-500" />
+                  {filter === 'unread' ? 'Unread' : filter === 'resolved' ? 'Closed Chats' : 'Open Chats'}
+                  {sort !== 'newest' && (
+                    <span className="rounded bg-gray-100 px-1 py-0.5 text-[10px] text-gray-500">
+                      {sort === 'oldest' ? 'Oldest' : 'Unread↑'}
+                    </span>
+                  )}
+                </span>
+                <ChevronDown className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <div className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Chats</div>
+              {[
+                { value: 'all', label: 'Open Chats' },
+                { value: 'unread', label: 'Unread' },
+                { value: 'resolved', label: 'Closed Chats' },
+              ].map((opt) => (
+                <DropdownMenuItem key={opt.value} onClick={() => setFilter(opt.value)}>
+                  <Check className={cn('mr-2 h-4 w-4', filter === opt.value ? 'opacity-100' : 'opacity-0')} />
+                  {opt.label}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <div className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Sort</div>
+              {[
+                { value: 'newest', label: 'Newest First' },
+                { value: 'oldest', label: 'Oldest First' },
+                { value: 'unread', label: 'Unread First' },
+              ].map((opt) => (
+                <DropdownMenuItem key={opt.value} onClick={() => setSort(opt.value)}>
+                  <Check className={cn('mr-2 h-4 w-4', sort === opt.value ? 'opacity-100' : 'opacity-0')} />
+                  {opt.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-        <div className="mt-3 text-xs text-gray-500">{items.length} conversations</div>
+        <div className="mt-2.5 text-xs text-gray-500">{items.length} conversations</div>
       </div>
 
       <div className="flex-1 overflow-hidden">
