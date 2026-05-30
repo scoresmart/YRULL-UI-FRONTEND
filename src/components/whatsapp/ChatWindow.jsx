@@ -12,17 +12,47 @@ import {
   PhoneMissed,
   ArrowLeft,
   Info,
+  Mic,
+  StopCircle,
+  FileText,
+  Clock,
+  ChevronLeft,
 } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { cn, formatRelativeTime, initialsFromName, pastelClassFromString } from '../../lib/utils';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
+import { Input } from '../ui/input';
 import { Skeleton } from '../ui/skeleton';
 import { useChatStore } from '../../store/chatStore';
 import { useContacts, useMessages, useTags, useContactTags } from '../../lib/dataHooks';
-import { whatsappApi, tagsApi } from '../../lib/api';
+import { whatsappApi, tagsApi, templatesApi } from '../../lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import toast from 'react-hot-toast';
+
+const WINDOW_MS = 24 * 60 * 60 * 1000;
+
+function getTemplateBodyText(template) {
+  const comps = template?.components || [];
+  const body = comps.find((c) => (c.type || '').toUpperCase() === 'BODY');
+  return body?.text || '';
+}
+
+function countTemplateParams(text) {
+  const matches = (text || '').match(/{{\s*\d+\s*}}/g);
+  if (!matches) return 0;
+  const nums = matches.map((m) => parseInt(m.replace(/[^\d]/g, ''), 10));
+  return Math.max(...nums, 0);
+}
+
+function formatRemaining(ms) {
+  if (ms <= 0) return 'expired';
+  const totalMin = Math.floor(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h <= 0) return `${m}m left`;
+  return `${h}h ${m}m left`;
+}
 
 // Format call duration (seconds to "X seconds" or "X minutes Y seconds")
 function formatCallDuration(seconds) {
@@ -125,6 +155,74 @@ const MessageBubble = memo(function MessageBubble({ msg }) {
                 : null) ||
               '[Automated message - no content]'}
           </div>
+        ) : msg.message_type === 'image' ? (
+          <div className="flex flex-col gap-1">
+            {msg.media_url ? (
+              <a href={msg.media_url} target="_blank" rel="noopener noreferrer">
+                <img
+                  src={msg.media_url}
+                  alt="Image"
+                  className="max-w-full rounded-lg object-cover"
+                  style={{ maxHeight: 320 }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextSibling.style.display = 'flex';
+                  }}
+                />
+                <div
+                  className="hidden items-center gap-2 rounded-lg bg-black/5 px-3 py-2 text-xs text-gray-500"
+                >
+                  🖼️ Image (tap to open)
+                </div>
+              </a>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="h-10 w-10 rounded-lg bg-black/5" />
+                <div>
+                  <div className={cn('text-sm font-medium', inbound ? 'text-gray-900' : 'text-white')}>IMAGE</div>
+                  <div className={cn('text-xs', inbound ? 'text-gray-500' : 'text-white/70')}>Loading…</div>
+                </div>
+              </div>
+            )}
+            {msg.body && (
+              <div className={cn('mt-1 text-sm', inbound ? 'text-gray-800' : 'text-white')}>{msg.body}</div>
+            )}
+          </div>
+        ) : msg.message_type === 'audio' ? (
+          <div className="flex flex-col gap-1">
+            {msg.media_url ? (
+              <audio controls src={msg.media_url} className="w-full max-w-xs" />
+            ) : (
+              <div className={cn('text-sm italic', inbound ? 'text-gray-500' : 'text-white/70')}>🎵 Voice message</div>
+            )}
+          </div>
+        ) : msg.message_type === 'video' ? (
+          <div className="flex flex-col gap-1">
+            {msg.media_url ? (
+              <video controls src={msg.media_url} className="max-w-full rounded-lg" style={{ maxHeight: 320 }} />
+            ) : (
+              <div className={cn('text-sm italic', inbound ? 'text-gray-500' : 'text-white/70')}>🎥 Video message</div>
+            )}
+          </div>
+        ) : msg.message_type === 'document' ? (
+          <div className="flex items-center gap-2">
+            <div className="text-2xl">📄</div>
+            <div>
+              <div className={cn('text-sm font-medium', inbound ? 'text-gray-900' : 'text-white')}>Document</div>
+              {msg.media_url ? (
+                <a
+                  href={msg.media_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn('text-xs underline', inbound ? 'text-blue-600' : 'text-white/90')}
+                >
+                  Download
+                </a>
+              ) : (
+                <div className={cn('text-xs', inbound ? 'text-gray-500' : 'text-white/70')}>No preview</div>
+              )}
+            </div>
+          </div>
         ) : (
           <div className="flex items-center gap-2">
             <div className="h-10 w-10 rounded-lg bg-black/5" />
@@ -200,9 +298,36 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
   const [callingUser, setCallingUser] = useState(false);
   const [showTagPanel, setShowTagPanel] = useState(false);
   const [applyingTag, setApplyingTag] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [templateParams, setTemplateParams] = useState([]);
+  const [sendingTemplate, setSendingTemplate] = useState(false);
+  const [templateSearch, setTemplateSearch] = useState('');
+  const [now, setNow] = useState(() => Date.now());
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingTimerRef = useRef(null);
 
   const tagsQ = useTags();
   const contactTagsQ = useContactTags();
+
+  // Templates are loaded lazily — only when the picker is opened — so we don't
+  // pay the round-trip cost for every chat that's still inside the 24h window.
+  const templatesQ = useQuery({
+    queryKey: ['whatsapp_templates'],
+    queryFn: () => templatesApi.list(),
+    enabled: showTemplatePicker,
+    staleTime: 60_000,
+  });
+
+  // Tick once a minute so the "expires in" countdown stays fresh and the lock
+  // engages the moment the 24h window rolls over while the chat is open.
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   // Get tags applied to this contact
   // Note: contact_tags table references contacts.id, not whatsapp_contacts
@@ -291,6 +416,59 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
     }
   }, [draft, contact, selectedWaId, sending, queryClient]);
 
+  const closeTemplatePicker = useCallback(() => {
+    setShowTemplatePicker(false);
+    setSelectedTemplate(null);
+    setTemplateParams([]);
+    setTemplateSearch('');
+  }, []);
+
+  const onSendTemplate = useCallback(async () => {
+    if (!selectedTemplate || !contact || !selectedWaId || sendingTemplate) return;
+    if (!selectedTemplate.language) {
+      toast.error('Template is missing a language and can\'t be sent.');
+      return;
+    }
+    const bodyText = getTemplateBodyText(selectedTemplate);
+    const paramCount = countTemplateParams(bodyText);
+    const filled = templateParams.slice(0, paramCount).every((v) => (v || '').trim().length > 0);
+    if (paramCount > 0 && !filled) {
+      toast.error('Please fill in all template parameters.');
+      return;
+    }
+
+    const components = paramCount > 0
+      ? [{
+          type: 'body',
+          parameters: Array.from({ length: paramCount }, (_, i) => ({
+            type: 'text',
+            text: (templateParams[i] || '').trim(),
+          })),
+        }]
+      : [];
+
+    setSendingTemplate(true);
+    try {
+      await templatesApi.sendTest({
+        to: contact.wa_id,
+        template_name: selectedTemplate.name,
+        language: selectedTemplate.language,
+        components,
+      });
+      toast.success(`Sent "${selectedTemplate.name}"`);
+      closeTemplatePicker();
+      // Refresh messages so the outbound template appears in the thread.
+      setTimeout(async () => {
+        await queryClient.invalidateQueries({ queryKey: ['whatsapp_messages', selectedWaId] });
+        await queryClient.invalidateQueries({ queryKey: ['whatsapp_contacts'] });
+      }, 800);
+    } catch (e) {
+      toast.error(e.message || 'Failed to send template');
+    } finally {
+      setSendingTemplate(false);
+    }
+  }, [selectedTemplate, contact, selectedWaId, sendingTemplate, templateParams, queryClient, closeTemplatePicker]);
+
   const onCall = useCallback(async () => {
     if (!contact || !selectedWaId || callingUser) return;
     setCallingUser(true);
@@ -309,6 +487,56 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
       setCallingUser(false);
     }
   }, [contact, selectedWaId, callingUser, queryClient]);
+
+  const startRecording = useCallback(async () => {
+    if (!contact || !selectedWaId) return;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast.error('Microphone not supported in this browser');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      const mimeType = MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
+        ? 'audio/ogg;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : 'audio/webm';
+      const mr = new MediaRecorder(stream, { mimeType });
+      mr.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      mr.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        clearInterval(recordingTimerRef.current);
+        setRecordingSeconds(0);
+        if (!audioChunksRef.current.length) return;
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        setSending(true);
+        try {
+          await whatsappApi.sendAudio({ to: contact.wa_id, audioBlob: blob });
+          await queryClient.invalidateQueries({ queryKey: ['whatsapp_messages', selectedWaId] });
+          toast.success('Voice message sent');
+        } catch {
+          /* error already toasted by sendAudio */
+        } finally {
+          setSending(false);
+        }
+      };
+      mr.start(250);
+      mediaRecorderRef.current = mr;
+      setRecording(true);
+      setRecordingSeconds(0);
+      recordingTimerRef.current = setInterval(() => setRecordingSeconds((s) => s + 1), 1000);
+    } catch {
+      toast.error('Could not access microphone. Check browser permissions.');
+    }
+  }, [contact, selectedWaId, queryClient]);
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    setRecording(false);
+  }, []);
 
   const templates = ['Intro', 'Pricing', 'Demo Link', 'Follow-up', 'After-hours'];
 
@@ -331,6 +559,26 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
     }
     return result;
   }, [messagesQ.data]);
+
+  // The 24h "customer service window" opens on every inbound message from the
+  // contact and closes 24h after the most recent one. Outside of it, WhatsApp
+  // only allows pre-approved template messages — never freeform text/voice.
+  const lastInboundAt = useMemo(() => {
+    let latest = 0;
+    for (const m of messagesQ.data ?? []) {
+      if (m.direction !== 'inbound' || !m.created_at) continue;
+      const t = new Date(m.created_at).getTime();
+      if (Number.isFinite(t) && t > latest) latest = t;
+    }
+    return latest || null;
+  }, [messagesQ.data]);
+
+  // While messages are still loading we treat the window as open to avoid a
+  // brief lock-flash on chat switch — once data arrives we re-evaluate.
+  const windowOpen = messagesQ.isLoading
+    ? true
+    : lastInboundAt != null && now - lastInboundAt < WINDOW_MS;
+  const windowExpiresIn = lastInboundAt ? lastInboundAt + WINDOW_MS - now : 0;
 
   if (!selectedWaId) {
     return (
@@ -464,8 +712,40 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
             </div>
           </div>
         </div>
+      ) : !windowOpen ? (
+        <div className="border-t border-brand-border bg-white px-4 py-4 sm:px-6">
+          <div className="flex flex-col gap-3 rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-4 py-4 sm:flex-row sm:items-center">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-gray-400 ring-1 ring-gray-200">
+              <Clock className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium text-gray-600">24-hour window closed</div>
+              <p className="mt-0.5 text-xs leading-relaxed text-gray-400">
+                You can only send approved templates as you are out of the 24-hour window. Wait for{' '}
+                <span className="font-medium text-gray-500">{contact?.name || 'this contact'}</span> to reply, or pick a
+                template below.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              className="shrink-0 gap-1.5"
+              onClick={() => setShowTemplatePicker(true)}
+            >
+              <FileText className="h-4 w-4" />
+              Send template
+            </Button>
+          </div>
+        </div>
       ) : (
         <div className="border-t border-brand-border bg-white">
+          {windowExpiresIn > 0 && windowExpiresIn < 60 * 60 * 1000 && (
+            <div className="flex items-center gap-2 border-b border-amber-100 bg-amber-50/70 px-4 py-1.5 text-[11px] text-amber-700">
+              <Clock className="h-3 w-3" />
+              <span>
+                24-hour window {formatRemaining(windowExpiresIn)} — after that, only templates can be sent.
+              </span>
+            </div>
+          )}
           <div className="flex gap-2 overflow-auto px-4 py-2">
             {templates.map((t) => (
               <button
@@ -499,25 +779,49 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
               <Textarea
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                placeholder="Type a message..."
+                placeholder={recording ? `Recording… ${recordingSeconds}s` : 'Type a message...'}
                 className="min-h-[44px] max-h-[96px] resize-none bg-white"
                 rows={1}
+                disabled={recording}
               />
             </div>
 
-            <button
-              type="button"
-              onClick={onSend}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-accent text-white transition-all duration-150 hover:bg-[#1fb85a] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label="Send"
-              disabled={!draft.trim() || sending}
-            >
-              {sending ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </button>
+            {recording ? (
+              <button
+                type="button"
+                onClick={stopRecording}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500 text-white animate-pulse hover:bg-red-600 active:scale-95"
+                aria-label="Stop recording"
+                title="Stop and send voice message"
+              >
+                <StopCircle className="h-5 w-5" />
+              </button>
+            ) : draft.trim() ? (
+              <button
+                type="button"
+                onClick={onSend}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-accent text-white transition-all duration-150 hover:bg-[#1fb85a] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Send"
+                disabled={sending}
+              >
+                {sending ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={startRecording}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition-all duration-150 hover:bg-gray-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Record voice message"
+                title="Hold to record voice message"
+                disabled={sending}
+              >
+                <Mic className="h-5 w-5" />
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -607,6 +911,156 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
               Close
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Template Picker Dialog — used when the 24h window is closed */}
+      <Dialog
+        open={showTemplatePicker}
+        onOpenChange={(open) => (open ? setShowTemplatePicker(true) : closeTemplatePicker())}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedTemplate && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedTemplate(null);
+                    setTemplateParams([]);
+                  }}
+                  className="rounded-md p-1 text-gray-500 hover:bg-gray-100"
+                  aria-label="Back to templates"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+              )}
+              {selectedTemplate ? `Send "${selectedTemplate.name}"` : 'Send a template'}
+            </DialogTitle>
+          </DialogHeader>
+
+          {!selectedTemplate ? (
+            <div className="space-y-3">
+              <p className="text-xs text-gray-400">
+                Approved WhatsApp templates can be sent at any time, including outside the 24-hour window.
+              </p>
+              <Input
+                value={templateSearch}
+                onChange={(e) => setTemplateSearch(e.target.value)}
+                placeholder="Search templates..."
+              />
+              <div className="max-h-[360px] overflow-y-auto">
+                {templatesQ.isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-14 w-full" />
+                    <Skeleton className="h-14 w-full" />
+                    <Skeleton className="h-14 w-full" />
+                  </div>
+                ) : templatesQ.error ? (
+                  <div className="py-8 text-center">
+                    <p className="text-sm text-gray-500">Failed to load templates.</p>
+                    <Button variant="outline" size="sm" className="mt-2" onClick={() => templatesQ.refetch()}>
+                      Try again
+                    </Button>
+                  </div>
+                ) : (() => {
+                  const list = (templatesQ.data ?? []).filter((t) => t.status === 'APPROVED');
+                  const q = templateSearch.trim().toLowerCase();
+                  const filtered = q ? list.filter((t) => (t.name || '').toLowerCase().includes(q)) : list;
+                  if (!list.length) {
+                    return (
+                      <div className="py-8 text-center">
+                        <p className="text-sm text-gray-500">No approved templates yet</p>
+                        <p className="mt-1 text-xs text-gray-400">
+                          Submit and approve templates from the Templates page to use them here.
+                        </p>
+                      </div>
+                    );
+                  }
+                  if (!filtered.length) {
+                    return (
+                      <div className="py-8 text-center text-sm text-gray-500">
+                        No templates match "{templateSearch}".
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="space-y-2">
+                      {filtered.map((t) => {
+                        const body = getTemplateBodyText(t);
+                        const paramCount = countTemplateParams(body);
+                        return (
+                          <button
+                            key={t.id || t.name}
+                            type="button"
+                            onClick={() => {
+                              setSelectedTemplate(t);
+                              setTemplateParams(Array.from({ length: paramCount }, () => ''));
+                            }}
+                            className="flex w-full flex-col gap-1 rounded-lg border border-gray-200 p-3 text-left transition-colors hover:border-brand-accent hover:bg-green-50/40"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="truncate text-sm font-medium text-gray-900">{t.name}</div>
+                              <div className="shrink-0 text-[10px] uppercase tracking-wide text-gray-400">
+                                {t.language || 'en_US'}
+                                {paramCount > 0 ? ` · ${paramCount} var` : ''}
+                              </div>
+                            </div>
+                            {body && (
+                              <div className="line-clamp-2 text-xs text-gray-500">{body}</div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          ) : (() => {
+            const bodyText = getTemplateBodyText(selectedTemplate);
+            const paramCount = countTemplateParams(bodyText);
+            return (
+              <div className="space-y-4">
+                {bodyText && (
+                  <div className="rounded-lg bg-gray-50 p-3 text-xs text-gray-600">
+                    <div className="mb-1 text-[10px] uppercase tracking-wide text-gray-400">Preview</div>
+                    {bodyText}
+                  </div>
+                )}
+                <div className="rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-500">
+                  Sending to <span className="font-medium text-gray-700">{contact?.name || contact?.wa_id}</span>{' '}
+                  <span className="text-gray-400">({contact?.wa_id})</span>
+                </div>
+                {paramCount > 0 && (
+                  <div className="space-y-2">
+                    {Array.from({ length: paramCount }, (_, i) => (
+                      <div key={i} className="space-y-1">
+                        <label className="text-xs font-medium text-gray-700">{`Parameter {{${i + 1}}}`}</label>
+                        <Input
+                          value={templateParams[i] || ''}
+                          onChange={(e) => {
+                            const next = [...templateParams];
+                            next[i] = e.target.value;
+                            setTemplateParams(next);
+                          }}
+                          placeholder={`Value for {{${i + 1}}}`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex justify-end gap-2 pt-1">
+                  <Button variant="outline" onClick={closeTemplatePicker} disabled={sendingTemplate}>
+                    Cancel
+                  </Button>
+                  <Button onClick={onSendTemplate} disabled={sendingTemplate}>
+                    {sendingTemplate ? 'Sending...' : 'Send template'}
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
