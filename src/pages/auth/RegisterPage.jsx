@@ -52,9 +52,16 @@ export function RegisterPage() {
                 <PermissionsInfoTooltip placement="bottom" />
               </div>
               <ConnectFacebookButton className="w-full" size="lg" appearance="facebook" intent="signInWithFacebook" />
-              <p className="text-xs leading-relaxed text-gray-500">
-                By continuing, you agree to connect your Facebook Pages, Instagram, and WhatsApp Business accounts to
-                Yrull.
+              <p className="text-center text-xs leading-relaxed text-gray-500">
+                By signing up, you agree to Yrull&apos;s{' '}
+                <Link to="/terms" className="font-medium text-[#1877F2] hover:underline">
+                  Terms of Service
+                </Link>{' '}
+                and{' '}
+                <Link to="/privacy" className="font-medium text-[#1877F2] hover:underline">
+                  Privacy Policy
+                </Link>
+                .
               </p>
             </div>
 

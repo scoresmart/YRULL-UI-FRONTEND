@@ -16,7 +16,7 @@ const buttonVariants = cva(
         instagram:
           'border-0 bg-gradient-to-r from-[#F58529] via-[#DD2A7B] to-[#8134AF] text-white shadow-md hover:opacity-90 focus-visible:ring-purple-400',
         facebook:
-          'border-0 bg-[#1877F2] text-white shadow-sm hover:bg-[#166FE5] active:bg-[#1464C0] focus-visible:ring-[#1877F2]/50',
+          'border border-gray-200 bg-white text-gray-900 shadow-sm hover:bg-gray-50 active:bg-gray-100 focus-visible:ring-[#1877F2]/40',
       },
       size: {
         default: 'h-10 px-4',

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { LoginForm } from '../../components/auth/LoginForm';
 import { BrandMark } from '../../components/brand/BrandMark';
 import { ConnectFacebookButton } from '../../components/integrations/ConnectFacebookButton';
@@ -55,6 +56,17 @@ export function LoginPage() {
                 <PermissionsInfoTooltip placement="bottom" />
               </div>
               <ConnectFacebookButton className="w-full" size="lg" appearance="facebook" intent="signInWithFacebook" />
+              <p className="text-center text-xs leading-relaxed text-gray-500">
+                By continuing, you agree to Yrull&apos;s{' '}
+                <Link to="/terms" className="font-medium text-[#1877F2] hover:underline">
+                  Terms of Service
+                </Link>{' '}
+                and{' '}
+                <Link to="/privacy" className="font-medium text-[#1877F2] hover:underline">
+                  Privacy Policy
+                </Link>
+                .
+              </p>
             </div>
 
             <div className="relative my-6">
