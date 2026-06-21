@@ -26,7 +26,7 @@ export function Footer() {
           Contact
         </a>
       </div>
-      <p>&copy; 2025 Prepsmart Pty Ltd. All rights reserved.</p>
+      <p>&copy; 2025 Yrull - Prepsmart Pty Ltd. All rights reserved.</p>
     </div>
   );
 }

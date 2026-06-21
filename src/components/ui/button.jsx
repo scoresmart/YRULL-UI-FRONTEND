@@ -15,6 +15,8 @@ const buttonVariants = cva(
         destructive: 'bg-red-500 text-white hover:bg-red-600',
         instagram:
           'border-0 bg-gradient-to-r from-[#F58529] via-[#DD2A7B] to-[#8134AF] text-white shadow-md hover:opacity-90 focus-visible:ring-purple-400',
+        facebook:
+          'border-0 bg-[#1877F2] text-white shadow-sm hover:bg-[#166FE5] active:bg-[#1464C0] focus-visible:ring-[#1877F2]/50',
       },
       size: {
         default: 'h-10 px-4',

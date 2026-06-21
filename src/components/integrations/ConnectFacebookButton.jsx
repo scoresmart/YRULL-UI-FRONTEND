@@ -13,6 +13,24 @@ const DEFAULT_NO_WORKSPACE_MSG = 'Sign in first, then connect Instagram from Int
 const LABEL_SIGN_IN = 'Continue with Facebook';
 const LABEL_LINK_INSTAGRAM = 'Connect to Facebook ✨';
 
+// Official Facebook 'f' glyph — sized to sit inside the Meta-approved button per brand guidelines.
+function FacebookLogo({ className }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      focusable="false"
+      className={className}
+    >
+      <path
+        fill="currentColor"
+        d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"
+      />
+    </svg>
+  );
+}
+
 export function ConnectFacebookButton({
   className,
   size = 'default',
@@ -67,7 +85,11 @@ export function ConnectFacebookButton({
   // Allow click when workspace might exist after refresh (toast mode); only hard-disable when policy is disabled.
   const disableButton = intent === 'linkWorkspace' && !workspaceId && whenNoWorkspace === 'disabled';
 
-  const variant = appearance === 'instagram' ? 'instagram' : 'default';
+  let variant = 'default';
+  if (appearance === 'instagram') variant = 'instagram';
+  else if (appearance === 'facebook') variant = 'facebook';
+
+  const label = children ?? (intent === 'signInWithFacebook' ? LABEL_SIGN_IN : LABEL_LINK_INSTAGRAM);
 
   return (
     <Button
@@ -82,7 +104,8 @@ export function ConnectFacebookButton({
       onPointerDown={(e) => e.stopPropagation()}
       className={cn('relative z-[100] touch-manipulation active:!scale-100', className)}
     >
-      {children ?? (intent === 'signInWithFacebook' ? LABEL_SIGN_IN : LABEL_LINK_INSTAGRAM)}
+      {appearance === 'facebook' ? <FacebookLogo className="h-5 w-5 shrink-0" /> : null}
+      <span>{label}</span>
     </Button>
   );
 }

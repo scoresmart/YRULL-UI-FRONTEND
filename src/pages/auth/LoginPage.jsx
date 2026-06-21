@@ -1,14 +1,59 @@
 import { LoginForm } from '../../components/auth/LoginForm';
 import { BrandMark } from '../../components/brand/BrandMark';
 import { ConnectFacebookButton } from '../../components/integrations/ConnectFacebookButton';
+import { PermissionsInfoTooltip } from '../../components/integrations/PermissionsInfoTooltip';
 import { Footer } from '../../components/layout/Footer';
 import { isAuthConfigured } from '../../lib/env';
+
+const LEFT_PANEL_FEATURES = [
+  {
+    emoji: '📱',
+    title: 'WhatsApp Business',
+    description: 'Send and receive WhatsApp messages',
+  },
+  {
+    emoji: '📸',
+    title: 'Instagram DMs',
+    description: 'Manage Instagram direct messages',
+  },
+  {
+    emoji: '💬',
+    title: 'Facebook Messenger',
+    description: 'Unified Messenger inbox',
+  },
+  {
+    emoji: '🤖',
+    title: 'Automations',
+    description: 'Set up auto-replies and workflows',
+  },
+];
+
+function FeatureHighlights() {
+  return (
+    <ul className="mt-10 space-y-4" lang="en-US">
+      {LEFT_PANEL_FEATURES.map((feature) => (
+        <li
+          key={feature.title}
+          className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm"
+        >
+          <span className="text-2xl leading-none" aria-hidden="true">
+            {feature.emoji}
+          </span>
+          <div>
+            <div className="text-sm font-semibold text-white">{feature.title}</div>
+            <div className="text-sm text-white/65">{feature.description}</div>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function LoginPage() {
   const authReady = isAuthConfigured();
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white" lang="en-US">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-10">
         <div className="relative hidden overflow-hidden bg-[#0F0F0F] text-white lg:col-span-6 lg:block">
           <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(to_right,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:48px_48px]" />
@@ -18,15 +63,10 @@ export function LoginPage() {
               <div className="mt-2 max-w-md text-lg text-white/70">
                 Connect all your messaging channels in one powerful platform.
               </div>
+              <FeatureHighlights />
             </div>
 
             <div className="flex-1" />
-
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-white/10 px-3 py-1 text-sm text-white/80">⚡ Automations</span>
-              <span className="rounded-full bg-white/10 px-3 py-1 text-sm text-white/80">📱 WhatsApp Inbox</span>
-              <span className="rounded-full bg-white/10 px-3 py-1 text-sm text-white/80">👥 Team Collaboration</span>
-            </div>
           </div>
         </div>
 
@@ -37,21 +77,8 @@ export function LoginPage() {
               <div className="mb-4 max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
                 <p className="font-medium text-slate-800">Sign-in is temporarily unavailable.</p>
                 <p className="mt-1">
-                  Add Supabase URL + anon key in your host (Vercel → Environment Variables), then redeploy. Use{' '}
-                  <code className="rounded bg-slate-100 px-1 text-xs">VITE_SUPABASE_URL</code> +{' '}
-                  <code className="rounded bg-slate-100 px-1 text-xs">VITE_SUPABASE_ANON_KEY</code>, or{' '}
-                  <code className="rounded bg-slate-100 px-1 text-xs">SUPABASE_URL</code> +{' '}
-                  <code className="rounded bg-slate-100 px-1 text-xs">SUPABASE_ANON_KEY</code>. Turn off mock mode for
-                  real login.
+                  Sign-in services are not configured for this environment. Please try again later or contact support.
                 </p>
-                {import.meta.env.DEV ? (
-                  <p className="mt-2 border-t border-slate-200 pt-2 text-xs text-slate-600">
-                    Dev: set <code className="rounded bg-slate-100 px-1">VITE_SUPABASE_URL</code> and{' '}
-                    <code className="rounded bg-slate-100 px-1">VITE_SUPABASE_ANON_KEY</code> in{' '}
-                    <code className="rounded bg-slate-100 px-1">.env</code>, or{' '}
-                    <code className="rounded bg-slate-100 px-1">VITE_USE_MOCK=true</code>.
-                  </p>
-                ) : null}
               </div>
             )}
             <div className="mb-6">
@@ -61,14 +88,23 @@ export function LoginPage() {
             </div>
 
             {/* Above the form so it stays visible without scrolling past long warnings */}
-            <div className="mb-6 space-y-2">
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Sign in with Facebook</p>
-              <ConnectFacebookButton className="w-full" size="lg" intent="signInWithFacebook" />
-              <p className="text-center text-xs text-gray-400">
-                This button signs you in via Supabase. To connect Instagram (Railway OAuth), log in first, then use
-                Instagram or Integrations — and set{' '}
-                <code className="rounded bg-gray-100 px-1 text-[11px]">VITE_API_BASE_URL</code> on Vercel.
-              </p>
+            <div className="mb-6 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Sign in with Facebook</p>
+                <PermissionsInfoTooltip placement="bottom" />
+              </div>
+              <ConnectFacebookButton className="w-full" size="lg" appearance="facebook" intent="signInWithFacebook" />
+            </div>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                <div className="w-full border-t border-gray-200" />
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-white px-3 text-xs font-medium uppercase tracking-wide text-gray-400">
+                  Or sign in with email
+                </span>
+              </div>
             </div>
 
             <LoginForm />
