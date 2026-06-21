@@ -5,50 +5,6 @@ import { PermissionsInfoTooltip } from '../../components/integrations/Permission
 import { Footer } from '../../components/layout/Footer';
 import { isAuthConfigured } from '../../lib/env';
 
-const LEFT_PANEL_FEATURES = [
-  {
-    emoji: '📱',
-    title: 'WhatsApp Business',
-    description: 'Send and receive WhatsApp messages',
-  },
-  {
-    emoji: '📸',
-    title: 'Instagram DMs',
-    description: 'Manage Instagram direct messages',
-  },
-  {
-    emoji: '💬',
-    title: 'Facebook Messenger',
-    description: 'Unified Messenger inbox',
-  },
-  {
-    emoji: '🤖',
-    title: 'Automations',
-    description: 'Set up auto-replies and workflows',
-  },
-];
-
-function FeatureHighlights() {
-  return (
-    <ul className="mt-10 space-y-4" lang="en-US">
-      {LEFT_PANEL_FEATURES.map((feature) => (
-        <li
-          key={feature.title}
-          className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm"
-        >
-          <span className="text-2xl leading-none" aria-hidden="true">
-            {feature.emoji}
-          </span>
-          <div>
-            <div className="text-sm font-semibold text-white">{feature.title}</div>
-            <div className="text-sm text-white/65">{feature.description}</div>
-          </div>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 export function LoginPage() {
   const authReady = isAuthConfigured();
 
@@ -63,10 +19,15 @@ export function LoginPage() {
               <div className="mt-2 max-w-md text-lg text-white/70">
                 Connect all your messaging channels in one powerful platform.
               </div>
-              <FeatureHighlights />
             </div>
 
             <div className="flex-1" />
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-white/10 px-3 py-1 text-sm text-white/80">⚡ Automations</span>
+              <span className="rounded-full bg-white/10 px-3 py-1 text-sm text-white/80">📱 WhatsApp Inbox</span>
+              <span className="rounded-full bg-white/10 px-3 py-1 text-sm text-white/80">👥 Team Collaboration</span>
+            </div>
           </div>
         </div>
 
