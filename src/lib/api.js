@@ -51,6 +51,43 @@ async function apiJSON(method, path, init = {}) {
   return body;
 }
 
+// -- Unified Facebook OAuth (login + connect, all Meta scopes) ----------------
+
+export const facebookIntegrationApi = {
+  /** Public login/signup — no JWT. Backend requests all 18 Meta scopes. */
+  async startLogin() {
+    const returnOrigin = window.location.origin;
+    const qs = `?mode=login&return_origin=${encodeURIComponent(returnOrigin)}`;
+    const response = await fetch(`${ENV.API_BASE_URL}/oauth/facebook/authorize${qs}`);
+    let body = {};
+    const text = await response.text();
+    if (text) {
+      try {
+        body = JSON.parse(text);
+      } catch {
+        body = { raw: text };
+      }
+    }
+    if (!response.ok) {
+      const msg = body.error || body.message || `${response.status} Failed to start Facebook login`;
+      throw new Error(msg);
+    }
+    if (!body.auth_url) throw new Error('Backend did not return an auth_url');
+    return body.auth_url;
+  },
+
+  /** Dashboard reconnect — requires signed-in user + workspace. */
+  async startConnect() {
+    const returnOrigin = window.location.origin;
+    const qs = `?mode=connect&return_origin=${encodeURIComponent(returnOrigin)}`;
+    const data = await apiJSON('GET', `/oauth/facebook/authorize${qs}`);
+    if (!data.auth_url) throw new Error('Backend did not return an auth_url');
+    return data.auth_url;
+  },
+
+  disconnect: () => apiJSON('POST', '/oauth/facebook/disconnect'),
+};
+
 // -- WhatsApp Integration (workspace-scoped) ----------------------------------
 
 export const whatsappIntegrationApi = {
@@ -119,6 +156,35 @@ export const whatsappApi = {
 
   hangupCall: (call_id) =>
     apiJSON('POST', '/whatsapp/call/hangup', { body: JSON.stringify({ call_id }) }),
+
+  async sendAudio({ to, audioBlob }) {
+    const form = new FormData();
+    form.append('to', to);
+    form.append('audio', audioBlob, `voice-${Date.now()}.ogg`);
+    try {
+      // Build auth headers manually — do NOT set Content-Type (browser sets it with boundary for FormData)
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const headers = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      let wsId;
+      try {
+        const { useAuthStore } = await import('../store/authStore');
+        wsId = useAuthStore.getState().profile?.workspace_id;
+      } catch { /* ignore */ }
+      if (wsId) headers['X-Workspace-Id'] = wsId;
+
+      const res = await fetch(`${ENV.API_BASE_URL}/whatsapp/send-audio`, { method: 'POST', headers, body: form });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Server error ${res.status}`);
+      }
+      return res.json();
+    } catch (error) {
+      toast.error(error.message || 'Failed to send voice message');
+      throw error;
+    }
+  },
 };
 
 // -- Conversations API --------------------------------------------------------

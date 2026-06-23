@@ -243,36 +243,29 @@ export const useAuthStore = create((set, get) => ({
   },
 
   /**
-   * Facebook Login via Supabase Auth (identity). Separate from Instagram Business OAuth on the API.
-   * Enable Authentication → Providers → Facebook in the Supabase project and add the redirect URL.
+   * Unified Facebook OAuth via Railway backend — requests all 18 Meta scopes in one
+   * consent screen (required for Meta App Review / WhatsApp verification).
+   * Callback lands on /auth/facebook/callback with a Supabase session in the URL hash.
    */
   loginWithFacebook: async () => {
     if (ENV.USE_MOCK) {
       set({ status: 'guest' });
       throw new Error('Facebook sign-in is not available in mock mode.');
     }
-    set({ status: 'loading' });
-    // Space-separated Facebook Login permissions. Default `public_profile` only — if Meta shows
-    // "Invalid Scopes: email", your app doesn't have `email` enabled yet (Use Cases in Meta console).
-    // After enabling email, set VITE_FACEBOOK_OAUTH_SCOPES=public_profile email and redeploy.
-    const facebookScopes = (import.meta.env.VITE_FACEBOOK_OAUTH_SCOPES || '').trim() || 'public_profile';
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'facebook',
-      options: {
-        redirectTo: `${window.location.origin}/`,
-        scopes: facebookScopes,
-      },
-    });
-    if (error) {
+    if (!ENV.API_BASE_URL) {
       set({ status: 'guest' });
-      throw error;
+      throw new Error('VITE_API_BASE_URL is not set — cannot start Facebook login.');
     }
-    if (data?.url) {
-      window.location.assign(data.url);
+    set({ status: 'loading' });
+    try {
+      const { facebookIntegrationApi } = await import('../lib/api');
+      const url = await facebookIntegrationApi.startLogin();
+      window.location.assign(url);
       return { profile: null };
+    } catch (e) {
+      set({ status: 'guest' });
+      throw e;
     }
-    set({ status: 'guest' });
-    throw new Error('Facebook sign-in did not return a redirect URL.');
   },
 
   signUp: async ({ email, password, fullName, workspaceName }) => {

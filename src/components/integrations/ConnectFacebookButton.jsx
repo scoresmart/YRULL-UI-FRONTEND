@@ -1,14 +1,14 @@
 import toast from 'react-hot-toast';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
-import { getInstagramOAuthAuthorizeUrl } from '../../lib/oauth';
+import { facebookIntegrationApi } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 
 const DEFAULT_NO_WORKSPACE_MSG = 'Sign in first, then connect Instagram from Integrations or the Instagram page.';
 
 /**
- * - `linkWorkspace` (default): Instagram Business OAuth on the API — needs a logged-in workspace.
- * - `signInWithFacebook`: Supabase Auth Facebook Login — no workspace; use on /login or /register.
+ * - `linkWorkspace` (default): unified Facebook OAuth (all 18 Meta scopes) — needs a signed-in workspace.
+ * - `signInWithFacebook`: same unified flow in login mode — use on /login or /register.
  */
 const LABEL_SIGN_IN = 'Continue with Facebook';
 const LABEL_LINK_INSTAGRAM = 'Connect to Facebook ✨';
@@ -54,14 +54,13 @@ export function ConnectFacebookButton({
         const msg =
           e?.message === 'Facebook sign-in is not available in mock mode.'
             ? e.message
-            : (e?.message ??
-              'Unable to start Facebook sign-in. Enable the Facebook provider in Supabase (Auth → Providers).');
+            : (e?.message ?? 'Unable to start Facebook sign-in. Check VITE_API_BASE_URL and backend deployment.');
         toast.error(msg);
       }
       return;
     }
 
-    // Re-fetch profile + workspace bootstrap on click — UI state can be stale right after SQL/RLS fixes.
+    // linkWorkspace — unified Facebook connect (all Meta scopes)
     let effectiveWorkspaceId = workspaceId ?? (await useAuthStore.getState().resolveWorkspaceIdForInstagram());
 
     if (!effectiveWorkspaceId) {
@@ -72,15 +71,17 @@ export function ConnectFacebookButton({
       toast.error('Workspace not found. Try signing in again.', { id: 'yrull-no-workspace' });
       return;
     }
-    const url = getInstagramOAuthAuthorizeUrl(effectiveWorkspaceId);
-    if (!url) {
+
+    try {
+      const url = await facebookIntegrationApi.startConnect();
+      window.location.assign(url);
+    } catch (e) {
       toast.error(
-        'Set VITE_API_BASE_URL in Vercel to your backend URL (the server that runs /oauth/instagram/authorize), then redeploy. Same-domain /oauth does not work on static hosting.',
+        e?.message ||
+          'Failed to start Facebook connection. Check VITE_API_BASE_URL and that the backend is deployed.',
         { duration: 6000 },
       );
-      return;
     }
-    window.location.assign(url);
   };
 
   // Allow click when workspace might exist after refresh (toast mode); only hard-disable when policy is disabled.

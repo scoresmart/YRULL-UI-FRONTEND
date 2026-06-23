@@ -22,6 +22,9 @@ const VerifyEmailPage = lazy(() =>
 const AcceptInvitePage = lazy(() =>
   import('./pages/auth/AcceptInvitePage').then((m) => ({ default: m.AcceptInvitePage })),
 );
+const AuthFacebookCallbackPage = lazy(() =>
+  import('./pages/auth/AuthFacebookCallbackPage').then((m) => ({ default: m.AuthFacebookCallbackPage })),
+);
 const AdminLayout = lazy(() => import('./components/layout/AdminLayout').then((m) => ({ default: m.AdminLayout })));
 const DashboardPage = lazy(() => import('./pages/user/Dashboard').then((m) => ({ default: m.DashboardPage })));
 const WhatsAppPage = lazy(() => import('./pages/user/WhatsApp').then((m) => ({ default: m.WhatsAppPage })));
@@ -119,6 +122,7 @@ export default function App() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/accept-invite" element={<AcceptInvitePage />} />
+          <Route path="/auth/facebook/callback" element={<AuthFacebookCallbackPage />} />
 
           {/* Legal pages */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
