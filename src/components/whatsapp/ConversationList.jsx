@@ -38,6 +38,47 @@ async function getLastMessage(waId) {
   return data;
 }
 
+// How deep to look when reading every conversation's last message in one query.
+// Comfortably more than an inbox's worth of recent traffic; any contact whose
+// latest message falls outside the window is picked up by the per-contact
+// fallback below, so the number affects request count, never correctness.
+const LAST_MESSAGE_SCAN_LIMIT = 1000;
+
+/**
+ * Last message for every contact, in ONE request.
+ *
+ * The obvious version — one query per contact — meant 13 conversations issued
+ * 13 sequential round-trips every 30 seconds, and again on every message
+ * event. Rows come back newest-first, so the first row seen for a wa_id is
+ * that conversation's latest.
+ */
+async function getLastMessagesBatch(waIds) {
+  if (!waIds.length) return {};
+  const { data, error } = await supabase
+    .from('whatsapp_messages')
+    .select('wa_id, body, created_at, direction')
+    .in('wa_id', waIds)
+    .order('created_at', { ascending: false })
+    .limit(LAST_MESSAGE_SCAN_LIMIT);
+  if (error || !data) return {};
+
+  const out = {};
+  for (const row of data) {
+    if (!out[row.wa_id]) out[row.wa_id] = row;
+  }
+
+  // A quiet contact buried under a busy one's backlog would otherwise show no
+  // preview at all. Only these miss, so it is usually zero extra requests.
+  const missing = waIds.filter((id) => !out[id]);
+  if (missing.length) {
+    const found = await Promise.all(missing.map((id) => getLastMessage(id)));
+    missing.forEach((id, i) => {
+      if (found[i]) out[id] = found[i];
+    });
+  }
+  return out;
+}
+
 const ConversationRow = memo(function ConversationRow({
   contact,
   lastMessage,
@@ -193,14 +234,20 @@ export function ConversationList({ className }) {
     if (!hasLoadedOnceRef.current) {
       setIsLoadingMessages(true);
     }
-    const counts = {};
-    const messages = {};
+    const waIds = contactsQ.data.map((c) => c.wa_id).filter(Boolean);
 
-    for (const contact of contactsQ.data) {
-      const [count, lastMsg] = await Promise.all([getUnreadCount(contact.wa_id), getLastMessage(contact.wa_id)]);
-      counts[contact.wa_id] = count;
-      if (lastMsg) messages[contact.wa_id] = lastMsg;
-    }
+    // One request for every preview, and the unread counts concurrently rather
+    // than one after another. Each count is a HEAD request carrying no rows, so
+    // the cost is round-trips — which is exactly what serialising them wasted.
+    const [messages, countList] = await Promise.all([
+      getLastMessagesBatch(waIds),
+      Promise.all(waIds.map((id) => getUnreadCount(id))),
+    ]);
+
+    const counts = {};
+    waIds.forEach((id, i) => {
+      counts[id] = countList[i];
+    });
 
     setUnreadCounts(counts);
     setLastMessages(messages);

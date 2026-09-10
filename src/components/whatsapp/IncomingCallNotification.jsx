@@ -136,7 +136,11 @@ export function IncomingCallNotification() {
   const callHistoryQ = useQuery({
     queryKey: ['whatsapp_active_calls'],
     queryFn: () => whatsappApi.getCallHistory({ limit: 20 }),
-    refetchInterval: callState === 'ringing' ? 2000 : callState === 'active' ? 2000 : 5000, // Poll every 2s when ringing or active
+    // 2s while a call is up, because this is how we notice the other side hang
+    // up. Idle it is only a fallback behind the realtime subscription, and the
+    // request takes over a second — polling it every 5s kept a slow query
+    // running essentially back-to-back for every open tab, all day.
+    refetchInterval: callState === 'ringing' || callState === 'active' ? 2000 : 30000,
     refetchIntervalInBackground: true,
     enabled: true, // Always enabled to detect call end
   });
