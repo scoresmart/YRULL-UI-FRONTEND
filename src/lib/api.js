@@ -157,6 +157,36 @@ export const whatsappApi = {
   hangupCall: (call_id) =>
     apiJSON('POST', '/whatsapp/call/hangup', { body: JSON.stringify({ call_id }) }),
 
+  // -- Outbound calling ------------------------------------------------------
+  // WhatsApp refuses a business-initiated call unless the contact has granted
+  // permission, so check before dialling instead of surfacing Meta's refusal.
+  // state is one of: never_asked | granted | granted_permanent | expired | declined
+  getCallPermission: (waId) =>
+    apiJSON('GET', `/whatsapp/call/permission-status?wa_id=${encodeURIComponent(waId)}`),
+
+  async requestCallPermission({ to, text }) {
+    try {
+      const body = { to };
+      if (text) body.text = text;
+      return await apiJSON('POST', '/whatsapp/call/permission', { body: JSON.stringify(body) });
+    } catch (error) {
+      toast.error(error.message || 'Failed to request call permission');
+      throw error;
+    }
+  },
+
+  // Places the call. The response wraps Meta's, so the id lands at
+  // result.calls[0].id — every later action on the call needs it.
+  placeCall: ({ to, sdp, sdp_type = 'offer' }) =>
+    apiJSON('POST', '/whatsapp/call/action', {
+      body: JSON.stringify({ action: 'connect', to, sdp, sdp_type }),
+    }),
+
+  // The callee's SDP answer does NOT come back in the connect response. Meta
+  // delivers it to the backend webhook, which parks it here for ~120 seconds.
+  getAnsweredCalls: (callId) =>
+    apiJSON('GET', `/whatsapp/calls/answered?call_id=${encodeURIComponent(callId)}`),
+
   async sendAudio({ to, audioBlob }) {
     const form = new FormData();
     form.append('to', to);

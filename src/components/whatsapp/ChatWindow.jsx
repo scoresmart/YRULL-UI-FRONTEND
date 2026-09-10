@@ -19,12 +19,13 @@ import {
   ChevronLeft,
 } from 'lucide-react';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
-import { cn, formatRelativeTime, initialsFromName, pastelClassFromString } from '../../lib/utils';
+import { cn, initialsFromName, pastelClassFromString } from '../../lib/utils';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
 import { Skeleton } from '../ui/skeleton';
 import { useChatStore } from '../../store/chatStore';
+import { useCallStore } from '../../store/callStore';
 import { useContacts, useMessages, useTags, useContactTags } from '../../lib/dataHooks';
 import { whatsappApi, tagsApi, templatesApi } from '../../lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
@@ -296,6 +297,7 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
   const [typing] = useState(false);
   const [sending, setSending] = useState(false);
   const [callingUser, setCallingUser] = useState(false);
+  const dialContact = useCallStore((s) => s.dial);
   const [showTagPanel, setShowTagPanel] = useState(false);
   const [applyingTag, setApplyingTag] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -469,7 +471,17 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
     }
   }, [selectedTemplate, contact, selectedWaId, sendingTemplate, templateParams, queryClient, closeTemplatePicker]);
 
-  const onCall = useCallback(async () => {
+  // Dials the contact. IncomingCallNotification owns the peer connection and
+  // the in-call UI for both directions, so this only hands over the request.
+  const onCall = useCallback(() => {
+    if (!contact || !selectedWaId) return;
+    dialContact(contact.wa_id, contact.name || '');
+  }, [contact, selectedWaId, dialContact]);
+
+  // Sends the contact a tappable "Call ScoreSmart" message — it does NOT place
+  // a call. Still the only way to reach someone who hasn't granted call
+  // permission, so it keeps its own control rather than being the phone icon.
+  const onSendCallButton = useCallback(async () => {
     if (!contact || !selectedWaId || callingUser) return;
     setCallingUser(true);
     try {
@@ -613,7 +625,18 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
           </div>
         </div>
         <div className="flex items-center gap-1">
-          {/* Call button — sends WhatsApp call button to user */}
+          {/* Places a WhatsApp voice call to this contact */}
+          <button
+            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            type="button"
+            aria-label="Call contact"
+            title="Call this contact on WhatsApp"
+            onClick={onCall}
+          >
+            <Phone className="h-4 w-4" />
+          </button>
+          {/* Sends a tappable call button so THEY can call us — needed when the
+              contact hasn't granted permission for us to call them. */}
           <button
             className={cn(
               'rounded-lg p-2 hover:bg-gray-100',
@@ -621,11 +644,11 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
             )}
             type="button"
             aria-label="Send call button"
-            title="Send WhatsApp call button to this contact"
-            onClick={onCall}
+            title="Send a call button so they can call you"
+            onClick={onSendCallButton}
             disabled={callingUser}
           >
-            <Phone className="h-4 w-4" />
+            <PhoneIncoming className="h-4 w-4" />
           </button>
           <button
             className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900"

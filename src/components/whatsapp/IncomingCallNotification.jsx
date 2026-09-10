@@ -7,6 +7,7 @@ import { cn, formatPhone, initialsFromName, pastelClassFromString } from '../../
 import { Button } from '../ui/button';
 import { subscribeToTableMulti } from '../../lib/realtime';
 import { useAuthStore } from '../../store/authStore';
+import { useCallStore } from '../../store/callStore';
 import toast from 'react-hot-toast';
 
 /**
@@ -18,10 +19,15 @@ import toast from 'react-hot-toast';
  */
 export function IncomingCallNotification() {
   const [dismissedCallIds, setDismissedCallIds] = useState(new Set());
-  const [callState, setCallState] = useState('idle'); // idle | ringing | connecting | active | ended
+  // dialling and needs_permission are the outbound-only states.
+  const [callState, setCallState] = useState('idle'); // idle | ringing | dialling | needs_permission | connecting | active | ended
   const [activeCallId, setActiveCallId] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+  // The contact we are calling, and why we can't, when that applies.
+  const [outgoing, setOutgoing] = useState(null); // { waId, name } | null
+  const [permissionState, setPermissionState] = useState(null);
+  const [requestingPermission, setRequestingPermission] = useState(false);
 
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
@@ -29,6 +35,7 @@ export function IncomingCallNotification() {
   const callTimerRef = useRef(null);
   const ringtoneRef = useRef(null);
   const waCallIdRef = useRef(null); // The actual WhatsApp call_id (NOT the phone number)
+  const answerPollRef = useRef(null); // Polls /calls/answered while an outbound call rings
 
   // Define cleanupCall FIRST before any useEffects that might use it
   const cleanupCall = useCallback(() => {
@@ -62,6 +69,12 @@ export function IncomingCallNotification() {
     if (callTimerRef.current) {
       clearInterval(callTimerRef.current);
       callTimerRef.current = null;
+    }
+
+    // Stop waiting for an outbound pickup
+    if (answerPollRef.current) {
+      clearInterval(answerPollRef.current);
+      answerPollRef.current = null;
     }
 
     // Reset call duration
@@ -130,8 +143,10 @@ export function IncomingCallNotification() {
 
   // Find the current incoming call (prefer pending calls with SDP)
   const incomingCall = useMemo(() => {
-    // Don't look for new calls if we're already in a call
+    // Don't look for new calls if we're already in a call — including one we
+    // placed ourselves, or an inbound ring would hijack the outbound UI.
     if (callState === 'active' || callState === 'connecting') return null;
+    if (callState === 'dialling' || callState === 'needs_permission') return null;
 
     // Check pending calls first (has SDP for WebRTC) - these are definitely active incoming calls
     const pending = pendingCallsQ.data?.pending || [];
@@ -208,13 +223,13 @@ export function IncomingCallNotification() {
 
   // Resolve caller contact
   const callerContact = useMemo(() => {
-    const waId = incomingCall?.from_number || (callState !== 'idle' ? activeCallId : null);
+    const waId = incomingCall?.from_number || outgoing?.waId || (callState !== 'idle' ? activeCallId : null);
     if (!waId) return null;
     return (contactsQ.data ?? []).find((c) => c.wa_id === waId) ?? null;
-  }, [incomingCall, contactsQ.data, callState, activeCallId]);
+  }, [incomingCall, outgoing, contactsQ.data, callState, activeCallId]);
 
-  const displayPhone = incomingCall?.from_number || activeCallId || '';
-  const callerName = callerContact?.name || formatPhone(displayPhone) || 'Unknown';
+  const displayPhone = incomingCall?.from_number || outgoing?.waId || activeCallId || '';
+  const callerName = outgoing?.name || callerContact?.name || formatPhone(displayPhone) || 'Unknown';
   const callerPhoneFormatted = formatPhone(displayPhone);
   const avatarCls = pastelClassFromString(displayPhone);
 
@@ -406,7 +421,7 @@ export function IncomingCallNotification() {
         );
 
         ringtoneRef.current = { ctx, osc, interval };
-      } catch (e) {
+      } catch {
         // Audio context may not be available
       }
     } else {
@@ -416,7 +431,9 @@ export function IncomingCallNotification() {
           clearInterval(ringtoneRef.current.interval);
           ringtoneRef.current.osc.stop();
           ringtoneRef.current.ctx.close();
-        } catch (e) {}
+        } catch {
+          // Oscillator already stopped
+        }
         ringtoneRef.current = null;
       }
     }
@@ -426,7 +443,9 @@ export function IncomingCallNotification() {
           clearInterval(ringtoneRef.current.interval);
           ringtoneRef.current.osc.stop();
           ringtoneRef.current.ctx.close();
-        } catch (e) {}
+        } catch {
+          // Oscillator already stopped
+        }
         ringtoneRef.current = null;
       }
     };
@@ -578,6 +597,190 @@ export function IncomingCallNotification() {
     }
   }, [incomingCall, cleanupCall]);
 
+  // -- Outbound ---------------------------------------------------------------
+
+  /**
+   * Place a call to a contact. Mirrors handleAccept, with the halves swapped:
+   * we create the offer and Meta returns the answer on the webhook rather than
+   * inline, so the answer has to be polled for.
+   */
+  const dialOut = useCallback(
+    async (waId, name) => {
+      if (!waId) return;
+      setOutgoing({ waId, name: name || '' });
+      setPermissionState(null);
+
+      // Permission first. Dialling without it just earns a refusal from Meta,
+      // and the staff member has no idea why.
+      try {
+        const perm = await whatsappApi.getCallPermission(waId);
+        if (!perm?.can_call) {
+          setPermissionState(perm?.state || 'never_asked');
+          setCallState('needs_permission');
+          return;
+        }
+      } catch (e) {
+        console.error('[Call] Permission check failed:', e);
+        toast.error(`Couldn't check call permission: ${e.message}`);
+        setOutgoing(null);
+        setCallState('idle');
+        return;
+      }
+
+      setCallState('dialling');
+      try {
+        // 1. Microphone first — a denied mic must not ring the contact.
+        const localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        localStreamRef.current = localStream;
+
+        // 2. Peer connection
+        const pc = new RTCPeerConnection({
+          iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }],
+        });
+        peerConnectionRef.current = pc;
+
+        localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
+
+        pc.ontrack = (event) => {
+          if (remoteAudioRef.current && event.streams[0]) {
+            remoteAudioRef.current.srcObject = event.streams[0];
+            remoteAudioRef.current.play().catch(() => {});
+          }
+        };
+
+        const onLost = () => {
+          setCallState('ended');
+          cleanupCall();
+          setActiveCallId(null);
+          activeCallIdRef.current = null;
+          setTimeout(() => {
+            setCallState('idle');
+            setOutgoing(null);
+          }, 2000);
+        };
+
+        pc.oniceconnectionstatechange = () => {
+          const state = pc.iceConnectionState;
+          console.debug('[WebRTC] Outbound ICE state:', state);
+          if (state === 'connected' || state === 'completed') setCallState('active');
+          else if (state === 'disconnected' || state === 'failed' || state === 'closed') onLost();
+        };
+        pc.onconnectionstatechange = () => {
+          const state = pc.connectionState;
+          console.debug('[WebRTC] Outbound connection state:', state);
+          if (state === 'connected') setCallState('active');
+          else if (state === 'disconnected' || state === 'failed' || state === 'closed') onLost();
+        };
+
+        // 3. Offer
+        const offer = await pc.createOffer({ offerToReceiveAudio: true });
+        await pc.setLocalDescription(offer);
+
+        // 4. WhatsApp wants a complete session description and will not accept
+        // trickled candidates — sending before gathering finishes produces a
+        // call that "connects" with no audio.
+        await new Promise((resolve) => {
+          if (pc.iceGatheringState === 'complete') {
+            resolve();
+            return;
+          }
+          const timeout = setTimeout(resolve, 3000);
+          pc.onicegatheringstatechange = () => {
+            if (pc.iceGatheringState === 'complete') {
+              clearTimeout(timeout);
+              resolve();
+            }
+          };
+        });
+
+        // 5. Connect
+        const res = await whatsappApi.placeCall({
+          to: waId,
+          sdp: pc.localDescription.sdp,
+          sdp_type: 'offer',
+        });
+        const callId = res?.result?.calls?.[0]?.id;
+        if (!callId) throw new Error('WhatsApp did not return a call id');
+
+        waCallIdRef.current = callId;
+        setActiveCallId(waId);
+        activeCallIdRef.current = waId;
+
+        // 6. Wait for pickup. The answer is parked on the backend for ~120s.
+        let waited = 0;
+        answerPollRef.current = setInterval(async () => {
+          waited += 2;
+          if (waited > 90) {
+            clearInterval(answerPollRef.current);
+            answerPollRef.current = null;
+            toast('No answer');
+            cleanupCall();
+            setCallState('idle');
+            setOutgoing(null);
+            return;
+          }
+          try {
+            const d = await whatsappApi.getAnsweredCalls(callId);
+            const answer = d?.answered?.[0];
+            if (answer?.sdp) {
+              clearInterval(answerPollRef.current);
+              answerPollRef.current = null;
+              await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answer.sdp }));
+              setCallState('active');
+              toast.success('Call connected!');
+            }
+          } catch (e) {
+            console.error('[Call] Answer poll failed:', e);
+          }
+        }, 2000);
+      } catch (error) {
+        console.error('Failed to place call:', error);
+        toast.error(`Call failed: ${error.message}`);
+        cleanupCall();
+        setCallState('idle');
+        setOutgoing(null);
+      }
+    },
+    [cleanupCall],
+  );
+
+  const handleRequestPermission = useCallback(async () => {
+    if (!outgoing?.waId || requestingPermission) return;
+    setRequestingPermission(true);
+    try {
+      await whatsappApi.requestCallPermission({
+        to: outgoing.waId,
+        text: `Hi ${outgoing.name || ''}! May we call you on WhatsApp about your enquiry?`.replace('  ', ' ').trim(),
+      });
+      toast.success('Permission requested — they need to tap Allow in WhatsApp');
+      setCallState('idle');
+      setOutgoing(null);
+    } catch {
+      // toast already raised by the API helper
+    } finally {
+      setRequestingPermission(false);
+    }
+  }, [outgoing, requestingPermission]);
+
+  // The chat header hands dial requests over through the store, so the peer
+  // connection and in-call UI stay owned by this component alone.
+  const callRequest = useCallStore((s) => s.request);
+  const clearCallRequest = useCallStore((s) => s.clearRequest);
+  // StrictMode re-invokes an effect with the same snapshot, and setCallState
+  // has not landed by then — without this ref a single click would place two
+  // calls and open two peer connections.
+  const handledRequestRef = useRef(null);
+  useEffect(() => {
+    if (!callRequest || handledRequestRef.current === callRequest) return;
+    handledRequestRef.current = callRequest;
+    clearCallRequest();
+    if (callState !== 'idle') {
+      toast.error('Already on a call');
+      return;
+    }
+    dialOut(callRequest.waId, callRequest.name);
+  }, [callRequest, clearCallRequest, callState, dialOut]);
+
   const handleReject = useCallback(async () => {
     const callId = waCallIdRef.current || incomingCall?.call_id;
     if (callId) {
@@ -591,7 +794,7 @@ export function IncomingCallNotification() {
     }
     cleanupCall();
     setCallState('idle');
-  }, [incomingCall, activeCallId, cleanupCall]);
+  }, [incomingCall, cleanupCall]);
 
   const handleHangup = useCallback(async () => {
     console.debug('[Call] Hangup requested');
@@ -603,6 +806,7 @@ export function IncomingCallNotification() {
     cleanupCall();
     setCallState('ended');
     setActiveCallId(null);
+    setOutgoing(null);
     activeCallIdRef.current = null;
     lastCallIdRef.current = null;
     waCallIdRef.current = null;
@@ -626,7 +830,7 @@ export function IncomingCallNotification() {
     setTimeout(() => {
       setCallState('idle');
     }, 1000);
-  }, [incomingCall, activeCallId, cleanupCall]);
+  }, [incomingCall, cleanupCall]);
 
   const handleDismiss = useCallback(() => {
     const callId = incomingCall?.call_id || incomingCall?.id;
@@ -725,6 +929,8 @@ export function IncomingCallNotification() {
                   <div className="text-sm text-gray-500">{callerPhoneFormatted}</div>
                   <div className="mt-1 text-xs text-gray-400">
                     {callState === 'ringing' && 'Incoming call...'}
+                    {callState === 'dialling' && 'Calling...'}
+                    {callState === 'needs_permission' && 'Permission needed'}
                     {callState === 'connecting' && 'Connecting...'}
                     {callState === 'active' && formatDuration(callDuration)}
                     {callState === 'ended' && 'Call ended'}
@@ -755,6 +961,36 @@ export function IncomingCallNotification() {
                     <Phone className="mr-2 h-4 w-4 animate-pulse" />
                     Connecting...
                   </Button>
+                )}
+                {callState === 'dialling' && (
+                  <Button onClick={handleHangup} className="flex-1 bg-red-500 hover:bg-red-600">
+                    <PhoneOff className="mr-2 h-4 w-4" />
+                    Cancel
+                  </Button>
+                )}
+                {callState === 'needs_permission' && (
+                  <>
+                    <Button
+                      onClick={() => {
+                        setCallState('idle');
+                        setOutgoing(null);
+                      }}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    {permissionState !== 'declined' && (
+                      <Button
+                        onClick={handleRequestPermission}
+                        disabled={requestingPermission}
+                        className="flex-1 bg-green-500 hover:bg-green-600"
+                      >
+                        <Phone className="mr-2 h-4 w-4" />
+                        {requestingPermission ? 'Asking...' : 'Ask permission'}
+                      </Button>
+                    )}
+                  </>
                 )}
                 {(callState === 'active' || callState === 'connecting') && (
                   <>
@@ -795,6 +1031,15 @@ export function IncomingCallNotification() {
               {callState === 'ringing' && !incomingCall?.sdp && (
                 <p className="mt-4 text-center text-xs text-gray-500">
                   Audio may not be available — you can also accept in the WhatsApp app
+                </p>
+              )}
+              {callState === 'needs_permission' && (
+                <p className="mt-4 text-center text-xs text-gray-500">
+                  {permissionState === 'declined'
+                    ? 'This contact declined being called. You can ask again 24 hours after the last request.'
+                    : permissionState === 'expired'
+                      ? 'Their permission to be called has expired. Ask again to call them.'
+                      : "WhatsApp won't let us call someone who hasn't agreed to it. They'll get a message they can accept — then the call button works for 7 days."}
                 </p>
               )}
             </div>
