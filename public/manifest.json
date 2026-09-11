@@ -1,0 +1,16 @@
+{
+  "name": "Yrull — Automate every customer conversation",
+  "short_name": "Yrull",
+  "description": "Manage WhatsApp, Instagram, and Facebook Messenger conversations in one unified inbox.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "theme_color": "#0F0F0F",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

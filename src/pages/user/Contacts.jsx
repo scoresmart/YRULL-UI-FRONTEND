@@ -1,0 +1,224 @@
+import { useCallback, useMemo, useState } from 'react';
+import { MoreHorizontal, Search, Users } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Card } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Skeleton } from '../../components/ui/skeleton';
+import { EmptyState } from '../../components/EmptyState';
+import { ApiErrorState } from '../../components/ApiErrorState';
+import { AddEditContactModal } from '../../components/contacts/AddEditContactModal';
+import { ContactSidePanel } from '../../components/contacts/ContactSidePanel';
+import { useContactStore } from '../../store/contactStore';
+import { useContacts, useContactTags, useTags } from '../../lib/dataHooks';
+
+export function ContactsPage() {
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const pageSize = 25;
+
+  const selectedContactId = useContactStore((s) => s.selectedContactId);
+  const setSelectedContactId = useContactStore((s) => s.setSelectedContactId);
+
+  const contactsQ = useContacts();
+  const tagsQ = useTags();
+  const contactTagsQ = useContactTags();
+
+  const tagsById = useMemo(() => new Map((tagsQ.data ?? []).map((t) => [t.id, t])), [tagsQ.data]);
+  const tagsByContactId = useMemo(() => {
+    const m = new Map();
+    for (const ct of contactTagsQ.data ?? []) {
+      const tag = tagsById.get(ct.tag_id);
+      if (!tag) continue;
+      const arr = m.get(ct.contact_id) ?? [];
+      arr.push(tag);
+      m.set(ct.contact_id, arr);
+    }
+    return m;
+  }, [contactTagsQ.data, tagsById]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const list = contactsQ.data ?? [];
+    if (!q) return list;
+    return list.filter((c) => {
+      const name = (
+        c.name ||
+        `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim() ||
+        ''
+      ).toLowerCase();
+      const phone = c.phone || c.wa_id || '';
+      const email = c.email || c.metadata?.email || '';
+      return `${name} ${phone} ${email}`.toLowerCase().includes(q);
+    });
+  }, [contactsQ.data, search]);
+
+  const paged = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+
+  const openContact = useCallback((id) => setSelectedContactId(id), [setSelectedContactId]);
+  const closePanel = useCallback(() => setSelectedContactId(null), [setSelectedContactId]);
+
+  const selectedContact = useMemo(
+    () => (contactsQ.data ?? []).find((c) => c.id === selectedContactId) ?? null,
+    [contactsQ.data, selectedContactId],
+  );
+  const selectedTags = useMemo(
+    () => (selectedContact ? (tagsByContactId.get(selectedContact.id) ?? []) : []),
+    [selectedContact, tagsByContactId],
+  );
+
+  return (
+    <div className="relative">
+      <div className="mb-4 space-y-3 sm:mb-6 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="text-xl font-semibold text-gray-900 sm:text-2xl">Contacts</div>
+          <Badge variant="muted">{filtered.length.toLocaleString()}</Badge>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative w-full sm:w-60 lg:w-72">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 text-[16px] sm:text-sm"
+              placeholder="Search contacts..."
+            />
+          </div>
+          <Button variant="outline" className="hidden sm:inline-flex">
+            Filter
+          </Button>
+          <Button variant="outline" className="hidden lg:inline-flex">
+            Import CSV
+          </Button>
+          <AddEditContactModal trigger={<Button>Add Contact</Button>} />
+        </div>
+      </div>
+
+      {contactsQ.error && (
+        <ApiErrorState title="Failed to load contacts" error={contactsQ.error} onRetry={() => contactsQ.refetch()} />
+      )}
+
+      <Card className={selectedContactId ? 'pr-[420px]' : ''}>
+        {contactsQ.isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center gap-4 px-4 py-3">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-40 ml-auto" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+            ))}
+          </div>
+        ) : !contactsQ.error && (contactsQ.data ?? []).length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title="Your contact list is empty"
+            description="Contacts appear here when customers message you via WhatsApp or Instagram."
+          />
+        ) : (
+          <>
+            <div className="overflow-hidden rounded-xl border border-gray-100">
+              <table className="w-full text-left">
+                <thead className="bg-white">
+                  <tr className="border-b border-gray-100 text-xs font-medium uppercase tracking-wide text-gray-400">
+                    <th className="px-3 py-3 sm:px-4">Name</th>
+                    <th className="hidden px-4 py-3 md:table-cell">Email</th>
+                    <th className="hidden px-4 py-3 lg:table-cell">Tags</th>
+                    <th className="px-3 py-3 sm:px-4">Status</th>
+                    <th className="px-3 py-3 sm:px-4">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paged.map((c) => {
+                    const tags = tagsByContactId.get(c.id) ?? [];
+                    const phone = c.phone || c.wa_id || '';
+                    const name =
+                      c.name ||
+                      `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim() ||
+                      phone;
+                    const email = c.email || c.metadata?.email || null;
+                    return (
+                      <tr
+                        key={c.id}
+                        className="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+                        onClick={() => openContact(c.id)}
+                      >
+                        <td className="px-3 py-3 sm:px-4">
+                          <div className="text-sm font-medium text-gray-900">{name}</div>
+                          <div className="text-xs text-gray-500 sm:text-sm">{phone}</div>
+                        </td>
+                        <td className="hidden px-4 py-3 text-sm text-gray-500 md:table-cell">{email ?? '—'}</td>
+                        <td className="hidden px-4 py-3 lg:table-cell">
+                          <div className="flex flex-wrap gap-1">
+                            {tags.slice(0, 3).map((t) => (
+                              <span
+                                key={t.id}
+                                className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
+                              >
+                                {t.name}
+                              </span>
+                            ))}
+                            {tags.length > 3 ? <span className="text-xs text-gray-400">+{tags.length - 3}</span> : null}
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 sm:px-4">
+                          <Badge variant={c.status === 'blocked' ? 'danger' : 'success'}>
+                            {c.status || 'active'}
+                          </Badge>
+                        </td>
+                        <td className="px-3 py-3 sm:px-4">
+                          <button
+                            type="button"
+                            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label="Actions"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between">
+              <div className="text-sm text-gray-500">
+                Page {page} of {totalPages}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  Prev
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </Card>
+
+      {selectedContactId ? (
+        <ContactSidePanel contact={selectedContact} tags={selectedTags} onClose={closePanel} />
+      ) : null}
+    </div>
+  );
+}

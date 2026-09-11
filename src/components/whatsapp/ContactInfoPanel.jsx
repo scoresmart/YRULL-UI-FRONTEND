@@ -1,0 +1,456 @@
+import { memo, useCallback, useMemo, useState, useEffect, useRef } from 'react';
+import { ChevronDown, Pencil, Plus, X, Phone, Clock, PhoneIncoming, PhoneOutgoing, Trash2 } from 'lucide-react';
+import { cn, initialsFromName, pastelClassFromString, formatRelativeTime, formatPhone } from '../../lib/utils';
+import { Button } from '../ui/button';
+import { Textarea } from '../ui/textarea';
+import { Badge } from '../ui/badge';
+import { useChatStore } from '../../store/chatStore';
+import { useContactStore } from '../../store/contactStore';
+import { useContacts, useTags, useContactTags } from '../../lib/dataHooks';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { whatsappApi, notesApi, tagsApi } from '../../lib/api';
+import toast from 'react-hot-toast';
+
+const Section = memo(function Section({ title, children, defaultOpen = true }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border-b border-gray-100">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between px-5 py-4 text-left"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <div className="text-sm font-semibold text-gray-900">{title}</div>
+        <ChevronDown className={cn('h-4 w-4 text-gray-500 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open ? <div className="px-5 pb-5">{children}</div> : null}
+    </div>
+  );
+});
+
+export function ContactInfoPanel({ onClose }) {
+  const selectedWaId = useChatStore((s) => s.selectedWaId);
+  const setSelectedContactId = useContactStore((s) => s.setSelectedContactId);
+
+  const contactsQ = useContacts();
+  const tagsQ = useTags();
+  const contactTagsQ = useContactTags();
+  const queryClient = useQueryClient();
+
+  const [noteText, setNoteText] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
+  const [showTagDropdown, setShowTagDropdown] = useState(false);
+  const [addingTagId, setAddingTagId] = useState(null);
+
+  const contact = useMemo(
+    () => (contactsQ.data ?? []).find((c) => c.wa_id === selectedWaId) ?? null,
+    [contactsQ.data, selectedWaId],
+  );
+
+  // Get tags applied to this contact
+  const appliedTags = useMemo(() => {
+    if (!tagsQ.data || !contactTagsQ.data || !contact) return [];
+
+    // Find contact_tags that match this contact
+    const matchingTagIds = contactTagsQ.data
+      .filter((ct) => contact.id && ct.contact_id === contact.id)
+      .map((ct) => ct.tag_id);
+
+    // Get the full tag objects
+    return tagsQ.data.filter((tag) => matchingTagIds.includes(tag.id));
+  }, [tagsQ.data, contactTagsQ.data, contact]);
+
+  // Tags not yet applied to this contact
+  const availableTags = useMemo(() => {
+    const appliedIds = new Set(appliedTags.map((t) => t.id));
+    return (tagsQ.data ?? []).filter((t) => !appliedIds.has(t.id));
+  }, [tagsQ.data, appliedTags]);
+
+  const name = contact?.name || formatPhone(contact?.wa_id) || '—';
+  const avatarCls = pastelClassFromString(contact?.wa_id ?? contact?.id);
+  const displayPhone = formatPhone(contact?.wa_id || contact?.phone);
+
+  // Fetch call history with auto-refresh every 10 seconds to catch new incoming calls
+  const callsQ = useQuery({
+    queryKey: ['whatsapp_calls', selectedWaId],
+    enabled: Boolean(selectedWaId),
+    queryFn: () => whatsappApi.getCallHistory({ limit: 10 }),
+    staleTime: 5000, // Consider fresh for 5s to prevent refetch on every render
+    refetchInterval: 10000, // Refetch every 10 seconds to catch new calls
+    refetchIntervalInBackground: true, // Continue polling even when tab is in background
+  });
+
+  // Fetch notes for this contact
+  const notesQ = useQuery({
+    queryKey: ['contact_notes', selectedWaId],
+    enabled: Boolean(selectedWaId),
+    queryFn: () => notesApi.list(selectedWaId),
+  });
+
+  // Filter calls for this contact
+  const contactCalls = useMemo(() => {
+    if (!callsQ.data || !selectedWaId) return [];
+    return callsQ.data.filter((c) => c.from_number === selectedWaId || c.to_number === selectedWaId);
+  }, [callsQ.data, selectedWaId]);
+
+  // Track previous call count to detect new incoming calls
+  const prevCallCountRef = useRef(0);
+  const prevLatestCallIdRef = useRef(null);
+
+  useEffect(() => {
+    if (!contactCalls.length || !selectedWaId) {
+      prevCallCountRef.current = 0;
+      prevLatestCallIdRef.current = null;
+      return;
+    }
+
+    // Sort calls by timestamp to get the latest
+    const sortedCalls = [...contactCalls].sort(
+      (a, b) => new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp),
+    );
+    const latestCall = sortedCalls[0];
+    const latestCallId = latestCall?.id;
+
+    // Check if we have a new call
+    if (latestCallId && latestCallId !== prevLatestCallIdRef.current) {
+      // Only notify if it's a new call (not initial load)
+      if (prevLatestCallIdRef.current !== null) {
+        // Check if it's an incoming call from the user
+        if (latestCall.direction === 'USER_INITIATED' && latestCall.from_number === selectedWaId) {
+          const contactName = contact?.name || formatPhone(selectedWaId);
+          toast.success(`📞 Incoming call from ${contactName}`, {
+            icon: '📞',
+            duration: 5000,
+          });
+        }
+      }
+      prevLatestCallIdRef.current = latestCallId;
+    }
+
+    prevCallCountRef.current = contactCalls.length;
+  }, [contactCalls, selectedWaId, contact?.name]);
+
+  const onEditContact = useCallback(() => {
+    setSelectedContactId(contact?.id ?? null);
+  }, [setSelectedContactId, contact?.id]);
+
+  const handleAddNote = useCallback(async () => {
+    if (!noteText.trim() || !selectedWaId) return;
+    setSavingNote(true);
+    try {
+      await notesApi.create(selectedWaId, noteText.trim());
+      setNoteText('');
+      await queryClient.invalidateQueries({ queryKey: ['contact_notes', selectedWaId] });
+      toast.success('Note added');
+    } catch (err) {
+      toast.error(err.message || 'Failed to add note');
+    } finally {
+      setSavingNote(false);
+    }
+  }, [noteText, selectedWaId, queryClient]);
+
+  const handleDeleteNote = useCallback(
+    async (noteId) => {
+      try {
+        await notesApi.delete(selectedWaId, noteId);
+        await queryClient.invalidateQueries({ queryKey: ['contact_notes', selectedWaId] });
+        toast.success('Note deleted');
+      } catch (err) {
+        toast.error(err.message || 'Failed to delete note');
+      }
+    },
+    [selectedWaId, queryClient],
+  );
+
+  const handleAddTag = useCallback(
+    async (tagId) => {
+      if (!selectedWaId) return;
+      setAddingTagId(tagId);
+      try {
+        await tagsApi.applyToContact(selectedWaId, tagId);
+        await queryClient.invalidateQueries({ queryKey: ['contact_tags'] });
+        toast.success('Tag added');
+      } catch (err) {
+        toast.error(err.message || 'Failed to add tag');
+      } finally {
+        setAddingTagId(null);
+        setShowTagDropdown(false);
+      }
+    },
+    [selectedWaId, queryClient],
+  );
+
+  const handleRemoveTag = useCallback(
+    async (tagId) => {
+      if (!selectedWaId) return;
+      try {
+        await tagsApi.removeFromContact(selectedWaId, tagId);
+        await queryClient.invalidateQueries({ queryKey: ['contact_tags'] });
+        toast.success('Tag removed');
+      } catch (err) {
+        toast.error(err.message || 'Failed to remove tag');
+      }
+    },
+    [selectedWaId, queryClient],
+  );
+
+  return (
+    <div className="flex h-full w-[300px] flex-shrink-0 flex-col border-l border-brand-border bg-white">
+      {/* Header — contact name + close button */}
+      <div className="flex h-14 items-center justify-between border-b border-brand-border px-4">
+        <span className="text-sm font-semibold text-gray-900 truncate">{name}</span>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onEditContact}
+            className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            aria-label="Edit contact"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+              aria-label="Close panel"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-auto">
+        {/* Avatar + name block */}
+        <div className="flex flex-col items-center gap-2 px-5 py-5 border-b border-gray-100">
+          <div
+            className={cn(
+              'flex h-16 w-16 items-center justify-center rounded-full text-xl font-bold',
+              avatarCls,
+            )}
+          >
+            {initialsFromName(name)}
+          </div>
+          <div className="text-center">
+            <div className="text-base font-semibold text-gray-900">{name}</div>
+            {contact?.source ? (
+              <span
+                className={cn(
+                  'mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                  contact.source === 'TIKTOK'
+                    ? 'bg-gray-900 text-white'
+                    : contact.source === 'META'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-gray-100 text-gray-600',
+                )}
+              >
+                {contact.source}
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        {/* Quick info rows */}
+        <div className="border-b border-gray-100 px-5 py-4 space-y-3 text-sm">
+          <div className="flex items-center gap-3">
+            <Phone className="h-4 w-4 shrink-0 text-gray-400" />
+            <span className="text-gray-800 font-medium">{displayPhone || '—'}</span>
+          </div>
+          {contact?.campaign_name && (
+            <div className="flex items-start gap-3">
+              <span className="h-4 w-4 shrink-0 text-gray-400 text-xs font-bold mt-0.5">Cmp</span>
+              <span className="text-gray-700 truncate">{contact.campaign_name}</span>
+            </div>
+          )}
+          {contact?.first_seen && (
+            <div className="flex items-center gap-3">
+              <Clock className="h-4 w-4 shrink-0 text-gray-400" />
+              <span className="text-gray-700">First seen {formatRelativeTime(contact.first_seen)}</span>
+            </div>
+          )}
+          {contact?.ad_id && (
+            <div className="flex items-center gap-3">
+              <span className="h-4 w-4 shrink-0 text-gray-400 text-xs font-bold">Ad</span>
+              <span className="text-gray-700 font-mono text-xs truncate">{contact.ad_id}</span>
+            </div>
+          )}
+          <Button variant="outline" size="sm" className="w-full mt-1" onClick={onEditContact}>
+            Edit Contact
+          </Button>
+        </div>
+
+        <Section title="Notes">
+          <Textarea
+            placeholder="Internal notes (not sent to customer)"
+            className="min-h-[88px]"
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value)}
+          />
+          <Button className="mt-3" size="sm" onClick={handleAddNote} disabled={!noteText.trim() || savingNote}>
+            {savingNote ? 'Saving...' : 'Add Note'}
+          </Button>
+          <div className="mt-4 space-y-3">
+            {notesQ.isLoading ? (
+              <div className="h-8 animate-pulse rounded bg-gray-100" />
+            ) : (notesQ.data ?? []).length === 0 ? (
+              <p className="text-xs text-gray-400">No notes yet</p>
+            ) : (
+              (notesQ.data ?? []).map((n) => (
+                <div key={n.id} className="group rounded-xl border border-gray-100 bg-white p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-sm text-gray-900">{n.note}</div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteNote(n.id)}
+                      className="hidden group-hover:block rounded p-0.5 text-gray-400 hover:text-red-500"
+                      aria-label="Delete note"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <div className="mt-1 text-xs text-gray-500">
+                    {n.created_at ? formatRelativeTime(n.created_at) : ''}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </Section>
+
+        <Section title="Tags">
+          <div className="flex flex-wrap gap-2">
+            {appliedTags.map((tag) => (
+              <span
+                key={tag.id}
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium',
+                  tag.color === 'green'
+                    ? 'bg-green-100 text-green-700 border border-green-200'
+                    : tag.color === 'blue'
+                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                      : tag.color === 'purple'
+                        ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                        : tag.color === 'orange'
+                          ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                          : tag.color === 'red'
+                            ? 'bg-red-100 text-red-700 border border-red-200'
+                            : 'bg-gray-100 text-gray-700 border border-gray-200',
+                )}
+              >
+                <span
+                  className={cn(
+                    'h-1.5 w-1.5 rounded-full',
+                    tag.color === 'green'
+                      ? 'bg-green-500'
+                      : tag.color === 'blue'
+                        ? 'bg-blue-500'
+                        : tag.color === 'purple'
+                          ? 'bg-purple-500'
+                          : tag.color === 'orange'
+                            ? 'bg-amber-500'
+                            : tag.color === 'red'
+                              ? 'bg-red-500'
+                              : 'bg-gray-500',
+                  )}
+                />
+                {tag.name}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveTag(tag.id)}
+                  className="ml-0.5 rounded-full p-0.5 hover:bg-black/10"
+                  aria-label={`Remove ${tag.name}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+
+            {/* Add tag button */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowTagDropdown((v) => !v)}
+                className="inline-flex items-center gap-1 rounded-full border border-dashed border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors"
+              >
+                <Plus className="h-3 w-3" />
+                Add tag
+              </button>
+              {showTagDropdown && (
+                <>
+                  {/* Backdrop to close dropdown */}
+                  <div className="fixed inset-0 z-10" onClick={() => setShowTagDropdown(false)} />
+                  <div className="absolute left-0 top-full z-20 mt-1 w-48 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+                    {availableTags.length === 0 ? (
+                      <div className="px-3 py-2 text-xs text-gray-400">No more tags available</div>
+                    ) : (
+                      availableTags.map((tag) => (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          disabled={addingTagId === tag.id}
+                          onClick={() => handleAddTag(tag.id)}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                        >
+                          <span
+                            className={cn(
+                              'h-2 w-2 shrink-0 rounded-full',
+                              tag.color === 'green'
+                                ? 'bg-green-500'
+                                : tag.color === 'blue'
+                                  ? 'bg-blue-500'
+                                  : tag.color === 'purple'
+                                    ? 'bg-purple-500'
+                                    : tag.color === 'orange'
+                                      ? 'bg-amber-500'
+                                      : tag.color === 'red'
+                                        ? 'bg-red-500'
+                                        : 'bg-gray-400',
+                            )}
+                          />
+                          {tag.name}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </Section>
+
+        <Section title="Recent Calls" defaultOpen={false}>
+          {callsQ.isLoading ? (
+            <div className="space-y-2">
+              <div className="h-8 animate-pulse rounded bg-gray-100" />
+              <div className="h-8 animate-pulse rounded bg-gray-100" />
+            </div>
+          ) : contactCalls.length === 0 ? (
+            <p className="text-xs text-gray-400">No call history</p>
+          ) : (
+            <div className="space-y-2">
+              {contactCalls.map((call) => (
+                <div key={call.id} className="flex items-center gap-3 text-sm">
+                  {call.direction === 'USER_INITIATED' ? (
+                    <PhoneIncoming className="h-4 w-4 text-blue-500" />
+                  ) : (
+                    <PhoneOutgoing className="h-4 w-4 text-green-500" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs text-gray-700 capitalize">{call.event}</div>
+                    <div className="text-xs text-gray-400">{formatRelativeTime(call.created_at || call.timestamp)}</div>
+                  </div>
+                  {call.duration ? (
+                    <span className="text-xs text-gray-500">
+                      {Math.floor(call.duration / 60)}:{String(call.duration % 60).padStart(2, '0')}
+                    </span>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+      </div>
+    </div>
+  );
+}
