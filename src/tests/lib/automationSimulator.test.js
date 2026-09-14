@@ -275,3 +275,50 @@ describe('simulateAutomation', () => {
     expect(result.steps.filter((s) => s.status === 'skipped')).toHaveLength(2);
   });
 });
+
+describe('WhatsApp 24-hour customer service window', () => {
+  const whatsappStep = (triggerType) =>
+    chain(
+      { triggerType },
+      action('a1', { actionType: 'send_message', message: 'Hi {first_name}!' }),
+    );
+
+  it('fails a freeform WhatsApp step when the contact has never messaged in', () => {
+    // The real case this came from: a "New Lead — Thank You Email" automation
+    // whose email arrived and whose WhatsApp message silently never did.
+    for (const triggerType of ['lead_created', 'airtable_status', 'missed_call', 'incoming_call']) {
+      const { nodes, edges } = whatsappStep(triggerType);
+      const result = simulateAutomation({ nodes, edges });
+      expect(result.steps[0].status, triggerType).toBe('error');
+      expect(result.errors.join(' ')).toContain('approved template');
+    }
+  });
+
+  it('allows a freeform WhatsApp step when an inbound message opened the window', () => {
+    const { nodes, edges } = whatsappStep('new_message');
+    const result = simulateAutomation({ nodes, edges, input: { message: 'hello' } });
+    expect(result.steps[0].status).toBe('ok');
+    expect(result.errors).toEqual([]);
+  });
+
+  it('does not apply the WhatsApp rule to an email step', () => {
+    // Email has no equivalent window; only the WhatsApp step should be blocked.
+    const { nodes, edges } = chain(
+      { triggerType: 'lead_created' },
+      action('a1', { actionType: 'send_email', subject: 'Thanks', body: '<p>Hi</p>' }),
+    );
+    const result = simulateAutomation({ nodes, edges });
+    expect(result.steps[0].status).toBe('ok');
+    expect(result.errors).toEqual([]);
+  });
+
+  it('reports every issue on a failing step, not just the first', () => {
+    const { nodes, edges } = chain(
+      { triggerType: 'lead_created' },
+      action('a1', { actionType: 'send_message', message: 'Hi {course_name}!' }),
+    );
+    const result = simulateAutomation({ nodes, edges, input: { courseName: '' } });
+    expect(result.errors.join(' ')).toContain('course_name');
+    expect(result.errors.join(' ')).toContain('approved template');
+  });
+});

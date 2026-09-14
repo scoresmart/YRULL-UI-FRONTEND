@@ -152,8 +152,15 @@ export function evaluateTrigger(triggerNode, input = {}) {
   return { matched: true, label, reason: 'Event received' };
 }
 
+// WhatsApp's 24-hour customer service window opens on an inbound message from
+// the contact. Outside it, Meta rejects freeform text and accepts only
+// pre-approved templates. An automation started by anything other than an
+// inbound WhatsApp message is therefore reaching someone with no open window,
+// and its Send Message step will be refused however well it is configured.
+const OPENS_WHATSAPP_WINDOW = new Set(['new_message']);
+
 /** Describe one action node: what it would do, and what is missing. */
-function describeAction(node, tokens, outgoingCount) {
+function describeAction(node, tokens, outgoingCount, triggerType) {
   const data = node.data || {};
   const type = data.actionType;
   const label = ACTION_LABELS[type] || 'Action';
@@ -181,6 +188,15 @@ function describeAction(node, tokens, outgoingCount) {
         status = 'error';
       } else {
         detail = fill(body, 'Message');
+      }
+      // The most expensive failure to discover live: everything is configured
+      // correctly and Meta still refuses the send.
+      if (type === 'send_message' && triggerType && !OPENS_WHATSAPP_WINDOW.has(triggerType)) {
+        issues.push(
+          `This runs on "${TRIGGER_LABELS[triggerType] || triggerType}", so the contact has not messaged you ` +
+            'and no 24-hour window is open. WhatsApp will reject this freeform message — it needs an approved template.',
+        );
+        status = 'error';
       }
       break;
     }
@@ -398,11 +414,13 @@ export function simulateAutomation({ nodes = [], edges = [], input = {} } = {}) 
     }
 
     const next = outgoing(nodeId);
-    const described = describeAction(node, tokens, next.length);
+    const described = describeAction(node, tokens, next.length, triggerNode.data?.triggerType);
     steps.push({ nodeId, actionType: node.data?.actionType, ...described });
 
-    if (described.status === 'error') errors.push(`${described.label}: ${described.issues[0]}`);
-    else described.issues.forEach((issue) => warnings.push(`${described.label}: ${issue}`));
+    // Every issue on a failing step is reported, not just the first: a step can
+    // fail for one reason and still carry others worth fixing at the same time.
+    const bucket = described.status === 'error' ? errors : warnings;
+    described.issues.forEach((issue) => bucket.push(`${described.label}: ${issue}`));
 
     next.forEach((e) => queue.push(e.target));
   }
