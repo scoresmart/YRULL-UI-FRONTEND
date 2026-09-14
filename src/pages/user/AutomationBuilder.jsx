@@ -53,6 +53,7 @@ import { cn } from '../../lib/utils';
 import { automationsApi, integrationsApi, claudePromptApi, tagsApi } from '../../lib/api';
 import { INTEGRATIONS, isIntegrationConnected } from '../../lib/integrationsCatalog';
 import { useTags } from '../../lib/dataHooks';
+import TestRunPanel from '../../components/automations/TestRunPanel';
 import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 
@@ -987,6 +988,9 @@ function AutomationBuilderContent() {
   // 'email'. Saving used to stamp 'whatsapp' over it and relabel them.
   const [platform, setPlatform] = useState('whatsapp');
   const [isSaved, setIsSaved] = useState(false);
+  // The dry-run panel. Testing a draft before it goes live is the whole point,
+  // so it opens without saving and never calls the API.
+  const [showTestPanel, setShowTestPanel] = useState(false);
 
   // Load which integrations this workspace has configured. The catalogue of
   // what Yrull supports is static (integrationsCatalog); the API only tells us
@@ -1684,6 +1688,19 @@ function AutomationBuilderContent() {
               <span>Saved</span>
             </div>
           )}
+          {/* Sits before Save so the reading order is test → save → set live,
+              which is the order it should be done in. */}
+          {!isSystem && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowTestPanel((open) => !open)}
+              className={cn('text-gray-600', showTestPanel && 'border-blue-300 bg-blue-50 text-blue-700')}
+            >
+              <Play className="mr-2 h-4 w-4" />
+              Test
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => handleSave()} disabled={saving} className="text-gray-600">
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             {isSystem ? 'Save Prompt' : 'Save'}
@@ -1712,6 +1729,13 @@ function AutomationBuilderContent() {
           </div>
         ) : (
           <>
+            {/* Everything on the canvas shifts left of the test panel while it
+                is open, so the zoom controls, minimap and + button stay
+                reachable instead of sitting underneath it. */}
+            <div
+              className="absolute inset-y-0 left-0 transition-[right] duration-200"
+              style={{ right: showTestPanel && !isSystem ? 400 : 0 }}
+            >
             {/* Main Canvas */}
             <ReactFlow
               nodes={nodesWithCallbacks}
@@ -2166,6 +2190,13 @@ function AutomationBuilderContent() {
                   </div>
                 </div>
               </div>
+            )}
+            </div>
+
+            {/* Dry run. Reads the live canvas state, so it tests exactly what is
+                on screen — including edits that have not been saved yet. */}
+            {showTestPanel && !isSystem && (
+              <TestRunPanel nodes={nodes} edges={edges} onClose={() => setShowTestPanel(false)} />
             )}
           </>
         )}
