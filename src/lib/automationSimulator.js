@@ -27,6 +27,7 @@ export const TRIGGER_LABELS = {
 
 export const ACTION_LABELS = {
   send_message: 'WhatsApp',
+  send_template: 'WhatsApp Template',
   send_email: 'Email',
   send_ig_dm: 'Instagram DM',
   add_tag: 'Add Tag',
@@ -192,11 +193,34 @@ function describeAction(node, tokens, outgoingCount, triggerType) {
       // The most expensive failure to discover live: everything is configured
       // correctly and Meta still refuses the send.
       if (type === 'send_message' && triggerType && !OPENS_WHATSAPP_WINDOW.has(triggerType)) {
-        issues.push(
-          `This runs on "${TRIGGER_LABELS[triggerType] || triggerType}", so the contact has not messaged you ` +
-            'and no 24-hour window is open. WhatsApp will reject this freeform message — it needs an approved template.',
-        );
+        if (data.fallbackTemplate) {
+          issues.push(
+            `No 24-hour window will be open, so this sends the "${data.fallbackTemplate}" template instead.`,
+          );
+          status = 'warning';
+        } else {
+          issues.push(
+            `This runs on "${TRIGGER_LABELS[triggerType] || triggerType}", so the contact has not messaged you ` +
+              'and no 24-hour window is open. WhatsApp will reject this freeform message — ' +
+              'pick a fallback template on this step.',
+          );
+          status = 'error';
+        }
+      }
+      break;
+    }
+
+    case 'send_template': {
+      const name = (data.templateName || '').trim();
+      if (!name) {
+        issues.push('No template selected — this step would do nothing.');
+        detail = '(no template)';
         status = 'error';
+      } else {
+        detail = `${name} (${data.templateLang || 'en_US'})`;
+        if (data.templateParams) {
+          detail += ` — ${fill(data.templateParams, 'Template values')}`;
+        }
       }
       break;
     }
@@ -445,7 +469,7 @@ export function simulateAutomation({ nodes = [], edges = [], input = {} } = {}) 
   // What a live run would actually have put in front of a person. Shown as the
   // "nothing was sent" summary so the dry run's safety is explicit.
   const sent = steps
-    .filter((s) => ['send_message', 'send_ig_dm', 'send_email'].includes(s.actionType))
+    .filter((s) => ['send_message', 'send_ig_dm', 'send_email', 'send_template'].includes(s.actionType))
     .filter((s) => s.status !== 'error');
 
   return {

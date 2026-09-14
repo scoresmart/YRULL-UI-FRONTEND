@@ -50,11 +50,11 @@ import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import { StatusPill } from '../../components/ui/status-pill';
 import { cn } from '../../lib/utils';
-import { automationsApi, integrationsApi, claudePromptApi, tagsApi } from '../../lib/api';
+import { automationsApi, integrationsApi, claudePromptApi, tagsApi, templatesApi } from '../../lib/api';
 import { INTEGRATIONS, isIntegrationConnected } from '../../lib/integrationsCatalog';
 import { useTags } from '../../lib/dataHooks';
 import TestRunPanel from '../../components/automations/TestRunPanel';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 
 // Custom Node: Trigger Node (When...)
@@ -216,6 +216,13 @@ const TriggerNode = ({ data, selected, id }) => {
 const ActionSelectionNode = ({ data, selected }) => {
   const actionOptions = [
     { type: 'send_message', label: 'WhatsApp', icon: MessageSquare, color: 'text-green-600', bgColor: 'bg-green-50' },
+    {
+      type: 'send_template',
+      label: 'WhatsApp Template',
+      icon: FileText,
+      color: 'text-green-700',
+      bgColor: 'bg-green-50',
+    },
     { type: 'send_email', label: 'Email', icon: Mail, color: 'text-rose-600', bgColor: 'bg-rose-50' },
     { type: 'send_ig_dm', label: 'Instagram DM', icon: Instagram, color: 'text-purple-600', bgColor: 'bg-purple-50' },
     { type: 'add_tag', label: 'Add Tag', icon: Zap, color: 'text-orange-600', bgColor: 'bg-orange-50' },
@@ -423,10 +430,60 @@ export const AirtableIntegrationFields = ({ id, data }) => {
   );
 };
 
+// Picks an approved WhatsApp template plus its positional {{1}}, {{2}} values.
+// Shared by the Template step and by the fallback on a plain WhatsApp step.
+const TemplatePicker = ({ id, data, nameField, langField, label, hint }) => {
+  const templates = data.approvedTemplates || [];
+  const selectedName = data[nameField] || '';
+  const chosen = templates.find((t) => t.name === selectedName);
+
+  return (
+    <div className="mt-3 space-y-2">
+      <label className="block text-xs font-medium text-gray-500">{label}</label>
+      <select
+        value={selectedName}
+        onChange={(e) => {
+          const next = templates.find((t) => t.name === e.target.value);
+          data?.onUpdateMessage?.(id, e.target.value, nameField);
+          // Language is part of the template's identity to Meta; keeping it in
+          // step with the name avoids a send refused for a mismatched locale.
+          if (next?.language) data?.onUpdateMessage?.(id, next.language, langField);
+        }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full rounded-md border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 focus:border-green-500 focus:bg-white focus:outline-none"
+      >
+        <option value="">Select a template…</option>
+        {templates.map((t) => (
+          <option key={`${t.name}-${t.language}`} value={t.name}>
+            {t.name} ({t.language})
+          </option>
+        ))}
+      </select>
+      {templates.length === 0 && (
+        <p className="text-[10px] text-amber-700">
+          No approved templates yet — create one under Templates, then wait for Meta to approve it.
+        </p>
+      )}
+      {chosen && (
+        <input
+          type="text"
+          placeholder="Values for {{1}}, {{2}} — comma separated"
+          value={data.templateParams || ''}
+          onChange={(e) => data?.onUpdateMessage?.(id, e.target.value, 'templateParams')}
+          onClick={(e) => e.stopPropagation()}
+          className="w-full rounded-md border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:border-green-500 focus:bg-white focus:outline-none"
+        />
+      )}
+      {hint && <p className="text-[10px] text-gray-400">{hint}</p>}
+    </div>
+  );
+};
+
 // Custom Node: Action Node
 export const ActionNode = ({ data, selected, id }) => {
   const getIcon = () => {
     if (data.actionType === 'send_message') return <MessageSquare className="h-5 w-5" />;
+    if (data.actionType === 'send_template') return <FileText className="h-5 w-5" />;
     if (data.actionType === 'send_email') return <Mail className="h-5 w-5" />;
     if (data.actionType === 'add_tag') return <Zap className="h-5 w-5" />;
     if (data.actionType === 'assign') return <Settings className="h-5 w-5" />;
@@ -443,6 +500,7 @@ export const ActionNode = ({ data, selected, id }) => {
 
   const getLabel = () => {
     if (data.actionType === 'send_message') return 'WhatsApp';
+    if (data.actionType === 'send_template') return 'WhatsApp Template';
     if (data.actionType === 'send_email') return 'Email';
     if (data.actionType === 'add_tag') return 'Add Tag';
     if (data.actionType === 'assign') return 'Assign';
@@ -503,6 +561,7 @@ export const ActionNode = ({ data, selected, id }) => {
           <div className="text-base font-semibold text-gray-900">{getLabel()}</div>
           <div className="mt-1 text-sm text-gray-500">
             {data.actionType === 'send_message' && 'Send Message'}
+            {data.actionType === 'send_template' && 'Send Approved Template'}
             {data.actionType === 'send_email' && (data.label || 'Send Email')}
             {data.actionType === 'add_tag' && 'Add Tag to Contact'}
             {data.actionType === 'assign' && 'Assign to User'}
@@ -527,7 +586,28 @@ export const ActionNode = ({ data, selected, id }) => {
                 onClick={(e) => e.stopPropagation()}
                 className="w-full rounded-md border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:border-green-500 focus:bg-white focus:outline-none"
               />
+              {/* Plain text only reaches a contact who messaged in the last 24
+                  hours. A CRM lead never has, so without a fallback this step
+                  is refused by Meta however well it is written. */}
+              <TemplatePicker
+                id={id}
+                data={data}
+                nameField="fallbackTemplate"
+                langField="templateLang"
+                label="Fallback template (used if the 24-hour window is closed)"
+                hint="Leave empty only if this automation is started by an inbound message."
+              />
             </div>
+          )}
+          {data.actionType === 'send_template' && (
+            <TemplatePicker
+              id={id}
+              data={data}
+              nameField="templateName"
+              langField="templateLang"
+              label="Template"
+              hint="Approved templates send at any time, inside or outside the 24-hour window."
+            />
           )}
           {data.actionType === 'send_email' && (
             <div className="mt-3 space-y-2">
@@ -975,6 +1055,21 @@ function AutomationBuilderContent() {
 
   // Load tags
   const tagsQ = useTags();
+
+  // Approved WhatsApp templates, for steps that reach a contact with no open
+  // 24-hour window — a CRM lead has never messaged in, so freeform is refused.
+  const templatesQ = useQuery({
+    queryKey: ['whatsapp_templates'],
+    queryFn: () => templatesApi.list(),
+    staleTime: 5 * 60 * 1000,
+    select: (data) => {
+      const list = Array.isArray(data) ? data : (data?.templates ?? data?.data ?? []);
+      return list.filter((t) => t.status === 'APPROVED');
+    },
+  });
+  // Memoised so the identity is stable: the node memo below depends on it, and
+  // a fresh [] each render would rebuild every node on every render.
+  const approvedTemplates = useMemo(() => templatesQ.data ?? [], [templatesQ.data]);
   const queryClient = useQueryClient();
   const [automationId, setAutomationId] = useState(isNew ? null : id);
   const [saving, setSaving] = useState(false);
@@ -1520,6 +1615,9 @@ function AutomationBuilderContent() {
             onConfigureTag: handleConfigureTag,
             onAddNextStep: handleAddNextStep,
             hasNextStep: edges.some((e) => e.source === node.id),
+            // Only approved templates can actually be sent, so the picker never
+            // offers one that Meta would reject.
+            approvedTemplates,
           },
         };
       }
@@ -1537,6 +1635,9 @@ function AutomationBuilderContent() {
   }, [
     nodes,
     edges,
+    // Templates arrive after the first render, so without this the pickers
+    // would stay empty until something else happened to invalidate the memo.
+    approvedTemplates,
     addActionNode,
     handleConfigureTrigger,
     handleUpdateMessage,

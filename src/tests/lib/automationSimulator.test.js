@@ -290,7 +290,7 @@ describe('WhatsApp 24-hour customer service window', () => {
       const { nodes, edges } = whatsappStep(triggerType);
       const result = simulateAutomation({ nodes, edges });
       expect(result.steps[0].status, triggerType).toBe('error');
-      expect(result.errors.join(' ')).toContain('approved template');
+      expect(result.errors.join(' ')).toContain('fallback template');
     }
   });
 
@@ -319,6 +319,59 @@ describe('WhatsApp 24-hour customer service window', () => {
     );
     const result = simulateAutomation({ nodes, edges, input: { courseName: '' } });
     expect(result.errors.join(' ')).toContain('course_name');
-    expect(result.errors.join(' ')).toContain('approved template');
+    expect(result.errors.join(' ')).toContain('fallback template');
+  });
+});
+
+describe('WhatsApp templates', () => {
+  it('accepts a CRM-triggered WhatsApp step once a fallback template is set', () => {
+    // The fix for the real automation: freeform is refused outside the window,
+    // but an approved template goes through at any time.
+    const { nodes, edges } = chain(
+      { triggerType: 'lead_created' },
+      action('a1', {
+        actionType: 'send_message',
+        message: 'Hi {first_name}!',
+        fallbackTemplate: 'welcome_lead',
+        templateLang: 'en_US',
+      }),
+    );
+    const result = simulateAutomation({ nodes, edges });
+    expect(result.steps[0].status).toBe('warning');
+    expect(result.errors).toEqual([]);
+    expect(result.warnings.join(' ')).toContain('welcome_lead');
+  });
+
+  it('flags a template step with no template chosen', () => {
+    const { nodes, edges } = chain(
+      { triggerType: 'lead_created' },
+      action('a1', { actionType: 'send_template', templateName: '' }),
+    );
+    expect(simulateAutomation({ nodes, edges }).steps[0].status).toBe('error');
+  });
+
+  it('describes a configured template step, values resolved', () => {
+    const { nodes, edges } = chain(
+      { triggerType: 'lead_created' },
+      action('a1', {
+        actionType: 'send_template',
+        templateName: 'welcome_lead',
+        templateLang: 'en_US',
+        templateParams: '{first_name}',
+      }),
+    );
+    const result = simulateAutomation({ nodes, edges, input: { contactName: 'Vishal Prajapati' } });
+    expect(result.steps[0].status).toBe('ok');
+    expect(result.steps[0].detail).toContain('welcome_lead (en_US)');
+    expect(result.steps[0].detail).toContain('Vishal');
+    expect(result.errors).toEqual([]);
+  });
+
+  it('counts a template step as something a live run would deliver', () => {
+    const { nodes, edges } = chain(
+      { triggerType: 'lead_created' },
+      action('a1', { actionType: 'send_template', templateName: 'welcome_lead' }),
+    );
+    expect(simulateAutomation({ nodes, edges }).sent).toHaveLength(1);
   });
 });
