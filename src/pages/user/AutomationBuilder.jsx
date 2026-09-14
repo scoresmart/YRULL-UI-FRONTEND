@@ -434,42 +434,68 @@ export const AirtableIntegrationFields = ({ id, data }) => {
 // Shared by the Template step and by the fallback on a plain WhatsApp step.
 const TemplatePicker = ({ id, data, nameField, langField, label, hint }) => {
   const templates = data.approvedTemplates || [];
-  const selectedName = data[nameField] || '';
-  const chosen = templates.find((t) => t.name === selectedName);
+  const selectedName = data[nameField] || "";
+  // The list comes from Meta through the workspace OAuth token, which expires
+  // and needs a Facebook reconnect. Sending a template does not use that token
+  // at all, so a stale login must not be able to block configuring the step --
+  // fall back to typing the name, which is all the engine actually needs.
+  const canList = templates.length > 0;
+
+  const setName = (value) => data?.onUpdateMessage?.(id, value, nameField);
 
   return (
     <div className="mt-3 space-y-2">
       <label className="block text-xs font-medium text-gray-500">{label}</label>
-      <select
-        value={selectedName}
-        onChange={(e) => {
-          const next = templates.find((t) => t.name === e.target.value);
-          data?.onUpdateMessage?.(id, e.target.value, nameField);
-          // Language is part of the template's identity to Meta; keeping it in
-          // step with the name avoids a send refused for a mismatched locale.
-          if (next?.language) data?.onUpdateMessage?.(id, next.language, langField);
-        }}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full rounded-md border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 focus:border-green-500 focus:bg-white focus:outline-none"
-      >
-        <option value="">Select a template…</option>
-        {templates.map((t) => (
-          <option key={`${t.name}-${t.language}`} value={t.name}>
-            {t.name} ({t.language})
-          </option>
-        ))}
-      </select>
-      {templates.length === 0 && (
-        <p className="text-[10px] text-amber-700">
-          No approved templates yet — create one under Templates, then wait for Meta to approve it.
-        </p>
+      {canList ? (
+        <select
+          value={selectedName}
+          onChange={(e) => {
+            const next = templates.find((t) => t.name === e.target.value);
+            setName(e.target.value);
+            // Language is part of the template identity to Meta; keeping it in
+            // step with the name avoids a send refused for a mismatched locale.
+            if (next?.language) data?.onUpdateMessage?.(id, next.language, langField);
+          }}
+          onClick={(e) => e.stopPropagation()}
+          className="w-full rounded-md border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 focus:border-green-500 focus:bg-white focus:outline-none"
+        >
+          <option value="">Select a template…</option>
+          {templates.map((t) => (
+            <option key={`${t.name}-${t.language}`} value={t.name}>
+              {t.name} ({t.language})
+            </option>
+          ))}
+        </select>
+      ) : (
+        <>
+          <input
+            type="text"
+            placeholder="Template name, exactly as approved by Meta"
+            value={selectedName}
+            onChange={(e) => setName(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full rounded-md border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:border-green-500 focus:bg-white focus:outline-none"
+          />
+          <input
+            type="text"
+            placeholder="Language code (e.g. en_US)"
+            value={data[langField] || ""}
+            onChange={(e) => data?.onUpdateMessage?.(id, e.target.value, langField)}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full rounded-md border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:border-green-500 focus:bg-white focus:outline-none"
+          />
+          <p className="text-[10px] text-amber-700">
+            Could not load your template list — reconnect Facebook under Templates to pick from a
+            menu. Typing the name still works: sending uses different credentials from the list.
+          </p>
+        </>
       )}
-      {chosen && (
+      {selectedName && (
         <input
           type="text"
           placeholder="Values for {{1}}, {{2}} — comma separated"
-          value={data.templateParams || ''}
-          onChange={(e) => data?.onUpdateMessage?.(id, e.target.value, 'templateParams')}
+          value={data.templateParams || ""}
+          onChange={(e) => data?.onUpdateMessage?.(id, e.target.value, "templateParams")}
           onClick={(e) => e.stopPropagation()}
           className="w-full rounded-md border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:border-green-500 focus:bg-white focus:outline-none"
         />
