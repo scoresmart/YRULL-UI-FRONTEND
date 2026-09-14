@@ -6,6 +6,29 @@ import { markMetaAuthError } from './metaAuthStatus';
 /**
  * Authenticated fetch wrapper - attaches Supabase JWT + workspace context.
  */
+// The profile arrives a moment after the first render, so a page that fires its
+// query on mount used to send no X-Workspace-Id at all and the backend answered
+// 400 — "Failed to load templates" with nothing to retry against, because the
+// query key never changed once the profile did land. Fetch the profile once and
+// let every caller wait on the same promise rather than stampeding.
+let _profilePromise = null;
+
+async function workspaceId() {
+  const { useAuthStore } = await import('../store/authStore');
+  const existing = useAuthStore.getState().profile?.workspace_id;
+  if (existing) return existing;
+  if (!_profilePromise) {
+    _profilePromise = useAuthStore
+      .getState()
+      .fetchProfile()
+      .finally(() => {
+        _profilePromise = null;
+      });
+  }
+  await _profilePromise;
+  return useAuthStore.getState().profile?.workspace_id;
+}
+
 export async function authFetch(url, options = {}) {
   const { data } = await supabase.auth.getSession();
   const token = data?.session?.access_token;
@@ -13,8 +36,9 @@ export async function authFetch(url, options = {}) {
   if (token) headers['Authorization'] = `Bearer ${token}`;
   if (!headers['Content-Type'] && options.body) headers['Content-Type'] = 'application/json';
   try {
-    const { useAuthStore } = await import('../store/authStore');
-    const wsId = useAuthStore.getState().profile?.workspace_id;
+    // Only worth waiting on when we are actually signed in; a guest request has
+    // no workspace to resolve and should not block on one.
+    const wsId = token ? await workspaceId() : null;
     if (wsId) headers['X-Workspace-Id'] = wsId;
   } catch {
     /* ignore */
@@ -229,10 +253,11 @@ export const whatsappApi = {
       const token = sessionData?.session?.access_token;
       const headers = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
+      // Same wait as authFetch: without it a voice note sent straight after
+      // load goes out with no workspace header and is rejected.
       let wsId;
       try {
-        const { useAuthStore } = await import('../store/authStore');
-        wsId = useAuthStore.getState().profile?.workspace_id;
+        wsId = token ? await workspaceId() : null;
       } catch { /* ignore */ }
       if (wsId) headers['X-Workspace-Id'] = wsId;
 
