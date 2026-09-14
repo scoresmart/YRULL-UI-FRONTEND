@@ -75,6 +75,9 @@ export function ContactInfoPanel({ onClose }) {
     queryKey: ['whatsapp_calls', selectedWaId],
     enabled: Boolean(selectedWaId),
     queryFn: () => whatsappApi.getCallHistory({ limit: 10 }),
+    // An empty response body arrives as {}, which is truthy but has no .filter.
+    // Normalise so the memo below can assume a list.
+    select: (data) => (Array.isArray(data) ? data : (data?.calls ?? data?.data ?? [])),
     staleTime: 5000, // Consider fresh for 5s to prevent refetch on every render
     refetchInterval: 10000, // Refetch every 10 seconds to catch new calls
     refetchIntervalInBackground: true, // Continue polling even when tab is in background

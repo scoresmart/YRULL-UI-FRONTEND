@@ -13,7 +13,13 @@ export function initialsFromName(name) {
 }
 
 export function formatRelativeTime(dateLike) {
-  const date = typeof dateLike === 'string' ? new Date(dateLike) : dateLike;
+  // Records reach this with no timestamp at all (a call row missing both
+  // created_at and timestamp, say), and an unguarded .getTime() on undefined
+  // took the whole page down. Most callers already render '—' for a missing
+  // date, so match that rather than throw.
+  if (dateLike === null || dateLike === undefined || dateLike === '') return '—';
+  const date = typeof dateLike === 'string' || typeof dateLike === 'number' ? new Date(dateLike) : dateLike;
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '—';
   const diff = Date.now() - date.getTime();
   const sec = Math.floor(diff / 1000);
   if (sec < 60) return 'just now';

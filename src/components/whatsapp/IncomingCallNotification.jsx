@@ -136,6 +136,10 @@ export function IncomingCallNotification() {
   const callHistoryQ = useQuery({
     queryKey: ['whatsapp_active_calls'],
     queryFn: () => whatsappApi.getCallHistory({ limit: 20 }),
+    // An empty response body arrives as {}, which is truthy but has no .filter.
+    // This polls during a live call, so an unguarded crash here would take the
+    // call UI down mid-call.
+    select: (data) => (Array.isArray(data) ? data : (data?.calls ?? data?.data ?? [])),
     refetchInterval: callState === 'ringing' ? 2000 : callState === 'active' ? 2000 : 5000, // Poll every 2s when ringing or active
     refetchIntervalInBackground: true,
     enabled: true, // Always enabled to detect call end

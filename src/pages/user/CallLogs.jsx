@@ -24,6 +24,11 @@ export function CallLogsPage() {
   const callsQ = useQuery({
     queryKey: ['whatsapp_calls_all', filter],
     queryFn: () => whatsappApi.getCallHistory({ limit: 100 }),
+    // apiJSON answers an empty response body with {}, and the backend may wrap
+    // the list as { calls: [...] }. Either one is truthy but not iterable, so it
+    // used to sail past the null guards below and crash the page on [...data].
+    // Normalising here lets everything downstream just assume an array.
+    select: (data) => (Array.isArray(data) ? data : (data?.calls ?? data?.data ?? [])),
     refetchInterval: 30000, // Refresh every 30 seconds
     refetchIntervalInBackground: true,
   });
