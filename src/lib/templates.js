@@ -87,3 +87,56 @@ export function templateToDraft(template) {
     buttons: t.buttons,
   };
 }
+
+
+// Meta takes a template as an ordered list of typed components, and the
+// backend forwards this array to the Graph API untouched. The form used to post
+// its own flat shape (header_type/header/body/footer/buttons), which carried
+// the same information but under names Meta has never heard of -- so every
+// submission came back "components array is required" before it reached Meta.
+export function buildComponents({ headerType, header, body, footer, buttons }) {
+  const components = [];
+
+  // Any {{1}} in the text needs a sample value alongside it or Meta rejects the
+  // template outright. The placeholder number is the best sample we have here.
+  const samplesFor = (text) => {
+    const found = [...String(text || "").matchAll(/\{\{\s*(\d+)\s*\}\}/g)].map((m) => Number(m[1]));
+    if (!found.length) return null;
+    const highest = Math.max(...found);
+    return Array.from({ length: highest }, (_, i) => `sample ${i + 1}`);
+  };
+
+  if (headerType === "TEXT" && header?.trim()) {
+    const component = { type: "HEADER", format: "TEXT", text: header.trim() };
+    const samples = samplesFor(header);
+    if (samples) component.example = { header_text: samples };
+    components.push(component);
+  } else if (headerType && headerType !== "NONE" && headerType !== "TEXT") {
+    // Media headers carry a handle rather than text; Meta needs the format even
+    // when the sample is supplied later.
+    components.push({ type: "HEADER", format: headerType });
+  }
+
+  const bodyComponent = { type: "BODY", text: String(body || "").trim() };
+  const bodySamples = samplesFor(body);
+  if (bodySamples) bodyComponent.example = { body_text: [bodySamples] };
+  components.push(bodyComponent);
+
+  if (footer?.trim()) {
+    components.push({ type: "FOOTER", text: footer.trim() });
+  }
+
+  const usable = (buttons || []).filter((b) => b?.text?.trim());
+  if (usable.length) {
+    components.push({
+      type: "BUTTONS",
+      buttons: usable.map((b) =>
+        b.type === "URL"
+          ? { type: "URL", text: b.text.trim(), url: (b.value || "").trim() }
+          : { type: "QUICK_REPLY", text: b.text.trim() },
+      ),
+    });
+  }
+
+  return components;
+}

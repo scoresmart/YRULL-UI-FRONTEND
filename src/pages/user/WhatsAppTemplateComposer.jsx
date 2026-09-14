@@ -9,7 +9,7 @@ import { TemplateBubble } from '../../components/templates/TemplateBubble';
 import { templatesApi } from '../../lib/api';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { cn } from '../../lib/utils';
-import { TEMPLATE_CATEGORIES, TEMPLATE_LANGUAGES, templateToDraft } from '../../lib/templates';
+import { TEMPLATE_CATEGORIES, TEMPLATE_LANGUAGES, templateToDraft, buildComponents } from '../../lib/templates';
 import toast from 'react-hot-toast';
 
 const HEADER_TYPES = [
@@ -84,11 +84,7 @@ export function WhatsAppTemplateComposerPage() {
       name,
       category,
       language,
-      header_type: headerType || undefined,
-      header: headerType === 'TEXT' ? header : undefined,
-      body,
-      footer: footer || undefined,
-      buttons: buttons.length > 0 ? buttons : undefined,
+      components: buildComponents({ headerType, header, body, footer, buttons }),
     });
   }
 
