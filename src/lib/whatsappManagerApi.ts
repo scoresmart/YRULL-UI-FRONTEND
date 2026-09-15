@@ -10,9 +10,6 @@ export interface WhatsAppNumberRecord {
   status?: string;
   phone_number_id: string;
   id?: string;
-  /** Which WhatsApp Business Account owns this number. The same number can
-   *  appear under several WABAs, and only one of them is the live one. */
-  waba_id?: string;
 }
 
 export interface RegisterNumberPayload {

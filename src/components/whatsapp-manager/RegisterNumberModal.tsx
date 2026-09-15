@@ -151,32 +151,8 @@ export function RegisterNumberModal({
                                 : 'border-white/10 bg-[#0D1117] text-gray-200 hover:border-white/20',
                             )}
                           >
-                            <span className="min-w-0">
-                              <span className="block font-medium">
-                                {n.display_phone_number ?? n.phone_number_id}
-                              </span>
-                              {/* The same number can appear under several WABAs and
-                                  only one is the registered, sendable one. Without
-                                  the account and status shown, the rows are
-                                  indistinguishable and picking the wrong one fails
-                                  with Meta's opaque "Invalid parameter". */}
-                              <span className="block truncate text-[11px] text-gray-500">
-                                {n.verified_name ? n.verified_name + ' · ' : ''}
-                                {n.waba_id ? 'WABA ' + n.waba_id : 'WABA unknown'}
-                              </span>
-                            </span>
-                            {n.status && (
-                              <span
-                                className={cn(
-                                  'ml-2 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase',
-                                  n.status.toUpperCase() === 'CONNECTED'
-                                    ? 'bg-emerald-500/15 text-emerald-300'
-                                    : 'bg-white/10 text-gray-400',
-                                )}
-                              >
-                                {n.status}
-                              </span>
-                            )}
+                            <span className="font-medium">{n.display_phone_number ?? n.phone_number_id}</span>
+                            {n.verified_name && <span className="hidden truncate text-xs text-gray-400 sm:block">{n.verified_name}</span>}
                           </button>
                         </li>
                       );

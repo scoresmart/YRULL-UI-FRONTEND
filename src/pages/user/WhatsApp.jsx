@@ -294,15 +294,32 @@ export function WhatsAppPage() {
                       disabled={wa.loading}
                       className="w-full flex items-center justify-between rounded-lg border border-border p-4 hover:bg-accent transition-colors text-left disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      <div>
+                      <div className="min-w-0">
                         <p className="font-medium">{num.display_phone}</p>
-                        <p className="text-sm text-muted-foreground">{num.verified_name}</p>
+                        {/* The same number appears once per WhatsApp Business
+                            Account, and only one of those is the registered,
+                            sendable one -- picking another fails with Meta's
+                            opaque "Invalid parameter". With several identically
+                            named accounts, the number and name alone do not
+                            tell them apart. */}
+                        <p className="truncate text-sm text-muted-foreground">
+                          {num.verified_name ? `${num.verified_name} · ` : ''}
+                          {num.waba_id ? `WABA ${num.waba_id}` : 'WABA unknown'}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2">
                         {num.quality_rating === 'GREEN' && (
                           <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Good quality</span>
                         )}
-                        <span className="text-xs text-muted-foreground">{num.status}</span>
+                        <span
+                          className={
+                            String(num.status).toUpperCase() === 'CONNECTED'
+                              ? 'rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700'
+                              : 'text-xs text-muted-foreground'
+                          }
+                        >
+                          {num.status}
+                        </span>
                       </div>
                     </button>
                   ))}
