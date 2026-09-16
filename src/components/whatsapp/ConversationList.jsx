@@ -38,6 +38,21 @@ async function getLastMessage(waId) {
   return data;
 }
 
+// The backend stores uncaptioned media as "[audio]", "[image]" etc.
+const MEDIA_PREVIEW = {
+  audio: '🎤 Voice message',
+  image: '📷 Photo',
+  video: '🎥 Video',
+  document: '📄 Document',
+  sticker: 'Sticker',
+};
+
+function previewText(msg) {
+  const placeholder = /^\[(\w+)\]$/.exec(msg.body || '');
+  if (placeholder) return MEDIA_PREVIEW[placeholder[1]] || msg.body;
+  return msg.body || MEDIA_PREVIEW[msg.message_type] || '[Media]';
+}
+
 const ConversationRow = memo(function ConversationRow({
   contact,
   lastMessage,
@@ -94,7 +109,7 @@ const ConversationRow = memo(function ConversationRow({
             </div>
           </div>
           <div className="mt-1 truncate text-sm text-gray-500">
-            {lastMessage ? (lastMessage.body || '[Media]').substring(0, 50) : 'No messages yet'}
+            {lastMessage ? previewText(lastMessage).substring(0, 50) : 'No messages yet'}
           </div>
           {displayPhone && displayPhone !== name ? (
             <div className="mt-1 text-xs text-gray-400">{displayPhone}</div>

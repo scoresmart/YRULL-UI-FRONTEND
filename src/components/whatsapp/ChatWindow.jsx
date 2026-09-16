@@ -211,7 +211,7 @@ const MessageBubble = memo(function MessageBubble({ msg }) {
               </div>
             )}
             {/* "[image]" is the backend placeholder for a photo with no caption. */}
-            {msg.body && !/^[w+]$/.test(msg.body) && (
+            {msg.body && !/^\[\w+\]$/.test(msg.body) && (
               <div className={cn('mt-1 text-sm', inbound ? 'text-gray-800' : 'text-white')}>{msg.body}</div>
             )}
           </div>
