@@ -243,6 +243,23 @@ export const whatsappApi = {
   getAnsweredCalls: (callId) =>
     apiJSON('GET', `/whatsapp/calls/answered?call_id=${encodeURIComponent(callId)}`),
 
+  // The file behind an inbound voice note / image / video / document. Meta's own
+  // links need our token, so the backend proxies it; an <audio src> can't send
+  // auth headers, hence a Blob the caller turns into an object URL.
+  async getMessageMedia(waMessageId) {
+    const res = await authFetch(`${ENV.API_BASE_URL}/whatsapp/media/${encodeURIComponent(waMessageId)}`);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new ApiError(body.error || `${res.status} Failed to load media`, {
+        status: res.status,
+        body,
+        method: 'GET',
+        path: '/whatsapp/media',
+      });
+    }
+    return res.blob();
+  },
+
   async sendAudio({ to, audioBlob }) {
     const form = new FormData();
     form.append('to', to);

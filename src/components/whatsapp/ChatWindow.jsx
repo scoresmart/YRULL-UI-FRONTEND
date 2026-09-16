@@ -103,7 +103,30 @@ const CallMessage = memo(function CallMessage({ msg, inbound }) {
   );
 });
 
+// Inbound media is stored as Meta's media id, not a URL; fetch the file through
+// the backend and hand back an object URL. Rows that already carry media_url
+// (and every text message) skip the request entirely.
+function useMediaSrc(msg) {
+  const needsFetch = Boolean(msg && !msg.media_url && msg.media_id && msg.wa_message_id);
+  const { data: blob, isError, isLoading } = useQuery({
+    queryKey: ['wa-media', msg?.wa_message_id],
+    queryFn: () => whatsappApi.getMessageMedia(msg.wa_message_id),
+    enabled: needsFetch,
+    staleTime: Infinity,
+    gcTime: 10 * 60 * 1000,
+    retry: (count, err) => count < 2 && !(err?.status >= 400 && err?.status < 500),
+  });
+  const objectUrl = useMemo(() => (blob ? URL.createObjectURL(blob) : null), [blob]);
+  useEffect(() => () => objectUrl && URL.revokeObjectURL(objectUrl), [objectUrl]);
+  return {
+    src: msg?.media_url || objectUrl,
+    loading: needsFetch && isLoading,
+    failed: needsFetch && isError,
+  };
+}
+
 const MessageBubble = memo(function MessageBubble({ msg }) {
+  const media = useMediaSrc(msg);
   if (!msg) return null; // Safety check
 
   const inbound = msg.direction === 'inbound';
@@ -156,12 +179,12 @@ const MessageBubble = memo(function MessageBubble({ msg }) {
                 : null) ||
               '[Automated message - no content]'}
           </div>
-        ) : msg.message_type === 'image' ? (
+        ) : msg.message_type === 'image' || msg.message_type === 'sticker' ? (
           <div className="flex flex-col gap-1">
-            {msg.media_url ? (
-              <a href={msg.media_url} target="_blank" rel="noopener noreferrer">
+            {media.src ? (
+              <a href={media.src} target="_blank" rel="noopener noreferrer">
                 <img
-                  src={msg.media_url}
+                  src={media.src}
                   alt="Image"
                   className="max-w-full rounded-lg object-cover"
                   style={{ maxHeight: 320 }}
@@ -181,28 +204,35 @@ const MessageBubble = memo(function MessageBubble({ msg }) {
                 <div className="h-10 w-10 rounded-lg bg-black/5" />
                 <div>
                   <div className={cn('text-sm font-medium', inbound ? 'text-gray-900' : 'text-white')}>IMAGE</div>
-                  <div className={cn('text-xs', inbound ? 'text-gray-500' : 'text-white/70')}>Loading…</div>
+                  <div className={cn('text-xs', inbound ? 'text-gray-500' : 'text-white/70')}>
+                    {media.loading ? 'Loading…' : 'Image unavailable'}
+                  </div>
                 </div>
               </div>
             )}
-            {msg.body && (
+            {/* "[image]" is the backend placeholder for a photo with no caption. */}
+            {msg.body && !/^[w+]$/.test(msg.body) && (
               <div className={cn('mt-1 text-sm', inbound ? 'text-gray-800' : 'text-white')}>{msg.body}</div>
             )}
           </div>
         ) : msg.message_type === 'audio' ? (
           <div className="flex flex-col gap-1">
-            {msg.media_url ? (
-              <audio controls src={msg.media_url} className="w-full max-w-xs" />
+            {media.src ? (
+              <audio controls src={media.src} className="w-full max-w-xs" />
             ) : (
-              <div className={cn('text-sm italic', inbound ? 'text-gray-500' : 'text-white/70')}>🎵 Voice message</div>
+              <div className={cn('text-sm italic', inbound ? 'text-gray-500' : 'text-white/70')}>
+                🎵 {media.loading ? 'Loading voice message…' : 'Voice message (audio not available)'}
+              </div>
             )}
           </div>
         ) : msg.message_type === 'video' ? (
           <div className="flex flex-col gap-1">
-            {msg.media_url ? (
-              <video controls src={msg.media_url} className="max-w-full rounded-lg" style={{ maxHeight: 320 }} />
+            {media.src ? (
+              <video controls src={media.src} className="max-w-full rounded-lg" style={{ maxHeight: 320 }} />
             ) : (
-              <div className={cn('text-sm italic', inbound ? 'text-gray-500' : 'text-white/70')}>🎥 Video message</div>
+              <div className={cn('text-sm italic', inbound ? 'text-gray-500' : 'text-white/70')}>
+                🎥 {media.loading ? 'Loading video…' : 'Video (not available)'}
+              </div>
             )}
           </div>
         ) : msg.message_type === 'document' ? (
@@ -210,9 +240,9 @@ const MessageBubble = memo(function MessageBubble({ msg }) {
             <div className="text-2xl">📄</div>
             <div>
               <div className={cn('text-sm font-medium', inbound ? 'text-gray-900' : 'text-white')}>Document</div>
-              {msg.media_url ? (
+              {media.src ? (
                 <a
-                  href={msg.media_url}
+                  href={media.src}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={cn('text-xs underline', inbound ? 'text-blue-600' : 'text-white/90')}
