@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import { Fragment, useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import {
   Paperclip,
   Send,
@@ -7,9 +7,7 @@ import {
   UserPlus,
   Archive,
   Phone,
-  PhoneOutgoing,
   PhoneIncoming,
-  PhoneMissed,
   ArrowLeft,
   Info,
   Mic,
@@ -19,7 +17,7 @@ import {
   ChevronLeft,
 } from 'lucide-react';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
-import { cn, initialsFromName, pastelClassFromString } from '../../lib/utils';
+import { cn, formatPhone, initialsFromName, pastelClassFromString } from '../../lib/utils';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
@@ -28,6 +26,7 @@ import { useChatStore } from '../../store/chatStore';
 import { useCallStore } from '../../store/callStore';
 import { useContacts, useMessages, useTags, useContactTags } from '../../lib/dataHooks';
 import { whatsappApi, tagsApi, templatesApi } from '../../lib/api';
+import { MessageBubble } from './MessageBubble';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import toast from 'react-hot-toast';
 
@@ -55,256 +54,23 @@ function formatRemaining(ms) {
   return `${h}h ${m}m left`;
 }
 
-// Format call duration (seconds to "X seconds" or "X minutes Y seconds")
-function formatCallDuration(seconds) {
-  if (!seconds || seconds === 0) return 'Missed';
-  if (seconds < 60) return `${seconds} second${seconds !== 1 ? 's' : ''}`;
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  if (secs === 0) return `${mins} minute${mins !== 1 ? 's' : ''}`;
-  return `${mins} minute${mins !== 1 ? 's' : ''} ${secs} second${secs !== 1 ? 's' : ''}`;
+function dayLabel(iso) {
+  const d = new Date(iso);
+  const today = new Date();
+  const startOf = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diffDays = Math.round((startOf(today) - startOf(d)) / 86400000);
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return d.toLocaleDateString('en-AU', { weekday: 'long' });
+  return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
 }
-
-// Check if message is a call event (actual incoming/outgoing call, not a call button)
-function isCallMessage(msg) {
-  if (!msg) return false;
-  const msgType = String(msg.message_type || '')
-    .toLowerCase()
-    .trim();
-  return msgType === 'call_event';
-}
-
-const CallMessage = memo(function CallMessage({ msg, inbound }) {
-  // For call_event messages, parse status/duration from body: "__call_event__|status=...|duration=..."
-  let duration = null;
-  let callStatus = 'completed';
-  if (msg.body?.startsWith('__call_event__')) {
-    const parts = msg.body.split('|');
-    for (const p of parts) {
-      if (p.startsWith('status=')) callStatus = p.slice(7);
-      if (p.startsWith('duration=')) duration = parseInt(p.slice(9), 10) || 0;
-    }
-  }
-
-  const isMissed = duration === 0 || duration === null || callStatus !== 'COMPLETED';
-  const PhoneIcon = isMissed ? PhoneMissed : inbound ? PhoneIncoming : PhoneOutgoing;
-  const iconColor = isMissed ? 'text-red-500' : inbound ? 'text-blue-500' : 'text-white';
-
-  return (
-    <div className="flex items-center gap-3">
-      <PhoneIcon className={cn('h-5 w-5 shrink-0', iconColor)} />
-      <div className="flex-1">
-        <div className={cn('text-sm font-semibold', inbound ? 'text-gray-900' : 'text-white')}>Voice call</div>
-        <div className={cn('text-xs', inbound ? 'text-gray-600' : 'text-white/90')}>
-          {isMissed ? 'Missed call' : formatCallDuration(duration)}
-        </div>
-      </div>
-    </div>
-  );
-});
-
-// Inbound media is stored as Meta's media id, not a URL; fetch the file through
-// the backend and hand back an object URL. Rows that already carry media_url
-// (and every text message) skip the request entirely.
-function useMediaSrc(msg) {
-  const needsFetch = Boolean(msg && !msg.media_url && msg.media_id && msg.wa_message_id);
-  const { data: blob, isError, isLoading } = useQuery({
-    queryKey: ['wa-media', msg?.wa_message_id],
-    queryFn: () => whatsappApi.getMessageMedia(msg.wa_message_id),
-    enabled: needsFetch,
-    staleTime: Infinity,
-    gcTime: 10 * 60 * 1000,
-    retry: (count, err) => count < 2 && !(err?.status >= 400 && err?.status < 500),
-  });
-  const objectUrl = useMemo(() => (blob ? URL.createObjectURL(blob) : null), [blob]);
-  useEffect(() => () => objectUrl && URL.revokeObjectURL(objectUrl), [objectUrl]);
-  return {
-    src: msg?.media_url || objectUrl,
-    loading: needsFetch && isLoading,
-    failed: needsFetch && isError,
-  };
-}
-
-const MessageBubble = memo(function MessageBubble({ msg }) {
-  const media = useMediaSrc(msg);
-  if (!msg) return null; // Safety check
-
-  const inbound = msg.direction === 'inbound';
-  const isAiReply = msg.ai_intent?.startsWith('reply_to_');
-  const isCall = isCallMessage(msg);
-
-  return (
-    <div className={cn('flex w-full', inbound ? 'justify-start' : 'justify-end')}>
-      <div
-        className={cn(
-          'max-w-[85%] rounded-xl px-4 py-2 text-sm shadow-sm sm:max-w-[62%]',
-          inbound ? 'rounded-tl-sm bg-white text-gray-800' : 'rounded-tr-sm bg-brand-sentBubble text-gray-900',
-          isCall && !inbound && 'bg-[#005C4B]', // WhatsApp green (#005C4B) for outgoing calls
-          isCall && inbound && 'bg-white', // White for incoming calls
-        )}
-      >
-        {isCall ? (
-          <CallMessage msg={msg} inbound={inbound} />
-        ) : msg.message_type === 'voice_call' ? (
-          // Call button message — show the actual text + call button like WhatsApp
-          <div className="flex flex-col gap-2">
-            <div className="whitespace-pre-wrap text-sm">{(msg.body || '').replace(/^\[Call Button\]\s*/, '')}</div>
-            <div className="flex items-center justify-center gap-2 rounded-lg border border-green-700 bg-green-800/80 px-3 py-2">
-              <Phone className="h-4 w-4 text-white" />
-              <span className="text-sm font-semibold text-white">Call ScoreSmart</span>
-            </div>
-          </div>
-        ) : msg.message_type === 'interactive' ? (
-          // Handle interactive messages (call buttons, lists, etc.) - these often don't have body
-          <div className="flex flex-col gap-1">
-            <div className={cn('text-sm font-medium', inbound ? 'text-gray-900' : 'text-white')}>
-              📱 Interactive message
-            </div>
-            {msg.body && <div className={cn('text-xs', inbound ? 'text-gray-600' : 'text-white/80')}>{msg.body}</div>}
-            {!msg.body && (
-              <div className={cn('text-xs italic', inbound ? 'text-gray-500' : 'text-white/70')}>
-                Tap to view on WhatsApp
-              </div>
-            )}
-          </div>
-        ) : msg.message_type === 'text' || !msg.message_type || msg.message_type === 'automated' ? (
-          // Show body if available, check multiple fields for automated messages
-          <div className="whitespace-pre-wrap">
-            {msg.body ||
-              msg.content ||
-              msg.text ||
-              msg.message ||
-              (msg.metadata && typeof msg.metadata === 'object'
-                ? msg.metadata.text || msg.metadata.body || msg.metadata.content
-                : null) ||
-              '[Automated message - no content]'}
-          </div>
-        ) : msg.message_type === 'image' || msg.message_type === 'sticker' ? (
-          <div className="flex flex-col gap-1">
-            {media.src ? (
-              <a href={media.src} target="_blank" rel="noopener noreferrer">
-                <img
-                  src={media.src}
-                  alt="Image"
-                  className="max-w-full rounded-lg object-cover"
-                  style={{ maxHeight: 320 }}
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    e.currentTarget.nextSibling.style.display = 'flex';
-                  }}
-                />
-                <div
-                  className="hidden items-center gap-2 rounded-lg bg-black/5 px-3 py-2 text-xs text-gray-500"
-                >
-                  🖼️ Image (tap to open)
-                </div>
-              </a>
-            ) : (
-              <div className="flex items-center gap-2">
-                <div className="h-10 w-10 rounded-lg bg-black/5" />
-                <div>
-                  <div className={cn('text-sm font-medium', inbound ? 'text-gray-900' : 'text-white')}>IMAGE</div>
-                  <div className={cn('text-xs', inbound ? 'text-gray-500' : 'text-white/70')}>
-                    {media.loading ? 'Loading…' : 'Image unavailable'}
-                  </div>
-                </div>
-              </div>
-            )}
-            {/* "[image]" is the backend placeholder for a photo with no caption. */}
-            {msg.body && !/^\[\w+\]$/.test(msg.body) && (
-              <div className={cn('mt-1 text-sm', inbound ? 'text-gray-800' : 'text-white')}>{msg.body}</div>
-            )}
-          </div>
-        ) : msg.message_type === 'audio' ? (
-          <div className="flex flex-col gap-1">
-            {media.src ? (
-              <audio controls src={media.src} className="w-full max-w-xs" />
-            ) : (
-              <div className={cn('text-sm italic', inbound ? 'text-gray-500' : 'text-white/70')}>
-                🎵 {media.loading ? 'Loading voice message…' : 'Voice message (audio not available)'}
-              </div>
-            )}
-          </div>
-        ) : msg.message_type === 'video' ? (
-          <div className="flex flex-col gap-1">
-            {media.src ? (
-              <video controls src={media.src} className="max-w-full rounded-lg" style={{ maxHeight: 320 }} />
-            ) : (
-              <div className={cn('text-sm italic', inbound ? 'text-gray-500' : 'text-white/70')}>
-                🎥 {media.loading ? 'Loading video…' : 'Video (not available)'}
-              </div>
-            )}
-          </div>
-        ) : msg.message_type === 'document' ? (
-          <div className="flex items-center gap-2">
-            <div className="text-2xl">📄</div>
-            <div>
-              <div className={cn('text-sm font-medium', inbound ? 'text-gray-900' : 'text-white')}>Document</div>
-              {media.src ? (
-                <a
-                  href={media.src}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cn('text-xs underline', inbound ? 'text-blue-600' : 'text-white/90')}
-                >
-                  Download
-                </a>
-              ) : (
-                <div className={cn('text-xs', inbound ? 'text-gray-500' : 'text-white/70')}>No preview</div>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-lg bg-black/5" />
-            <div>
-              <div className={cn('text-sm font-medium', inbound ? 'text-gray-900' : 'text-white')}>
-                {msg.message_type ? String(msg.message_type).toUpperCase() : 'MEDIA'}
-              </div>
-              <div className={cn('text-xs', inbound ? 'text-gray-500' : 'text-white/70')}>Preview coming soon</div>
-            </div>
-          </div>
-        )}
-        <div
-          className={cn(
-            'mt-1 flex items-center justify-end gap-1 text-[11px]',
-            inbound ? 'text-gray-500' : 'text-gray-600',
-          )}
-        >
-          <span>
-            {msg.created_at
-              ? new Date(msg.created_at)
-                  .toLocaleString('en-AU', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false,
-                  })
-                  .replace(',', '')
-              : ''}
-          </span>
-          {!inbound ? (
-            <>
-              {isAiReply ? (
-                <span className="text-gray-400" title="AI auto-reply">
-                  🤖
-                </span>
-              ) : null}
-              {!isCall && <span className="text-gray-400">✓✓</span>}
-            </>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  );
-});
 
 function DateSeparator({ label }) {
   return (
-    <div className="my-4 flex justify-center">
-      <div className="rounded-full bg-black/5 px-3 py-1 text-xs font-medium text-gray-600">{label}</div>
+    <div className="sticky top-0 z-10 my-3 flex justify-center">
+      <div className="rounded-lg bg-white px-3 py-1 text-[12.5px] font-medium text-gray-600 shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]">
+        {label}
+      </div>
     </div>
   );
 }
@@ -635,7 +401,7 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
 
   return (
     <div className={cn('flex h-full flex-1 flex-col bg-brand-chatBg', className)}>
-      <div className="flex h-14 items-center justify-between border-b border-brand-border bg-white px-3 sm:h-16 sm:px-5">
+      <div className="flex h-[60px] shrink-0 items-center justify-between border-l border-black/[0.08] bg-[#F0F2F5] px-3 sm:px-4">
         <div className="flex items-center gap-2 sm:gap-3">
           {onBack && (
             <button
@@ -647,30 +413,33 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
               <ArrowLeft className="h-5 w-5" />
             </button>
           )}
-          <div className={cn('flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold', avatarCls)}>
+          <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold', avatarCls)}>
             {initialsFromName(name)}
           </div>
           <div className="min-w-0">
-            <div className="truncate text-sm font-semibold text-gray-900">{name}</div>
+            <div className="truncate text-[16px] leading-5 text-[#111B21]">{name}</div>
+            {contact?.wa_id && contact?.name ? (
+              <div className="truncate text-[13px] leading-4 text-[#667781]">{formatPhone(contact.wa_id)}</div>
+            ) : null}
           </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 text-[#54656F]">
           {/* Places a WhatsApp voice call to this contact */}
           <button
-            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            className="rounded-full p-2 hover:bg-black/[0.06]"
             type="button"
             aria-label="Call contact"
             title="Call this contact on WhatsApp"
             onClick={onCall}
           >
-            <Phone className="h-4 w-4" />
+            <Phone className="h-5 w-5" />
           </button>
           {/* Sends a tappable call button so THEY can call us — needed when the
               contact hasn't granted permission for us to call them. */}
           <button
             className={cn(
-              'rounded-lg p-2 hover:bg-gray-100',
-              callingUser ? 'text-green-500 animate-pulse cursor-wait' : 'text-gray-500 hover:text-gray-900',
+              'rounded-full p-2 hover:bg-black/[0.06]',
+              callingUser && 'animate-pulse cursor-wait text-[#25D366]',
             )}
             type="button"
             aria-label="Send call button"
@@ -678,10 +447,10 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
             onClick={onSendCallButton}
             disabled={callingUser}
           >
-            <PhoneIncoming className="h-4 w-4" />
+            <PhoneIncoming className="h-5 w-5" />
           </button>
           <button
-            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            className="rounded-full p-2 hover:bg-black/[0.06]"
             type="button"
             aria-label="Tags"
             onClick={(e) => {
@@ -693,36 +462,36 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
               setShowTagPanel(true);
             }}
           >
-            <Tag className="h-4 w-4" />
+            <Tag className="h-5 w-5" />
           </button>
           <button
-            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            className="rounded-full p-2 hover:bg-black/[0.06]"
             type="button"
             aria-label="Assign"
           >
-            <UserPlus className="h-4 w-4" />
+            <UserPlus className="h-5 w-5" />
           </button>
           <button
-            className="hidden rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 sm:block"
+            className="hidden rounded-full p-2 hover:bg-black/[0.06] sm:block"
             type="button"
             aria-label="Archive"
           >
-            <Archive className="h-4 w-4" />
+            <Archive className="h-5 w-5" />
           </button>
           {onToggleInfo && (
             <button
-              className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+              className="rounded-full p-2 hover:bg-black/[0.06]"
               type="button"
               aria-label="Contact info"
               onClick={onToggleInfo}
             >
-              <Info className="h-4 w-4" />
+              <Info className="h-5 w-5" />
             </button>
           )}
         </div>
       </div>
 
-      <div ref={listRef} className="flex-1 overflow-auto px-3 py-3 sm:px-6 sm:py-4">
+      <div ref={listRef} className="flex-1 overflow-auto bg-[#EFEAE2] px-4 py-3 sm:px-[6%] sm:py-4">
         {messagesQ.isLoading ? (
           <div className="space-y-3">
             <Skeleton className="h-10 w-[55%]" />
@@ -731,11 +500,19 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
           </div>
         ) : (
           <>
-            <DateSeparator label="Today" />
-            <div className="space-y-2">
-              {deduplicatedMessages.map((m, idx) => (
-                <MessageBubble key={m.id || `msg-${idx}-${m.created_at}-${m.body}`} msg={m} />
-              ))}
+            <div className="pb-1">
+              {deduplicatedMessages.map((m, idx) => {
+                const prev = deduplicatedMessages[idx - 1];
+                const label = m.created_at ? dayLabel(m.created_at) : null;
+                const newDay = label && (!prev?.created_at || dayLabel(prev.created_at) !== label);
+                const groupStart = newDay || !prev || prev.direction !== m.direction;
+                return (
+                  <Fragment key={m.id || `msg-${idx}-${m.created_at}-${m.body}`}>
+                    {newDay ? <DateSeparator label={label} /> : null}
+                    <MessageBubble msg={m} groupStart={groupStart} />
+                  </Fragment>
+                );
+              })}
             </div>
             {typing ? (
               <div className="mt-4 flex items-center gap-2 text-sm text-gray-500">
@@ -790,7 +567,7 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
           </div>
         </div>
       ) : (
-        <div className="border-t border-brand-border bg-white">
+        <div className="shrink-0 bg-[#F0F2F5]">
           {windowExpiresIn > 0 && windowExpiresIn < 60 * 60 * 1000 && (
             <div className="flex items-center gap-2 border-b border-amber-100 bg-amber-50/70 px-4 py-1.5 text-[11px] text-amber-700">
               <Clock className="h-3 w-3" />
@@ -799,12 +576,12 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
               </span>
             </div>
           )}
-          <div className="flex gap-2 overflow-auto px-4 py-2">
+          <div className="flex gap-2 overflow-auto px-4 pt-2">
             {templates.map((t) => (
               <button
                 key={t}
                 type="button"
-                className="whitespace-nowrap rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                className="whitespace-nowrap rounded-full bg-white px-3 py-1 text-[13px] text-[#54656F] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] hover:bg-gray-50"
                 onClick={() => setDraft((d) => (d ? `${d}\n${t}: ` : `${t}: `))}
               >
                 {t}
@@ -812,28 +589,28 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
             ))}
           </div>
 
-          <div className="flex items-end gap-2 p-4">
+          <div className="flex items-end gap-1 px-3 py-2 text-[#54656F]">
             <button
               type="button"
-              className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+              className="rounded-full p-2 hover:bg-black/[0.06]"
               aria-label="Emoji"
             >
               <Smile className="h-5 w-5" />
             </button>
             <button
               type="button"
-              className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+              className="rounded-full p-2 hover:bg-black/[0.06]"
               aria-label="Attach"
             >
               <Paperclip className="h-5 w-5" />
             </button>
 
-            <div className="flex-1">
+            <div className="mx-1 flex-1">
               <Textarea
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                placeholder={recording ? `Recording… ${recordingSeconds}s` : 'Type a message...'}
-                className="min-h-[44px] max-h-[96px] resize-none bg-white"
+                placeholder={recording ? `Recording… ${recordingSeconds}s` : 'Type a message'}
+                className="min-h-[42px] max-h-[120px] resize-none rounded-lg border-0 bg-white px-3 py-[10px] text-[15px] leading-5 placeholder:text-[#667781] focus:ring-0"
                 rows={1}
                 disabled={recording}
               />
@@ -843,7 +620,7 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
               <button
                 type="button"
                 onClick={stopRecording}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500 text-white animate-pulse hover:bg-red-600 active:scale-95"
+                className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-red-500 text-white animate-pulse hover:bg-red-600 active:scale-95"
                 aria-label="Stop recording"
                 title="Stop and send voice message"
               >
@@ -853,7 +630,7 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
               <button
                 type="button"
                 onClick={onSend}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-accent text-white transition-all duration-150 hover:bg-[#1fb85a] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#25D366] text-white transition-all duration-150 hover:bg-[#1fb85a] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Send"
                 disabled={sending}
               >
@@ -867,7 +644,7 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
               <button
                 type="button"
                 onClick={startRecording}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition-all duration-150 hover:bg-gray-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex h-[42px] w-[42px] items-center justify-center rounded-full transition-all duration-150 hover:bg-black/[0.06] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Record voice message"
                 title="Hold to record voice message"
                 disabled={sending}
