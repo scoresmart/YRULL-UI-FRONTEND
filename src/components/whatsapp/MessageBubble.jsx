@@ -1,16 +1,21 @@
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, memo, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import {
   Bot,
   Check,
   CheckCheck,
+  ChevronDown,
   Clock,
+  Contact,
+  Copy,
   Download,
+  ExternalLink,
   FileText,
   ImageOff,
   Info,
   LayoutTemplate,
   Loader2,
+  MapPin,
   MicOff,
   Pause,
   Phone,
@@ -23,8 +28,10 @@ import {
   X,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { cn } from '../../lib/utils';
 import { whatsappApi } from '../../lib/api';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 
 // "[image]", "[audio]" … is what the backend stores for media with no caption.
 const PLACEHOLDER_RE = /^\[\w+\]$/;
@@ -32,6 +39,86 @@ const PLACEHOLDER_RE = /^\[\w+\]$/;
 function captionOf(msg) {
   const body = (msg.body || '').trim();
   return body && !PLACEHOLDER_RE.test(body) ? body : '';
+}
+
+/* ── Rich text: links, WhatsApp formatting and search highlights ───────── */
+
+// The in-chat search term, so every text node can mark matches.
+const HighlightContext = createContext('');
+
+const URL_RE = /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,:;"')\]!?])/gi;
+// WhatsApp's *bold*, _italic_, ~strikethrough~ and ```monospace```. Markers must
+// sit at word boundaries, so snake_case_names and 2*3*4 stay as typed.
+const FORMAT_RE =
+  /```[\s\S]+?```|(?<![\w*])\*(?=\S)[^*\n]*?\S?\*(?![\w*])|(?<![\w_])_(?=\S)[^_\n]*?\S?_(?![\w_])|(?<![\w~])~(?=\S)[^~\n]*?\S?~(?![\w~])/g;
+
+const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+function Highlighted({ text }) {
+  const q = useContext(HighlightContext);
+  if (!q || !text) return text;
+  return text.split(new RegExp(`(${escapeRegExp(q)})`, 'gi')).map((part, i) =>
+    part.toLowerCase() === q.toLowerCase() ? (
+      <mark key={i} className="rounded-[2px] bg-[#FFE066] text-inherit">
+        {part}
+      </mark>
+    ) : (
+      part
+    ),
+  );
+}
+
+function Formatted({ text }) {
+  const nodes = [];
+  let last = 0;
+  for (const match of text.matchAll(FORMAT_RE)) {
+    const token = match[0];
+    if (token.length < 3) continue;
+    if (match.index > last) nodes.push(<Highlighted key={`t${last}`} text={text.slice(last, match.index)} />);
+    const key = `f${match.index}`;
+    if (token.startsWith('```')) {
+      nodes.push(
+        <code key={key} className="rounded bg-black/[0.06] px-1 font-mono text-[13px]">
+          <Highlighted text={token.slice(3, -3)} />
+        </code>,
+      );
+    } else {
+      const inner = <Highlighted text={token.slice(1, -1)} />;
+      nodes.push(
+        token[0] === '*' ? (
+          <strong key={key} className="font-semibold">
+            {inner}
+          </strong>
+        ) : token[0] === '_' ? (
+          <em key={key}>{inner}</em>
+        ) : (
+          <s key={key}>{inner}</s>
+        ),
+      );
+    }
+    last = match.index + token.length;
+  }
+  if (last < text.length) nodes.push(<Highlighted key={`t${last}`} text={text.slice(last)} />);
+  return nodes;
+}
+
+function RichText({ text }) {
+  // split() with a capturing group puts the URLs at the odd indexes.
+  return text.split(URL_RE).map((part, i) =>
+    i % 2 ? (
+      <a
+        key={i}
+        href={/^https?:\/\//i.test(part) ? part : `https://${part}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="break-words text-[#027EB5] hover:underline"
+      >
+        <Highlighted text={part} />
+      </a>
+    ) : (
+      <Formatted key={i} text={part} />
+    ),
+  );
 }
 
 function formatTime(iso) {
@@ -303,8 +390,114 @@ function CallEvent({ msg, inbound }) {
 function BodyText({ children, spacer = 0, className }) {
   return (
     <div className={cn('whitespace-pre-wrap break-words text-[14.2px] leading-[19px] text-gray-900', className)}>
-      {children}
+      {typeof children === 'string' ? <RichText text={children} /> : children}
       {spacer ? <span className="inline-block h-3 align-bottom" style={{ width: spacer }} aria-hidden="true" /> : null}
+    </div>
+  );
+}
+
+// The backend stores a location as "name\naddress\nhttps://maps.google.com/?q=lat,lng".
+function parseLocation(body) {
+  const lines = (body || '').split('\n').filter(Boolean);
+  const link = lines.find((l) => l.startsWith('https://maps.google.com/?q='));
+  const [lat, lng] = (link?.split('?q=')[1] || '').split(',').map(Number);
+  return {
+    link,
+    lat: Number.isFinite(lat) ? lat : null,
+    lng: Number.isFinite(lng) ? lng : null,
+    lines: lines.filter((l) => l !== link),
+  };
+}
+
+// A 3×3 block of OpenStreetMap tiles centred on the pin — a map thumbnail
+// without a maps API key.
+function MapThumb({ lat, lng }) {
+  const W = 290;
+  const H = 150;
+  const z = 15;
+  const n = 2 ** z;
+  const x = ((lng + 180) / 360) * n;
+  const latRad = (lat * Math.PI) / 180;
+  const y = ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n;
+  const tx = Math.floor(x);
+  const ty = Math.floor(y);
+  const left = W / 2 - (x - tx + 1) * 256;
+  const top = H / 2 - (y - ty + 1) * 256;
+  const tiles = [];
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      tiles.push(
+        <img
+          key={`${dx},${dy}`}
+          src={`https://tile.openstreetmap.org/${z}/${(tx + dx + n) % n}/${ty + dy}.png`}
+          alt=""
+          draggable={false}
+          className="absolute h-64 w-64 max-w-none"
+          style={{ left: (dx + 1) * 256, top: (dy + 1) * 256 }}
+        />,
+      );
+    }
+  }
+  return (
+    <div className="relative overflow-hidden rounded-md bg-[#E5E3DF]" style={{ width: W, height: H, maxWidth: '100%' }}>
+      <div className="absolute" style={{ left, top, width: 768, height: 768 }}>
+        {tiles}
+      </div>
+      <MapPin className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-full fill-[#EA4335] text-white drop-shadow" />
+      <span className="absolute bottom-0 right-0 bg-white/80 px-1 text-[9px] text-gray-600">© OpenStreetMap</span>
+    </div>
+  );
+}
+
+function LocationMessage({ msg }) {
+  const { link, lat, lng, lines } = parseLocation(msg.body);
+  return (
+    <a href={link || undefined} target="_blank" rel="noopener noreferrer" className="block w-[290px] max-w-full">
+      {lat !== null && lng !== null ? (
+        <MapThumb lat={lat} lng={lng} />
+      ) : (
+        <div className="flex h-24 items-center justify-center rounded-md bg-black/[0.04]">
+          <MapPin className="h-6 w-6 text-gray-400" />
+        </div>
+      )}
+      <div className="px-1.5 pb-1 pt-1.5">
+        {lines.length ? (
+          lines.map((line, i) => (
+            <div key={i} className={cn('truncate', i === 0 ? 'text-[14px] text-gray-900' : 'text-[12.5px] text-gray-500')}>
+              {line}
+            </div>
+          ))
+        ) : (
+          <div className="text-[14px] text-gray-900">Location</div>
+        )}
+      </div>
+    </a>
+  );
+}
+
+// "Name · +61 400 000 000", one line per shared contact.
+function ContactsMessage({ msg }) {
+  const cards = (msg.body || '')
+    .split('\n')
+    .filter((l) => l && !PLACEHOLDER_RE.test(l))
+    .map((line) => {
+      const [name, phones = ''] = line.split(' · ');
+      return { name, phone: phones.split(',')[0]?.trim() };
+    });
+  if (!cards.length) return <MediaUnavailable icon={Contact} label="Contact card" />;
+  return (
+    <div className="w-64 max-w-full divide-y divide-black/[0.06]">
+      {cards.map((c, i) => (
+        <div key={i} className="flex items-center gap-3 py-1.5">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#DFE5E7] text-[#8696A0]">
+            <Contact className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <div className="truncate text-[14.5px] text-gray-900">{c.name || c.phone}</div>
+            {c.phone && c.name ? <div className="truncate text-[12.5px] text-gray-500">{c.phone}</div> : null}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -389,6 +582,10 @@ function MessageContent({ msg, inbound, media, spacer }) {
       ) : (
         <MediaUnavailable icon={Info} label="Interactive message" />
       );
+    case 'location':
+      return <LocationMessage msg={msg} />;
+    case 'contacts':
+      return <ContactsMessage msg={msg} />;
     case 'unsupported':
       return <MediaUnavailable icon={Info} label="This message type isn't supported yet" />;
     case 'text':
@@ -411,28 +608,88 @@ function DeliveryStatus({ status }) {
   return <Check className="h-[15px] w-[15px] text-gray-400" aria-label="Sent" />;
 }
 
-export const MessageBubble = memo(function MessageBubble({ msg, groupStart = true }) {
+function MessageMenu({ msg, media, inbound }) {
+  const type = msg.message_type || 'text';
+  const text = captionOf(msg);
+  const location = type === 'location' ? parseLocation(msg.body) : null;
+  const copyable =
+    text && !['call_event', 'location', 'call_permission', 'call_permission_request'].includes(type) && !text.startsWith('__');
+  const fileName = type === 'document' ? text || 'document' : `whatsapp-${type}-${msg.wa_message_id || msg.id || 'file'}`;
+
+  const actions = [
+    copyable && {
+      label: 'Copy',
+      icon: Copy,
+      onSelect: () =>
+        navigator.clipboard
+          .writeText(type === 'voice_call' ? text.replace(/^\[Call Button\]\s*/, '') : text)
+          .then(() => toast.success('Copied'))
+          .catch(() => toast.error('Could not copy')),
+    },
+    media.src && { label: 'Download', icon: Download, href: media.src, download: fileName },
+    location?.link && { label: 'Open in Google Maps', icon: ExternalLink, href: location.link },
+  ].filter(Boolean);
+  if (!actions.length) return null;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label="Message options"
+          className={cn(
+            'absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full text-gray-500 opacity-0 transition-opacity focus:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100',
+            inbound ? 'bg-white/90' : 'bg-[#D9FDD3]/90',
+          )}
+        >
+          <ChevronDown className="h-4 w-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align={inbound ? 'start' : 'end'} className="w-48">
+        {actions.map((a) =>
+          a.href ? (
+            <DropdownMenuItem key={a.label} asChild className="gap-3">
+              <a href={a.href} download={a.download} target="_blank" rel="noopener noreferrer">
+                <a.icon className="h-4 w-4 text-gray-500" />
+                {a.label}
+              </a>
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem key={a.label} onSelect={a.onSelect} className="gap-3">
+              <a.icon className="h-4 w-4 text-gray-500" />
+              {a.label}
+            </DropdownMenuItem>
+          ),
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+export const MessageBubble = memo(function MessageBubble({ msg, groupStart = true, highlight = '', activeMatch = false }) {
   const media = useMediaSrc(msg);
   if (!msg) return null;
 
   const inbound = msg.direction === 'inbound';
   const isAiReply = msg.ai_intent?.startsWith('reply_to_');
   const type = msg.message_type || 'text';
-  const visual = ['image', 'video', 'sticker'].includes(type) && (media.src || media.loading);
+  const visual =
+    (['image', 'video', 'sticker'].includes(type) && (media.src || media.loading)) || type === 'location';
   const sticker = type === 'sticker' && media.src;
   const caption = captionOf(msg);
-  const overlayTime = visual && !caption;
+  const overlayTime = visual && !caption && type !== 'location';
   const endsWithText =
     ['text', 'automated', 'template'].includes(type) ||
-    (caption && !['document', 'audio', 'voice_call', 'call_event', 'call_permission', 'call_permission_request'].includes(type));
+    (caption && !['location', 'contacts', 'document', 'audio', 'voice_call', 'call_event', 'call_permission', 'call_permission_request'].includes(type));
   const spacer = endsWithText ? (inbound ? 40 : 58) + (isAiReply ? 16 : 0) : 0;
 
   return (
     <div className={cn('flex w-full', inbound ? 'justify-start' : 'justify-end', groupStart ? 'mt-2' : 'mt-0.5')}>
       <div
         className={cn(
-          'relative max-w-[85%] sm:max-w-[65%]',
+          'group relative max-w-[85%] sm:max-w-[65%]',
           sticker ? '' : 'rounded-lg shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]',
+          activeMatch && 'ring-2 ring-[#FFD000] ring-offset-1 ring-offset-[#EFEAE2]',
           !sticker && (inbound ? 'bg-white' : 'bg-[#D9FDD3]'),
           !sticker && groupStart && (inbound ? 'rounded-tl-none' : 'rounded-tr-none'),
           visual ? 'p-1' : 'px-2.5 pb-1.5 pt-1.5',
@@ -452,7 +709,10 @@ export const MessageBubble = memo(function MessageBubble({ msg, groupStart = tru
           </svg>
         ) : null}
 
-        <MessageContent msg={msg} inbound={inbound} media={media} spacer={spacer} />
+        <MessageMenu msg={msg} media={media} inbound={inbound} />
+        <HighlightContext.Provider value={highlight}>
+          <MessageContent msg={msg} inbound={inbound} media={media} spacer={spacer} />
+        </HighlightContext.Provider>
 
         <div
           className={cn(

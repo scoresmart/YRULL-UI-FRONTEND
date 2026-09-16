@@ -1,13 +1,25 @@
 import { memo, useCallback, useMemo, useEffect, useState, useRef } from 'react';
-import { FixedSizeList as List } from 'react-window';
-import { Search, Loader2, SlidersHorizontal, Check, ChevronDown } from 'lucide-react';
-import { cn, formatRelativeTime, initialsFromName, pastelClassFromString, formatPhone } from '../../lib/utils';
-import { Input } from '../ui/input';
-import { Badge } from '../ui/badge';
+import {
+  ArrowDownUp,
+  Camera,
+  Check,
+  CheckCheck,
+  Contact,
+  FileText,
+  LayoutTemplate,
+  Loader2,
+  MapPin,
+  Mic,
+  Phone,
+  Search,
+  Sticker,
+  Video,
+  X,
+} from 'lucide-react';
+import { cn, initialsFromName, pastelClassFromString, formatPhone } from '../../lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
-import { Button } from '../ui/button';
 import { useChatStore } from '../../store/chatStore';
-import { useContacts, useMessages, useTags, useContactTags } from '../../lib/dataHooks';
+import { useContacts, useTags, useContactTags } from '../../lib/dataHooks';
 import { supabase } from '../../lib/supabase';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useQueryClient } from '@tanstack/react-query';
@@ -29,7 +41,7 @@ async function getUnreadCount(waId) {
 async function getLastMessage(waId) {
   const { data, error } = await supabase
     .from('whatsapp_messages')
-    .select('body, created_at, direction')
+    .select('body, created_at, direction, message_type, status')
     .eq('wa_id', waId)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -38,20 +50,71 @@ async function getLastMessage(waId) {
   return data;
 }
 
-// The backend stores uncaptioned media as "[audio]", "[image]" etc.
-const MEDIA_PREVIEW = {
-  audio: '🎤 Voice message',
-  image: '📷 Photo',
-  video: '🎥 Video',
-  document: '📄 Document',
-  sticker: 'Sticker',
+// How a last message reads in the list: media and cards get an icon and a
+// label instead of the "[image]"-style placeholder the backend stores.
+const PREVIEW = {
+  audio: [Mic, 'Voice message'],
+  image: [Camera, 'Photo'],
+  video: [Video, 'Video'],
+  document: [FileText, 'Document'],
+  sticker: [Sticker, 'Sticker'],
+  location: [MapPin, 'Location'],
+  contacts: [Contact, 'Contact'],
+  template: [LayoutTemplate, null],
+  call_event: [Phone, 'Voice call'],
+  voice_call: [Phone, null],
 };
 
-function previewText(msg) {
-  const placeholder = /^\[(\w+)\]$/.exec(msg.body || '');
-  if (placeholder) return MEDIA_PREVIEW[placeholder[1]] || msg.body;
-  return msg.body || MEDIA_PREVIEW[msg.message_type] || '[Media]';
+function Preview({ msg }) {
+  if (!msg) return <span className="italic">No messages yet</span>;
+  const type = msg.message_type || 'text';
+  const body = msg.body || '';
+  const placeholder = /^\[(\w+)\]$/.exec(body);
+  const [Icon, label] = PREVIEW[type] || (placeholder && PREVIEW[placeholder[1]]) || [null, null];
+  let text = placeholder ? '' : body;
+  if (type === 'location') text = body.split('\n')[0]?.startsWith('https://') ? '' : body.split('\n')[0];
+  if (type === 'contacts') text = body.split(' · ')[0];
+  if (type === 'call_event') text = '';
+  if (type === 'voice_call') text = body.replace(/^\[Call Button\]\s*/, '');
+  const outbound = msg.direction !== 'inbound';
+
+  return (
+    <span className="flex min-w-0 items-center gap-1">
+      {outbound && type !== 'call_event' ? (
+        msg.status === 'read' ? (
+          <CheckCheck className="h-4 w-4 shrink-0 text-[#53BDEB]" />
+        ) : msg.status === 'delivered' ? (
+          <CheckCheck className="h-4 w-4 shrink-0 text-[#8696A0]" />
+        ) : (
+          <Check className="h-4 w-4 shrink-0 text-[#8696A0]" />
+        )
+      ) : null}
+      {Icon ? <Icon className="h-4 w-4 shrink-0 text-[#8696A0]" /> : null}
+      <span className="truncate">{text || label || ''}</span>
+    </span>
+  );
 }
+
+// WhatsApp's list time: clock time today, then "Yesterday", the weekday, a date.
+function listTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const startOf = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((startOf(now) - startOf(d)) / 86400000);
+  if (days === 0) return d.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false });
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return d.toLocaleDateString('en-AU', { weekday: 'long' });
+  return d.toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+const TAG_DOT = {
+  green: 'bg-green-500',
+  blue: 'bg-blue-500',
+  purple: 'bg-purple-500',
+  orange: 'bg-amber-500',
+  red: 'bg-red-500',
+};
 
 const ConversationRow = memo(function ConversationRow({
   contact,
@@ -64,111 +127,69 @@ const ConversationRow = memo(function ConversationRow({
 }) {
   const name = contact?.name || formatPhone(contact?.wa_id) || 'Unknown';
   const avatarCls = pastelClassFromString(contact?.wa_id ?? contact?.id);
-  const displayPhone = formatPhone(contact?.wa_id || contact?.phone);
 
-  // Get tags applied to this contact
   const appliedTags = useMemo(() => {
     if (!tags || !contactTags || !contact) return [];
-
-    // Find contact_tags that match this contact
-    const matchingTagIds = contactTags
-      .filter((ct) => contact.id && ct.contact_id === contact.id)
-      .map((ct) => ct.tag_id);
-
-    // Get the full tag objects
-    return tags.filter((tag) => matchingTagIds.includes(tag.id));
+    const ids = new Set(contactTags.filter((ct) => contact.id && ct.contact_id === contact.id).map((ct) => ct.tag_id));
+    return tags.filter((tag) => ids.has(tag.id));
   }, [tags, contactTags, contact]);
+
+  const time = listTime(lastMessage?.created_at || contact?.last_seen);
 
   return (
     <button
       type="button"
       className={cn(
-        'w-full border-b border-gray-100 px-4 py-3 text-left transition-colors hover:bg-gray-50',
-        selected && 'bg-green-50 border-l-4 border-l-green-500',
+        'group flex w-full items-center gap-3 pl-3 text-left transition-colors',
+        selected ? 'bg-[#F0F2F5]' : 'hover:bg-[#F5F6F6]',
       )}
       onClick={() => onSelect(contact.wa_id)}
     >
-      <div className="flex items-start gap-3">
-        <div
-          className={cn(
-            'flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold',
-            avatarCls,
-          )}
-        >
-          {initialsFromName(name)}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div className="truncate text-sm font-semibold text-gray-900">{name}</div>
-            <div className="shrink-0 text-xs text-gray-400">
-              {lastMessage?.created_at
-                ? formatRelativeTime(lastMessage.created_at)
-                : contact?.last_seen
-                  ? formatRelativeTime(contact.last_seen)
-                  : ''}
-            </div>
+      <div
+        className={cn(
+          'flex h-[49px] w-[49px] shrink-0 items-center justify-center rounded-full text-[15px] font-semibold',
+          avatarCls,
+        )}
+      >
+        {initialsFromName(name)}
+      </div>
+      <div className="min-w-0 flex-1 border-b border-[#E9EDEF] py-3 pr-4">
+        <div className="flex items-baseline justify-between gap-2">
+          <div className="truncate text-[16px] leading-[21px] text-[#111B21]">{name}</div>
+          <div
+            className={cn(
+              'shrink-0 text-[12px] leading-[14px]',
+              unreadCount > 0 ? 'font-medium text-[#1DAA61]' : 'text-[#667781]',
+            )}
+          >
+            {time}
           </div>
-          <div className="mt-1 truncate text-sm text-gray-500">
-            {lastMessage ? previewText(lastMessage).substring(0, 50) : 'No messages yet'}
-          </div>
-          {displayPhone && displayPhone !== name ? (
-            <div className="mt-1 text-xs text-gray-400">{displayPhone}</div>
-          ) : null}
-          {/* Tags Display */}
-          {appliedTags.length > 0 && (
-            <div className="mt-1.5 flex flex-wrap gap-1">
-              {appliedTags.slice(0, 2).map((tag) => (
-                <span
-                  key={tag.id}
-                  className={cn(
-                    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium',
-                    tag.color === 'green'
-                      ? 'bg-green-100 text-green-700 border border-green-200'
-                      : tag.color === 'blue'
-                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                        : tag.color === 'purple'
-                          ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                          : tag.color === 'orange'
-                            ? 'bg-amber-100 text-amber-700 border border-amber-200'
-                            : tag.color === 'red'
-                              ? 'bg-red-100 text-red-700 border border-red-200'
-                              : 'bg-gray-100 text-gray-700 border border-gray-200',
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'h-1.5 w-1.5 rounded-full',
-                      tag.color === 'green'
-                        ? 'bg-green-500'
-                        : tag.color === 'blue'
-                          ? 'bg-blue-500'
-                          : tag.color === 'purple'
-                            ? 'bg-purple-500'
-                            : tag.color === 'orange'
-                              ? 'bg-amber-500'
-                              : tag.color === 'red'
-                                ? 'bg-red-500'
-                                : 'bg-gray-500',
-                    )}
-                  />
-                  {tag.name}
-                </span>
-              ))}
-              {appliedTags.length > 2 && (
-                <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium text-gray-500 bg-gray-100 border border-gray-200">
-                  +{appliedTags.length - 2}
-                </span>
-              )}
-            </div>
-          )}
         </div>
-        <div className="flex flex-col items-end gap-2">
+        <div className="mt-0.5 flex items-center justify-between gap-2">
+          <div
+            className={cn('min-w-0 flex-1 text-[14px] leading-5', unreadCount > 0 ? 'text-[#111B21]' : 'text-[#667781]')}
+          >
+            <Preview msg={lastMessage} />
+          </div>
           {unreadCount > 0 ? (
-            <Badge className="h-6 w-6 justify-center rounded-full p-0 text-white bg-brand-accent">{unreadCount}</Badge>
-          ) : (
-            <div className="h-6" />
-          )}
+            <span className="flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full bg-[#25D366] px-1.5 text-[12px] font-semibold text-white">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          ) : null}
         </div>
+        {appliedTags.length > 0 ? (
+          <div className="mt-1 flex items-center gap-2 overflow-hidden">
+            {appliedTags.slice(0, 3).map((tag) => (
+              <span key={tag.id} className="inline-flex min-w-0 items-center gap-1 text-[11.5px] text-[#667781]">
+                <span className={cn('h-2 w-2 shrink-0 rounded-full', TAG_DOT[tag.color] || 'bg-gray-400')} />
+                <span className="truncate">{tag.name}</span>
+              </span>
+            ))}
+            {appliedTags.length > 3 ? (
+              <span className="text-[11.5px] text-[#667781]">+{appliedTags.length - 3}</span>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </button>
   );
@@ -211,10 +232,16 @@ export function ConversationList({ className }) {
     const counts = {};
     const messages = {};
 
-    for (const contact of contactsQ.data) {
-      const [count, lastMsg] = await Promise.all([getUnreadCount(contact.wa_id), getLastMessage(contact.wa_id)]);
-      counts[contact.wa_id] = count;
-      if (lastMsg) messages[contact.wa_id] = lastMsg;
+    // A few contacts at a time: one at a time made the list slow to fill.
+    const contacts = contactsQ.data;
+    for (let i = 0; i < contacts.length; i += 8) {
+      await Promise.all(
+        contacts.slice(i, i + 8).map(async (contact) => {
+          const [count, lastMsg] = await Promise.all([getUnreadCount(contact.wa_id), getLastMessage(contact.wa_id)]);
+          counts[contact.wa_id] = count;
+          if (lastMsg) messages[contact.wa_id] = lastMsg;
+        }),
+      );
     }
 
     setUnreadCounts(counts);
@@ -223,8 +250,10 @@ export function ConversationList({ className }) {
     hasLoadedOnceRef.current = true;
   }, [contactsQ.data]);
 
-  // Store ref so we can call it from outside
-  refreshUnreadCountsRef.current = refreshUnreadCounts;
+  // Kept in a ref so the query-cache listener below always calls the latest one.
+  useEffect(() => {
+    refreshUnreadCountsRef.current = refreshUnreadCounts;
+  }, [refreshUnreadCounts]);
 
   useEffect(() => {
     if (contactsQ.data?.length) {
@@ -314,6 +343,11 @@ export function ConversationList({ className }) {
     return list;
   }, [contactsQ.data, debouncedSearch, filter, unreadCounts, lastMessages, sort, tagFilter, contactTagsQ.data]);
 
+  const totalUnreadChats = useMemo(
+    () => Object.values(unreadCounts).filter((n) => n > 0).length,
+    [unreadCounts],
+  );
+
   const onSelect = useCallback(
     (waId) => {
       setSelectedWaId(waId);
@@ -327,89 +361,77 @@ export function ConversationList({ className }) {
 
   // Don't auto-select - let user choose which conversation to open
 
-  const Row = useCallback(
-    ({ index, style }) => {
-      const contact = items[index];
-      const unreadCount = unreadCounts[contact.wa_id] ?? 0;
-      const lastMessage = lastMessages[contact.wa_id] ?? null;
-      return (
-        <div style={style}>
-          <ConversationRow
-            contact={contact}
-            lastMessage={lastMessage}
-            unreadCount={unreadCount}
-            selected={contact.wa_id === selectedWaId}
-            onSelect={onSelect}
-            tags={tagsQ.data ?? []}
-            contactTags={contactTagsQ.data ?? []}
-          />
-        </div>
-      );
-    },
-    [items, unreadCounts, lastMessages, selectedWaId, onSelect, tagsQ.data, contactTagsQ.data],
-  );
-
   return (
-    <div className={cn('flex h-full flex-col border-r border-brand-border bg-white', className || 'w-[320px]')}>
-      <div className="p-4">
+    <div className={cn('flex h-full flex-col border-r border-[#E9EDEF] bg-white', className || 'w-[320px]')}>
+      <div className="shrink-0 px-3 pb-2 pt-3">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input
-            placeholder="Search conversations..."
-            className="pl-9"
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#54656F]" />
+          <input
+            placeholder="Search name or number"
+            className="h-9 w-full rounded-lg border-0 bg-[#F0F2F5] pl-11 pr-9 text-[14px] text-[#111B21] placeholder:text-[#667781] focus:outline-none focus:ring-2 focus:ring-[#25D366]/30"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          {search ? (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              aria-label="Clear search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-[#54656F] hover:bg-black/[0.06]"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
         </div>
-        <div className="mt-3 flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
+        <div className="mt-2.5 flex items-center gap-2">
+          {[
+            { value: 'all', label: 'All' },
+            { value: 'unread', label: 'Unread' },
+          ].map((opt) => {
+            const active = opt.value === 'unread' ? filter === 'unread' : filter !== 'unread';
+            return (
+              <button
+                key={opt.value}
                 type="button"
-                variant="outline"
-                size="sm"
-                className="h-9 flex-1 justify-between gap-1.5 rounded-lg border-gray-200 px-3 text-xs font-medium text-gray-700"
+                onClick={() => setFilter(opt.value)}
+                className={cn(
+                  'rounded-full px-3 py-1 text-[14px] transition-colors',
+                  active ? 'bg-[#E7FCE3] text-[#008069]' : 'bg-[#F0F2F5] text-[#54656F] hover:bg-[#E9EDEF]',
+                )}
               >
-                <span className="flex items-center gap-1.5">
-                  <SlidersHorizontal className="h-3.5 w-3.5 text-gray-500" />
-                  {filter === 'unread' ? 'Unread' : filter === 'resolved' ? 'Closed Chats' : 'Open Chats'}
-                  {sort !== 'newest' && (
-                    <span className="rounded bg-gray-100 px-1 py-0.5 text-[10px] text-gray-500">
-                      {sort === 'oldest' ? 'Oldest' : 'Unread↑'}
-                    </span>
-                  )}
-                </span>
-                <ChevronDown className="h-3.5 w-3.5 shrink-0 text-gray-400" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
-              <div className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Chats</div>
-              {[
-                { value: 'all', label: 'Open Chats' },
-                { value: 'unread', label: 'Unread' },
-                { value: 'resolved', label: 'Closed Chats' },
-              ].map((opt) => (
-                <DropdownMenuItem key={opt.value} onClick={() => setFilter(opt.value)}>
-                  <Check className={cn('mr-2 h-4 w-4', filter === opt.value ? 'opacity-100' : 'opacity-0')} />
-                  {opt.label}
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
-              <div className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Sort</div>
-              {[
-                { value: 'newest', label: 'Newest First' },
-                { value: 'oldest', label: 'Oldest First' },
-                { value: 'unread', label: 'Unread First' },
-              ].map((opt) => (
-                <DropdownMenuItem key={opt.value} onClick={() => setSort(opt.value)}>
-                  <Check className={cn('mr-2 h-4 w-4', sort === opt.value ? 'opacity-100' : 'opacity-0')} />
-                  {opt.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                {opt.label}
+                {opt.value === 'unread' && totalUnreadChats ? ` ${totalUnreadChats}` : ''}
+              </button>
+            );
+          })}
+          <div className="ml-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Sort chats"
+                  title="Sort chats"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-[#54656F] hover:bg-black/[0.06]"
+                >
+                  <ArrowDownUp className="h-4 w-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <div className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Sort</div>
+                {[
+                  { value: 'newest', label: 'Newest first' },
+                  { value: 'oldest', label: 'Oldest first' },
+                  { value: 'unread', label: 'Unread first' },
+                ].map((opt) => (
+                  <DropdownMenuItem key={opt.value} onClick={() => setSort(opt.value)}>
+                    <Check className={cn('mr-2 h-4 w-4', sort === opt.value ? 'opacity-100' : 'opacity-0')} />
+                    {opt.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-        <div className="mt-2.5 text-xs text-gray-500">{items.length} conversations</div>
       </div>
 
       <div className="flex-1 overflow-hidden">
@@ -417,13 +439,13 @@ export function ConversationList({ className }) {
           <div className="flex h-full items-center justify-center">
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-              <span className="text-sm text-gray-500">Loading conversations...</span>
+              <span className="text-[14px] text-[#667781]">Loading chats…</span>
             </div>
           </div>
-        ) : items.length > 100 ? (
-          <List height={720} width={320} itemCount={items.length} itemSize={92}>
-            {Row}
-          </List>
+        ) : items.length === 0 ? (
+          <div className="px-8 py-12 text-center text-[14px] text-[#667781]">
+            {search ? 'No chats match your search' : filter === 'unread' ? 'No unread chats' : 'No chats yet'}
+          </div>
         ) : (
           <div className="h-full overflow-auto">
             {items.map((contact) => (

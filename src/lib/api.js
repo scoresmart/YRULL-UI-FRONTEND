@@ -274,6 +274,14 @@ export const whatsappApi = {
   // caller, which keeps the preview open so the user can retry.
   sendMedia: ({ to, file, caption }) =>
     postMedia('/whatsapp/send-media', { to, field: 'file', file, filename: file.name, caption }),
+
+  sendLocation: ({ to, latitude, longitude, name, address }) =>
+    apiJSON('POST', '/whatsapp/send-location', {
+      body: JSON.stringify({ to, latitude, longitude, name, address }),
+    }),
+
+  sendContact: ({ to, name, phone, email, company }) =>
+    apiJSON('POST', '/whatsapp/send-contact', { body: JSON.stringify({ to, name, phone, email, company }) }),
 };
 
 async function postMedia(path, { to, field, file, filename, caption }) {

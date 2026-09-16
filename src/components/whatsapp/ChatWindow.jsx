@@ -1,9 +1,7 @@
-import { Fragment, useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import { Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState, useEffect } from 'react';
 import {
   Send,
   Tag,
-  UserPlus,
-  Archive,
   Phone,
   PhoneIncoming,
   ArrowLeft,
@@ -13,6 +11,10 @@ import {
   FileText,
   Clock,
   ChevronLeft,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  X,
 } from 'lucide-react';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { cn, formatPhone, initialsFromName, pastelClassFromString } from '../../lib/utils';
@@ -63,6 +65,14 @@ function dayLabel(iso) {
   if (diffDays < 7) return d.toLocaleDateString('en-AU', { weekday: 'long' });
   return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
 }
+
+const messageKey = (m, idx) => m.id || m.wa_message_id || `msg-${idx}-${m.created_at}`;
+// What in-chat search looks at: the readable text, not "[image]"-style
+// placeholders or the encoded call-event bodies.
+const searchableText = (m) => {
+  const body = m.body || '';
+  return /^\[\w+\]$/.test(body) || body.startsWith('__call_event__') ? '' : body;
+};
 
 function DateSeparator({ label }) {
   return (
@@ -359,7 +369,6 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
     });
   }, [draft.length]);
 
-  const templates = ['Intro', 'Pricing', 'Demo Link', 'Follow-up', 'After-hours'];
 
   // Deduplicate by wa_message_id only. Messages without a wa_message_id
   // (e.g. optimistic local placeholders) pass through untouched — content-based
@@ -380,6 +389,102 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
     }
     return result;
   }, [messagesQ.data]);
+
+  /* ── Scrolling ── open at the latest message, follow new ones while the
+     user is at the bottom, and otherwise count them on the jump button. */
+  const contentRef = useRef(null);
+  const atBottomRef = useRef(true);
+  const [atBottom, setAtBottom] = useState(true);
+  const [unseenCount, setUnseenCount] = useState(0);
+  const seenRef = useRef({ waId: null, count: 0 });
+
+  const scrollToBottom = useCallback((smooth) => {
+    const el = listRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+  }, []);
+
+  const onListScroll = useCallback(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const near = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    atBottomRef.current = near;
+    setAtBottom(near);
+    if (near) setUnseenCount(0);
+  }, []);
+
+  useLayoutEffect(() => {
+    const count = deduplicatedMessages.length;
+    const prev = seenRef.current.waId === selectedWaId ? seenRef.current.count : 0;
+    if (count > prev) {
+      const added = deduplicatedMessages.slice(prev);
+      if (prev === 0 || atBottomRef.current || added.some((m) => m.direction !== 'inbound')) {
+        atBottomRef.current = true;
+        scrollToBottom(prev !== 0);
+      } else {
+        setUnseenCount((c) => c + added.length);
+      }
+    }
+    seenRef.current = { waId: selectedWaId, count };
+  }, [deduplicatedMessages, selectedWaId, scrollToBottom]);
+
+  // Photos and voice notes finish loading after the first scroll and push the
+  // bottom down; stay pinned unless the user has scrolled away.
+  useEffect(() => {
+    const inner = contentRef.current;
+    if (!inner || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(() => atBottomRef.current && scrollToBottom(false));
+    ro.observe(inner);
+    return () => ro.disconnect();
+  }, [selectedWaId, messagesQ.isLoading, scrollToBottom]);
+
+  /* ── In-chat search ── */
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [matchIndex, setMatchIndex] = useState(0);
+  const query = searchQuery.trim().toLowerCase();
+
+  const searchMatches = useMemo(() => {
+    if (!query) return [];
+    return deduplicatedMessages
+      .map((m, idx) => (searchableText(m).toLowerCase().includes(query) ? messageKey(m, idx) : null))
+      .filter(Boolean);
+  }, [deduplicatedMessages, query]);
+
+  // Start from the most recent match, as WhatsApp does.
+  useEffect(() => {
+    setMatchIndex(Math.max(searchMatches.length - 1, 0));
+  }, [query, searchMatches.length]);
+
+  const activeMatchKey = searchMatches[matchIndex] ?? null;
+  useEffect(() => {
+    if (!activeMatchKey || !listRef.current) return;
+    const el = listRef.current.querySelector(`[data-msg-key="${CSS.escape(activeMatchKey)}"]`);
+    el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [activeMatchKey]);
+
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false);
+    setSearchQuery('');
+  }, []);
+
+  useEffect(() => {
+    closeSearch();
+    setUnseenCount(0);
+    atBottomRef.current = true;
+    setAtBottom(true);
+  }, [selectedWaId, closeSearch]);
+
+  /* ── Files dropped on the chat or pasted into the box open the send preview ── */
+  const [pendingFile, setPendingFile] = useState(null);
+  const [dragging, setDragging] = useState(false);
+
+  // Grow the message box with its content, up to a limit, like WhatsApp.
+  useLayoutEffect(() => {
+    const el = draftRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
+  }, [draft]);
 
   // The 24h "customer service window" opens on every inbound message from the
   // contact and closes 24h after the most recent one. Outside of it, WhatsApp
@@ -412,8 +517,36 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
     );
   }
 
+  const canCompose = connected && windowOpen;
+  const hasFiles = (e) => Array.from(e.dataTransfer?.types || []).includes('Files');
+
   return (
-    <div className={cn('flex h-full flex-1 flex-col bg-brand-chatBg', className)}>
+    <div
+      className={cn('relative flex h-full min-w-0 flex-1 flex-col bg-brand-chatBg', className)}
+      onDragOver={(e) => {
+        if (!canCompose || !hasFiles(e)) return;
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setDragging(false);
+      }}
+      onDrop={(e) => {
+        if (!canCompose || !hasFiles(e)) return;
+        e.preventDefault();
+        setDragging(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file) setPendingFile(file);
+      }}
+    >
+      {dragging ? (
+        <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-[#F0F2F5]/90">
+          <div className="rounded-2xl border-2 border-dashed border-[#25D366] bg-white px-10 py-8 text-center shadow-sm">
+            <div className="text-[17px] font-medium text-[#111B21]">Drop to send</div>
+            <div className="mt-1 text-[13px] text-[#667781]">Photos, videos and documents</div>
+          </div>
+        </div>
+      ) : null}
       <div className="flex h-[60px] shrink-0 items-center justify-between border-l border-black/[0.08] bg-[#F0F2F5] px-3 sm:px-4">
         <div className="flex items-center gap-2 sm:gap-3">
           {onBack && (
@@ -437,6 +570,15 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
           </div>
         </div>
         <div className="flex items-center gap-0.5 text-[#54656F]">
+          <button
+            className={cn('rounded-full p-2 hover:bg-black/[0.06]', searchOpen && 'bg-black/[0.06]')}
+            type="button"
+            aria-label="Search messages"
+            title="Search messages"
+            onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
+          >
+            <Search className="h-5 w-5" />
+          </button>
           {/* Places a WhatsApp voice call to this contact */}
           <button
             className="rounded-full p-2 hover:bg-black/[0.06]"
@@ -477,20 +619,6 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
           >
             <Tag className="h-5 w-5" />
           </button>
-          <button
-            className="rounded-full p-2 hover:bg-black/[0.06]"
-            type="button"
-            aria-label="Assign"
-          >
-            <UserPlus className="h-5 w-5" />
-          </button>
-          <button
-            className="hidden rounded-full p-2 hover:bg-black/[0.06] sm:block"
-            type="button"
-            aria-label="Archive"
-          >
-            <Archive className="h-5 w-5" />
-          </button>
           {onToggleInfo && (
             <button
               className="rounded-full p-2 hover:bg-black/[0.06]"
@@ -504,7 +632,63 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
         </div>
       </div>
 
-      <div ref={listRef} className="flex-1 overflow-auto bg-[#EFEAE2] px-4 py-3 sm:px-[6%] sm:py-4">
+      {searchOpen ? (
+        <div className="flex h-12 shrink-0 items-center gap-2 border-b border-black/[0.06] bg-white px-4">
+          <Search className="h-4 w-4 shrink-0 text-[#54656F]" />
+          <input
+            autoFocus
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') closeSearch();
+              // Enter steps to the older match, Shift+Enter to the newer one.
+              if (e.key === 'Enter' && searchMatches.length) {
+                e.preventDefault();
+                const step = e.shiftKey ? 1 : -1;
+                setMatchIndex((i) => (i + step + searchMatches.length) % searchMatches.length);
+              }
+            }}
+            placeholder="Search messages"
+            className="h-9 min-w-0 flex-1 border-0 bg-transparent text-[15px] text-[#111B21] shadow-none outline-none ring-0 placeholder:text-[#667781] focus:outline-none focus:ring-0"
+          />
+          {query ? (
+            <span className="shrink-0 text-[13px] tabular-nums text-[#667781]">
+              {searchMatches.length ? `${matchIndex + 1} of ${searchMatches.length}` : 'No results'}
+            </span>
+          ) : null}
+          <div className="flex shrink-0 items-center text-[#54656F]">
+            <button
+              type="button"
+              aria-label="Older match"
+              disabled={searchMatches.length < 2}
+              onClick={() => setMatchIndex((i) => (i - 1 + searchMatches.length) % searchMatches.length)}
+              className="rounded-full p-1.5 hover:bg-black/[0.06] disabled:opacity-30"
+            >
+              <ChevronUp className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              aria-label="Newer match"
+              disabled={searchMatches.length < 2}
+              onClick={() => setMatchIndex((i) => (i + 1) % searchMatches.length)}
+              className="rounded-full p-1.5 hover:bg-black/[0.06] disabled:opacity-30"
+            >
+              <ChevronDown className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              aria-label="Close search"
+              onClick={closeSearch}
+              className="rounded-full p-1.5 hover:bg-black/[0.06]"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="relative min-h-0 flex-1">
+      <div ref={listRef} onScroll={onListScroll} className="h-full overflow-auto bg-[#EFEAE2] px-4 py-3 sm:px-[6%] sm:py-4">
         {messagesQ.isLoading ? (
           <div className="space-y-3">
             <Skeleton className="h-10 w-[55%]" />
@@ -513,16 +697,23 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
           </div>
         ) : (
           <>
-            <div className="pb-1">
+            <div ref={contentRef} className="pb-1">
               {deduplicatedMessages.map((m, idx) => {
                 const prev = deduplicatedMessages[idx - 1];
                 const label = m.created_at ? dayLabel(m.created_at) : null;
                 const newDay = label && (!prev?.created_at || dayLabel(prev.created_at) !== label);
                 const groupStart = newDay || !prev || prev.direction !== m.direction;
                 return (
-                  <Fragment key={m.id || `msg-${idx}-${m.created_at}-${m.body}`}>
+                  <Fragment key={messageKey(m, idx)}>
                     {newDay ? <DateSeparator label={label} /> : null}
-                    <MessageBubble msg={m} groupStart={groupStart} />
+                    <div data-msg-key={messageKey(m, idx)}>
+                      <MessageBubble
+                        msg={m}
+                        groupStart={groupStart}
+                        highlight={query}
+                        activeMatch={activeMatchKey === messageKey(m, idx)}
+                      />
+                    </div>
                   </Fragment>
                 );
               })}
@@ -539,6 +730,22 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
             ) : null}
           </>
         )}
+      </div>
+      {!atBottom ? (
+        <button
+          type="button"
+          onClick={() => scrollToBottom(true)}
+          aria-label="Scroll to latest message"
+          className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#54656F] shadow-[0_1px_3px_rgba(11,20,26,0.25)] hover:bg-gray-50 sm:right-6"
+        >
+          <ChevronDown className="h-6 w-6" />
+          {unseenCount ? (
+            <span className="absolute -right-1 -top-1.5 min-w-[20px] rounded-full bg-[#25D366] px-1.5 text-center text-[11px] font-semibold leading-5 text-white">
+              {unseenCount}
+            </span>
+          ) : null}
+        </button>
+      ) : null}
       </div>
 
       {!connected ? (
@@ -589,24 +796,15 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
               </span>
             </div>
           )}
-          <div className="flex gap-2 overflow-auto px-4 pt-2">
-            {templates.map((t) => (
-              <button
-                key={t}
-                type="button"
-                className="whitespace-nowrap rounded-full bg-white px-3 py-1 text-[13px] text-[#54656F] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] hover:bg-gray-50"
-                onClick={() => setDraft((d) => (d ? `${d}\n${t}: ` : `${t}: `))}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-
           <div className="flex items-end gap-1 px-3 py-2 text-[#54656F]">
             <EmojiButton onPick={insertEmoji} disabled={recording} />
             <AttachButton
               to={contact?.wa_id}
               disabled={recording || !contact}
+              file={pendingFile}
+              onFileChange={setPendingFile}
+              onTemplate={() => setShowTemplatePicker(true)}
+              onCallButton={onSendCallButton}
               onSent={() => {
                 queryClient.invalidateQueries({ queryKey: ['whatsapp_messages', selectedWaId] });
                 setTimeout(() => {
@@ -620,8 +818,22 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
                 ref={draftRef}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  // Enter sends, Shift+Enter starts a new line.
+                  if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                    e.preventDefault();
+                    onSend();
+                  }
+                }}
+                onPaste={(e) => {
+                  const file = e.clipboardData?.files?.[0];
+                  if (file) {
+                    e.preventDefault();
+                    setPendingFile(file);
+                  }
+                }}
                 placeholder={recording ? `Recording… ${recordingSeconds}s` : 'Type a message'}
-                className="min-h-[42px] max-h-[120px] resize-none rounded-lg border-0 bg-white px-3 py-[10px] text-[15px] leading-5 placeholder:text-[#667781] focus:ring-0"
+                className="min-h-[42px] max-h-[140px] resize-none overflow-y-auto rounded-lg border-0 bg-white px-3 py-[10px] text-[15px] leading-5 placeholder:text-[#667781] focus:ring-0"
                 rows={1}
                 disabled={recording}
               />
