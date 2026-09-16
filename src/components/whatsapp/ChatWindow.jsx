@@ -462,6 +462,15 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
     el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }, [activeMatchKey]);
 
+  // The contact info panel's Search button opens this chat's search.
+  useEffect(
+    () =>
+      useChatStore.subscribe((state, prev) => {
+        if (state.searchRequest !== prev.searchRequest) setSearchOpen(true);
+      }),
+    [],
+  );
+
   const closeSearch = useCallback(() => {
     setSearchOpen(false);
     setSearchQuery('');

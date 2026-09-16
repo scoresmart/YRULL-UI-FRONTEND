@@ -289,6 +289,41 @@ function ImageLightbox({ src, open, onOpenChange }) {
   );
 }
 
+// A square preview of a photo or video message, for the contact info panel.
+export function MediaThumb({ msg, className }) {
+  const media = useMediaSrc(msg);
+  const [open, setOpen] = useState(false);
+  const isVideo = msg.message_type === 'video';
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => media.src && (isVideo ? window.open(media.src, '_blank', 'noopener') : setOpen(true))}
+        className={cn('relative overflow-hidden rounded-md bg-[#E9EDEF]', className)}
+        aria-label={isVideo ? 'Open video' : 'Open photo'}
+      >
+        {media.src ? (
+          isVideo ? (
+            <>
+              <video src={media.src} preload="metadata" muted className="h-full w-full object-cover" />
+              <span className="absolute inset-0 flex items-center justify-center">
+                <Play className="h-6 w-6 fill-white text-white drop-shadow" />
+              </span>
+            </>
+          ) : (
+            <img src={media.src} alt="" className="h-full w-full object-cover" />
+          )
+        ) : media.loading ? (
+          <Loader2 className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 animate-spin text-gray-400" />
+        ) : (
+          <ImageOff className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 text-gray-400" />
+        )}
+      </button>
+      {media.src && !isVideo ? <ImageLightbox src={media.src} open={open} onOpenChange={setOpen} /> : null}
+    </>
+  );
+}
+
 function PhotoMessage({ src, loading, sticker }) {
   const [open, setOpen] = useState(false);
   const [broken, setBroken] = useState(false);
