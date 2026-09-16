@@ -261,35 +261,48 @@ export const whatsappApi = {
   },
 
   async sendAudio({ to, audioBlob }) {
-    const form = new FormData();
-    form.append('to', to);
-    form.append('audio', audioBlob, `voice-${Date.now()}.ogg`);
+    const ext = audioBlob.type.includes('ogg') ? 'ogg' : 'webm';
     try {
-      // Build auth headers manually — do NOT set Content-Type (browser sets it with boundary for FormData)
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      const headers = {};
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-      // Same wait as authFetch: without it a voice note sent straight after
-      // load goes out with no workspace header and is rejected.
-      let wsId;
-      try {
-        wsId = token ? await workspaceId() : null;
-      } catch { /* ignore */ }
-      if (wsId) headers['X-Workspace-Id'] = wsId;
-
-      const res = await fetch(`${ENV.API_BASE_URL}/whatsapp/send-audio`, { method: 'POST', headers, body: form });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `Server error ${res.status}`);
-      }
-      return res.json();
+      return await postMedia('/whatsapp/send-audio', { to, field: 'audio', file: audioBlob, filename: `voice-${Date.now()}.${ext}` });
     } catch (error) {
       toast.error(error.message || 'Failed to send voice message');
       throw error;
     }
   },
+
+  // Photo, video or document from the attach button. Errors are left to the
+  // caller, which keeps the preview open so the user can retry.
+  sendMedia: ({ to, file, caption }) =>
+    postMedia('/whatsapp/send-media', { to, field: 'file', file, filename: file.name, caption }),
 };
+
+async function postMedia(path, { to, field, file, filename, caption }) {
+  const form = new FormData();
+  form.append('to', to);
+  if (caption) form.append('caption', caption);
+  form.append(field, file, filename);
+  // authFetch would add a JSON Content-Type; FormData must set its own boundary.
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData?.session?.access_token;
+  const headers = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  // Without the wait a file sent straight after load goes out with no
+  // workspace header and is rejected.
+  let wsId;
+  try {
+    wsId = token ? await workspaceId() : null;
+  } catch {
+    /* ignore */
+  }
+  if (wsId) headers['X-Workspace-Id'] = wsId;
+
+  const res = await fetch(`${ENV.API_BASE_URL}${path}`, { method: 'POST', headers, body: form });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(body.error || `Server error ${res.status}`, { status: res.status, body, method: 'POST', path });
+  }
+  return body;
+}
 
 // -- Conversations API --------------------------------------------------------
 

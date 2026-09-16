@@ -1,8 +1,6 @@
 import { Fragment, useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import {
-  Paperclip,
   Send,
-  Smile,
   Tag,
   UserPlus,
   Archive,
@@ -27,6 +25,7 @@ import { useCallStore } from '../../store/callStore';
 import { useContacts, useMessages, useTags, useContactTags } from '../../lib/dataHooks';
 import { whatsappApi, tagsApi, templatesApi } from '../../lib/api';
 import { MessageBubble } from './MessageBubble';
+import { AttachButton, EmojiButton } from './ComposerExtras';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import toast from 'react-hot-toast';
 
@@ -346,6 +345,20 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
     setRecording(false);
   }, []);
 
+  const draftRef = useRef(null);
+  // Put the emoji where the cursor is, not always at the end, and keep typing.
+  const insertEmoji = useCallback((emoji) => {
+    const el = draftRef.current;
+    const start = el?.selectionStart ?? draft.length;
+    const end = el?.selectionEnd ?? draft.length;
+    setDraft((d) => d.slice(0, start) + emoji + d.slice(end));
+    requestAnimationFrame(() => {
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(start + emoji.length, start + emoji.length);
+    });
+  }, [draft.length]);
+
   const templates = ['Intro', 'Pricing', 'Demo Link', 'Follow-up', 'After-hours'];
 
   // Deduplicate by wa_message_id only. Messages without a wa_message_id
@@ -590,23 +603,21 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
           </div>
 
           <div className="flex items-end gap-1 px-3 py-2 text-[#54656F]">
-            <button
-              type="button"
-              className="rounded-full p-2 hover:bg-black/[0.06]"
-              aria-label="Emoji"
-            >
-              <Smile className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              className="rounded-full p-2 hover:bg-black/[0.06]"
-              aria-label="Attach"
-            >
-              <Paperclip className="h-5 w-5" />
-            </button>
+            <EmojiButton onPick={insertEmoji} disabled={recording} />
+            <AttachButton
+              to={contact?.wa_id}
+              disabled={recording || !contact}
+              onSent={() => {
+                queryClient.invalidateQueries({ queryKey: ['whatsapp_messages', selectedWaId] });
+                setTimeout(() => {
+                  if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+                }, 300);
+              }}
+            />
 
             <div className="mx-1 flex-1">
               <Textarea
+                ref={draftRef}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder={recording ? `Recording… ${recordingSeconds}s` : 'Type a message'}

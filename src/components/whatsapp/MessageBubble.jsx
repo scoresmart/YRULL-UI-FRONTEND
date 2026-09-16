@@ -239,12 +239,12 @@ function VideoMessage({ src, loading }) {
 function DocumentMessage({ msg, src, loading }) {
   const ext = (msg.media_mime_type || '').split('/').pop()?.split(';')[0]?.toUpperCase();
   return (
-    <div className="flex w-64 max-w-full items-center gap-3 rounded-md bg-black/[0.04] p-2.5">
+    <div className="flex w-72 max-w-full items-center gap-3 rounded-md bg-black/[0.04] p-2.5">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white text-[#128C7E] shadow-sm">
         <FileText className="h-5 w-5" />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[13px] font-medium text-gray-900">Document</div>
+        <div className="truncate text-[13px] font-medium text-gray-900">{captionOf(msg) || 'Document'}</div>
         <div className="text-[11px] text-gray-500">
           {loading ? 'Loading…' : src ? ext || 'File' : 'Unavailable'}
         </div>
@@ -352,16 +352,8 @@ function MessageContent({ msg, inbound, media, spacer }) {
         </div>
       );
     case 'document':
-      return (
-        <div className="flex flex-col gap-1.5">
-          <DocumentMessage msg={msg} src={media.src} loading={media.loading} />
-          {caption ? (
-            <BodyText spacer={spacer} className="px-1.5 pb-1">
-              {caption}
-            </BodyText>
-          ) : null}
-        </div>
-      );
+      // The file name (or caption) is shown on the card itself.
+      return <DocumentMessage msg={msg} src={media.src} loading={media.loading} />;
     case 'template':
       return (
         <>
@@ -432,7 +424,7 @@ export const MessageBubble = memo(function MessageBubble({ msg, groupStart = tru
   const overlayTime = visual && !caption;
   const endsWithText =
     ['text', 'automated', 'template'].includes(type) ||
-    (caption && !['audio', 'voice_call', 'call_event', 'call_permission', 'call_permission_request'].includes(type));
+    (caption && !['document', 'audio', 'voice_call', 'call_event', 'call_permission', 'call_permission_request'].includes(type));
   const spacer = endsWithText ? (inbound ? 40 : 58) + (isAiReply ? 16 : 0) : 0;
 
   return (

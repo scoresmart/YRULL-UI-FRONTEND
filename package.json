@@ -26,6 +26,7 @@
     "@tanstack/react-query-devtools": "^5.87.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "emoji-picker-react": "^4.22.2",
     "framer-motion": "^12.38.0",
     "lucide-react": "^0.542.0",
     "react": "^18.2.0",
