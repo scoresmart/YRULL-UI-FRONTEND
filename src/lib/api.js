@@ -331,6 +331,8 @@ export const automationsApi = {
   trigger: (id, waId) =>
     apiJSON('POST', `/api/automations/${id}/trigger`, { body: JSON.stringify({ wa_id: waId }) }),
   stopRun: (runId) => apiJSON('POST', `/api/automations/runs/${runId}/stop`),
+  duplicate: (id) => apiJSON('POST', `/api/automations/${id}/duplicate`),
+  stats: (days = 30) => apiJSON('GET', `/api/automations/stats?days=${days}`),
 };
 
 // -- Integrations API ---------------------------------------------------------
