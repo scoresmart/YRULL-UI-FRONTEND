@@ -276,12 +276,29 @@ export function updateNodeData(nodes, id, patch) {
   return nodes.map((n) => (n.id === id ? { ...n, data: { ...n.data, ...patch } } : n));
 }
 
+// Triggers started by the contact messaging you, so a plain WhatsApp text can
+// reach them. Everyone else (a CRM lead, a caller) needs an approved template.
+const OPENS_WINDOW = new Set(['new_message', 'contact_created', 'instagram_dm', 'instagram_comment', 'instagram_story_reply']);
+
 /** Everything that would stop this automation from doing what it shows. */
 export function validateGraph(nodes, edges) {
   const issues = [];
   const reachable = reachableIds(nodes, edges);
+  const triggerType = nodes.find((n) => n.type === 'trigger')?.data?.triggerType;
   for (const n of nodes) {
     for (const message of nodeIssues(n)) issues.push({ nodeId: n.id, message });
+    if (
+      n.type === 'action' &&
+      n.data?.actionType === 'send_message' &&
+      triggerType &&
+      !OPENS_WINDOW.has(triggerType) &&
+      !n.data.fallbackTemplate
+    ) {
+      issues.push({
+        nodeId: n.id,
+        message: "Choose a fallback template — this contact may not have messaged you, so plain text won't be delivered",
+      });
+    }
     if (n.type === 'action' && !reachable.has(n.id)) {
       issues.push({ nodeId: n.id, message: 'Not connected to the trigger, so it never runs' });
     }

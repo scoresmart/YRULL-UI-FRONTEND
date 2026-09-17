@@ -99,6 +99,15 @@ describe('editing keeps the chain connected', () => {
 });
 
 describe('validateGraph', () => {
+  it('needs a fallback template for a WhatsApp text to a CRM lead', () => {
+    const graph = (fallbackTemplate) =>
+      loadGraph([trigger, step('m', 'send_message', { message: 'Hi', fallbackTemplate })], [{ source: 'trigger', target: 'm' }]);
+    const noFallback = graph('');
+    expect(validateGraph(noFallback.nodes, noFallback.edges).some((i) => i.message.includes('fallback template'))).toBe(true);
+    const withFallback = graph('new_lead_thank_you');
+    expect(validateGraph(withFallback.nodes, withFallback.edges)).toEqual([]);
+  });
+
   it('flags unconfigured and unsupported steps', () => {
     const { nodes, edges } = loadGraph(
       [trigger, step('m', 'send_message'), step('r', 'randomizer')],
