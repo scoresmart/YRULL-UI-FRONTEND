@@ -52,7 +52,12 @@
     }
   }
 
-  .animate-in {
+  /* The marketing page's scroll reveal. It used to be called .animate-in,
+     which is also the class Radix puts on an open dialog -- so every dialog in
+     the app was landing with its top-left corner at the centre of the screen,
+     its own centring transform overruled by the !important below, and the rest
+     of it off the bottom of the window. */
+  .reveal-in {
     opacity: 1 !important;
     transform: translateY(0) !important;
   }

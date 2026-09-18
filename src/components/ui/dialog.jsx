@@ -23,22 +23,28 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 const DialogContent = React.forwardRef(({ className, children, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        'fixed left-1/2 top-1/2 z-[100] w-[min(92vw,36rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-gray-100 bg-white p-5 shadow-xl outline-none sm:p-6',
-        'max-h-[90vh] overflow-y-auto',
-        'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
-        'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
-        className,
-      )}
-      {...props}
-    >
-      {children}
-      <DialogClose className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-accent sm:right-4 sm:top-4 sm:h-7 sm:w-7">
-        <X className="h-4 w-4" />
-      </DialogClose>
-    </DialogPrimitive.Content>
+    {/* Centred by this flex wrapper rather than by a transform on the dialog
+        itself, so a stray transform rule elsewhere can't drop it half off the
+        screen. The wrapper scrolls when a dialog is taller than the window;
+        clicking it still counts as clicking outside and closes the dialog. */}
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto p-4">
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          'relative my-auto w-[min(92vw,36rem)] rounded-2xl border border-gray-100 bg-white p-5 shadow-xl outline-none sm:p-6',
+          'max-h-[calc(100vh-2rem)] overflow-y-auto',
+          'data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
+          'data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
+          className,
+        )}
+        {...props}
+      >
+        {children}
+        <DialogClose className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-accent sm:right-4 sm:top-4 sm:h-7 sm:w-7">
+          <X className="h-4 w-4" />
+        </DialogClose>
+      </DialogPrimitive.Content>
+    </div>
   </DialogPortal>
 ));
 DialogContent.displayName = DialogPrimitive.Content.displayName;

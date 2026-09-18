@@ -104,7 +104,7 @@ function AnimatedSection({ children, className = '' }) {
     const obs = new IntersectionObserver(
       ([e]) => {
         if (e.isIntersecting) {
-          el.classList.add('animate-in');
+          el.classList.add('reveal-in');
           obs.unobserve(el);
         }
       },
