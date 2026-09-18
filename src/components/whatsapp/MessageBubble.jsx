@@ -35,6 +35,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 
 // "[image]", "[audio]" … is what the backend stores for media with no caption.
 const PLACEHOLDER_RE = /^\[\w+\]$/;
+// Templates sent before the backend recorded their wording were stored as
+// "[Template] name" or "[template:name]" — show the name, not the placeholder.
+const TEMPLATE_PLACEHOLDER_RE = /^\[template:?\s*([^\]]+)\]$/i;
 
 function captionOf(msg) {
   const body = (msg.body || '').trim();
@@ -582,13 +585,21 @@ function MessageContent({ msg, inbound, media, spacer }) {
     case 'document':
       // The file name (or caption) is shown on the card itself.
       return <DocumentMessage msg={msg} src={media.src} loading={media.loading} />;
-    case 'template':
+    case 'template': {
+      const placeholder = TEMPLATE_PLACEHOLDER_RE.exec((msg.body || '').trim());
       return (
         <>
           <Label icon={LayoutTemplate}>Template</Label>
-          <BodyText spacer={spacer}>{caption || 'Template message'}</BodyText>
+          {placeholder ? (
+            <BodyText spacer={spacer} className="italic text-gray-500">
+              Sent the “{placeholder[1].trim()}” template
+            </BodyText>
+          ) : (
+            <BodyText spacer={spacer}>{caption || 'Template message'}</BodyText>
+          )}
         </>
       );
+    }
     case 'voice_call':
       // Message sent with a WhatsApp call button; mirror how the contact sees it.
       return (

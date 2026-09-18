@@ -65,10 +65,14 @@ const PREVIEW = {
   voice_call: [Phone, null],
 };
 
+// "[Template] name" / "[template:name]" is what older template sends stored.
+const TEMPLATE_PLACEHOLDER_RE = /^\[template:?\s*([^\]]+)\]$/i;
+
 function Preview({ msg }) {
   if (!msg) return <span className="italic">No messages yet</span>;
   const type = msg.message_type || 'text';
   const body = msg.body || '';
+  const templateName = TEMPLATE_PLACEHOLDER_RE.exec(body.trim())?.[1]?.trim();
   const placeholder = /^\[(\w+)\]$/.exec(body);
   const [Icon, label] = PREVIEW[type] || (placeholder && PREVIEW[placeholder[1]]) || [null, null];
   let text = placeholder ? '' : body;
@@ -76,6 +80,7 @@ function Preview({ msg }) {
   if (type === 'contacts') text = body.split(' · ')[0];
   if (type === 'call_event') text = '';
   if (type === 'voice_call') text = body.replace(/^\[Call Button\]\s*/, '');
+  if (templateName) text = `Template: ${templateName}`;
   const outbound = msg.direction !== 'inbound';
 
   return (
