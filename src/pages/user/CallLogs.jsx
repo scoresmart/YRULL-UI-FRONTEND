@@ -30,7 +30,7 @@ export function CallLogsPage() {
     // Normalising here lets everything downstream just assume an array.
     select: (data) => (Array.isArray(data) ? data : (data?.calls ?? data?.data ?? [])),
     refetchInterval: 30000, // Refresh every 30 seconds
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: false, // …but not while the tab sits in the background
   });
 
   // Filter and sort calls

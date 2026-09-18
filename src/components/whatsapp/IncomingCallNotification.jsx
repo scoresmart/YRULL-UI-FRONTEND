@@ -140,8 +140,12 @@ export function IncomingCallNotification() {
     // This polls during a live call, so an unguarded crash here would take the
     // call UI down mid-call.
     select: (data) => (Array.isArray(data) ? data : (data?.calls ?? data?.data ?? [])),
-    refetchInterval: callState === 'ringing' ? 2000 : callState === 'active' ? 2000 : 5000, // Poll every 2s when ringing or active
-    refetchIntervalInBackground: true,
+    // 2s during a call, to notice the moment the other side hangs up. Idle, this
+    // is only a fallback behind realtime and the pending-calls poll, so it drops
+    // to 30s and stops in a background tab — at 5s it was the single busiest
+    // request in the app, all day, on every open tab.
+    refetchInterval: callState === 'ringing' || callState === 'active' ? 2000 : 30000,
+    refetchIntervalInBackground: callState === 'ringing' || callState === 'active',
     enabled: true, // Always enabled to detect call end
   });
 
