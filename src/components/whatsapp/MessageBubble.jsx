@@ -36,8 +36,16 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 // "[image]", "[audio]" … is what the backend stores for media with no caption.
 const PLACEHOLDER_RE = /^\[\w+\]$/;
 // Templates sent before the backend recorded their wording were stored as
-// "[Template] name" or "[template:name]" — show the name, not the placeholder.
-const TEMPLATE_PLACEHOLDER_RE = /^\[template:?\s*([^\]]+)\]$/i;
+// "[Template] name", "[template:name]" or "[Template: name] the text…".
+// Show the message where there is one, and the template's name otherwise.
+const TEMPLATE_PREFIX_RE = /^\[template:?\s*([^\]]*)\]\s*/i;
+
+function templateParts(body) {
+  const text = (body || '').trim();
+  const match = TEMPLATE_PREFIX_RE.exec(text);
+  if (!match) return { text };
+  return { name: match[1].trim(), text: text.slice(match[0].length).trim() };
+}
 
 function captionOf(msg) {
   const body = (msg.body || '').trim();
@@ -586,16 +594,16 @@ function MessageContent({ msg, inbound, media, spacer }) {
       // The file name (or caption) is shown on the card itself.
       return <DocumentMessage msg={msg} src={media.src} loading={media.loading} />;
     case 'template': {
-      const placeholder = TEMPLATE_PLACEHOLDER_RE.exec((msg.body || '').trim());
+      const { name, text } = templateParts(msg.body);
       return (
         <>
           <Label icon={LayoutTemplate}>Template</Label>
-          {placeholder ? (
-            <BodyText spacer={spacer} className="italic text-gray-500">
-              Sent the “{placeholder[1].trim()}” template
-            </BodyText>
+          {text ? (
+            <BodyText spacer={spacer}>{text}</BodyText>
           ) : (
-            <BodyText spacer={spacer}>{caption || 'Template message'}</BodyText>
+            <BodyText spacer={spacer} className="italic text-gray-500">
+              Sent the “{name}” template
+            </BodyText>
           )}
         </>
       );
