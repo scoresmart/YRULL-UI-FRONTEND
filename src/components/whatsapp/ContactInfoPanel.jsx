@@ -175,8 +175,8 @@ export function ContactInfoPanel({ onClose }) {
     // An empty response body arrives as {}, which is truthy but has no .filter.
     select: (data) => (Array.isArray(data) ? data : (data?.calls ?? data?.data ?? [])),
     staleTime: 5000,
-    refetchInterval: 10000,
-    refetchIntervalInBackground: true,
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
   });
 
   const contactCalls = useMemo(() => {

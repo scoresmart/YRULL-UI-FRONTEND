@@ -24,30 +24,40 @@ import { supabase } from '../../lib/supabase';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useQueryClient } from '@tanstack/react-query';
 
-// Get unread count for a contact (client-side)
-async function getUnreadCount(waId) {
-  const lastRead = localStorage.getItem(`lastRead_${waId}`) || '1970-01-01T00:00:00Z';
-  const { count, error } = await supabase
-    .from('whatsapp_messages')
-    .select('*', { count: 'exact', head: true })
-    .eq('wa_id', waId)
-    .eq('direction', 'inbound')
-    .gt('created_at', lastRead);
-  if (error) return 0;
-  return count ?? 0;
-}
+// The list needs each chat's last message and how many inbound messages arrived
+// since it was last opened. That used to be two queries per contact, re-run
+// every 30s and 5s after any message change — 30+ requests a round with 15
+// chats, forever. One page of recent messages answers both for every chat.
+const RECENT_MESSAGE_LIMIT = 500;
 
-// Get last message for a contact
-async function getLastMessage(waId) {
+async function fetchRecentMessages() {
   const { data, error } = await supabase
     .from('whatsapp_messages')
-    .select('body, created_at, direction, message_type, status')
-    .eq('wa_id', waId)
+    .select('wa_id, body, created_at, direction, message_type, status')
     .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle(); // Use maybeSingle() to handle no messages gracefully
-  if (error || !data) return null;
-  return data;
+    .limit(RECENT_MESSAGE_LIMIT);
+  if (error) throw error;
+  return data ?? [];
+}
+
+function summarise(rows) {
+  const lastMessages = {};
+  const unreadCounts = {};
+  const lastReadCache = {};
+  for (const row of rows) {
+    const waId = row.wa_id;
+    if (!waId) continue;
+    if (!lastMessages[waId]) lastMessages[waId] = row;
+    if (row.direction !== 'inbound') continue;
+    if (!(waId in lastReadCache)) {
+      lastReadCache[waId] = localStorage.getItem(`lastRead_${waId}`) || '';
+    }
+    const lastRead = lastReadCache[waId];
+    if (!lastRead || row.created_at > lastRead) {
+      unreadCounts[waId] = (unreadCounts[waId] ?? 0) + 1;
+    }
+  }
+  return { lastMessages, unreadCounts };
 }
 
 // How a last message reads in the list: media and cards get an icon and a
@@ -225,37 +235,32 @@ export function ConversationList({ className }) {
   const hasLoadedOnceRef = useRef(false);
   const refreshUnreadCountsRef = useRef(null);
 
-  // Fetch unread counts and last messages for all contacts
+  // Previews and unread counts for every chat, in one request.
+  const inFlightRef = useRef(false);
   const refreshUnreadCounts = useCallback(async () => {
     if (!contactsQ.data?.length) {
       setIsLoadingMessages(false);
       return;
     }
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
 
     // Only show the loading spinner on the very first load; subsequent background
-    // refreshes (30s poll, real-time events) should update silently.
+    // refreshes (poll, real-time events) should update silently.
     if (!hasLoadedOnceRef.current) {
       setIsLoadingMessages(true);
     }
-    const counts = {};
-    const messages = {};
-
-    // A few contacts at a time: one at a time made the list slow to fill.
-    const contacts = contactsQ.data;
-    for (let i = 0; i < contacts.length; i += 8) {
-      await Promise.all(
-        contacts.slice(i, i + 8).map(async (contact) => {
-          const [count, lastMsg] = await Promise.all([getUnreadCount(contact.wa_id), getLastMessage(contact.wa_id)]);
-          counts[contact.wa_id] = count;
-          if (lastMsg) messages[contact.wa_id] = lastMsg;
-        }),
-      );
+    try {
+      const { lastMessages: messages, unreadCounts: counts } = summarise(await fetchRecentMessages());
+      setUnreadCounts(counts);
+      setLastMessages(messages);
+      hasLoadedOnceRef.current = true;
+    } catch (err) {
+      console.error('Failed to load conversation previews:', err);
+    } finally {
+      inFlightRef.current = false;
+      setIsLoadingMessages(false);
     }
-
-    setUnreadCounts(counts);
-    setLastMessages(messages);
-    setIsLoadingMessages(false);
-    hasLoadedOnceRef.current = true;
   }, [contactsQ.data]);
 
   // Kept in a ref so the query-cache listener below always calls the latest one.
@@ -270,27 +275,40 @@ export function ConversationList({ className }) {
       setIsLoadingMessages(false);
     }
 
-    // Real-time subscription handles instant updates; poll only as a safety fallback
+    // Real-time handles instant updates, so this is only a safety net — and it
+    // stops entirely while the tab is in the background.
     const interval = setInterval(() => {
-      if (contactsQ.data?.length) {
+      if (contactsQ.data?.length && !document.hidden) {
         refreshUnreadCounts();
       }
-    }, 30000);
-    return () => clearInterval(interval);
+    }, 60000);
+    const onVisible = () => {
+      if (!document.hidden && contactsQ.data?.length) refreshUnreadCounts();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [refreshUnreadCounts, contactsQ.data]);
 
   // Listen for real-time query updates to refresh unread counts (debounced)
   const pendingRefreshRef = useRef(null);
   useEffect(() => {
     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
-      if (event?.query?.queryKey?.[0] === 'whatsapp_messages' && refreshUnreadCountsRef.current) {
-        // Debounce: only refresh once per 5s window to avoid cascading queries
-        if (!pendingRefreshRef.current) {
-          pendingRefreshRef.current = setTimeout(() => {
-            refreshUnreadCountsRef.current();
-            pendingRefreshRef.current = null;
-          }, 5000);
-        }
+      // Only a real data change matters; 'observerResultsUpdated' fires for
+      // every mount and render of a chat, which kept the list re-querying.
+      if (
+        event?.type === 'updated' &&
+        event?.action?.type === 'success' &&
+        event?.query?.queryKey?.[0] === 'whatsapp_messages' &&
+        refreshUnreadCountsRef.current &&
+        !pendingRefreshRef.current
+      ) {
+        pendingRefreshRef.current = setTimeout(() => {
+          pendingRefreshRef.current = null;
+          if (!document.hidden) refreshUnreadCountsRef.current();
+        }, 5000);
       }
     });
     return () => {
