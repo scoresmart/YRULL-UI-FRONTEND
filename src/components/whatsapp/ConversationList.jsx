@@ -40,6 +40,18 @@ async function fetchRecentMessages() {
   return data ?? [];
 }
 
+// The list's own query covers only the most recent messages, so a chat older
+// than that window falls back to the preview the conversations endpoint sends
+// with each contact, and one with no messages at all to when it was last seen.
+function lastMessageOf(contact, lastMessages) {
+  return lastMessages[contact.wa_id] ?? contact.last_message ?? null;
+}
+
+function activityTime(contact, lastMessages) {
+  const when = lastMessageOf(contact, lastMessages)?.created_at || contact.last_seen;
+  return when ? new Date(when).getTime() : 0;
+}
+
 function summarise(rows) {
   const lastMessages = {};
   const unreadCounts = {};
@@ -349,10 +361,8 @@ export function ConversationList({ className }) {
     list.sort((a, b) => {
       const aUnread = unreadCounts[a.wa_id] ?? 0;
       const bUnread = unreadCounts[b.wa_id] ?? 0;
-      const aLastMsg = lastMessages[a.wa_id];
-      const bLastMsg = lastMessages[b.wa_id];
-      const aTime = aLastMsg?.created_at ? new Date(aLastMsg.created_at).getTime() : 0;
-      const bTime = bLastMsg?.created_at ? new Date(bLastMsg.created_at).getTime() : 0;
+      const aTime = activityTime(a, lastMessages);
+      const bTime = activityTime(b, lastMessages);
 
       if (sort === 'unread') {
         if (aUnread !== bUnread) return bUnread - aUnread;
@@ -478,7 +488,7 @@ export function ConversationList({ className }) {
               <ConversationRow
                 key={contact.wa_id || contact.id}
                 contact={contact}
-                lastMessage={lastMessages[contact.wa_id] ?? null}
+                lastMessage={lastMessageOf(contact, lastMessages)}
                 unreadCount={unreadCounts[contact.wa_id] ?? 0}
                 selected={contact.wa_id === selectedWaId}
                 onSelect={onSelect}

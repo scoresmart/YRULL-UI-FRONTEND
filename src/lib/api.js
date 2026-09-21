@@ -315,7 +315,9 @@ async function postMedia(path, { to, field, file, filename, caption }) {
 // -- Conversations API --------------------------------------------------------
 
 export const conversationsApi = {
-  list: () => apiJSON('GET', '/whatsapp/conversations'),
+  // Without a limit the backend returned only the 20 most recent chats, and
+  // the inbox couldn't scroll past them.
+  list: () => apiJSON('GET', '/whatsapp/conversations?limit=1000'),
 };
 
 // -- Automations API ----------------------------------------------------------
