@@ -102,9 +102,18 @@ export class ApiError extends Error {
  * Retrying can never fix this; the workspace has to reconnect Facebook.
  */
 export function isMetaAuthError(error) {
+  // Meta types nearly every Graph failure as an OAuthException, whatever it is
+  // about: a malformed call parameter (131009) and "call already ongoing with
+  // this receiver" (138003) both arrive wearing it. Matching on the type put
+  // "Reconnect required" in the header over a call that simply failed, and the
+  // latch is sticky, so the banner stayed until a reload.
+  //
+  // Code 190 is the one that genuinely means the token is dead. When the body
+  // names a different code, it is not an auth problem, so the loose message
+  // check below is skipped rather than given a second chance to guess.
   const meta = error?.body?.meta_error;
-  if (meta && (meta.code === 190 || meta.type === 'OAuthException')) return true;
-  return /token has expired|session has been invalidated|OAuthException/i.test(error?.message ?? '');
+  if (meta && typeof meta.code !== 'undefined') return meta.code === 190;
+  return /token has expired|session has been invalidated/i.test(error?.message ?? '');
 }
 
 // -- Unified Facebook OAuth (login + connect, all Meta scopes) ----------------

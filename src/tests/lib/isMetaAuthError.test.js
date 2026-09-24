@@ -34,7 +34,33 @@ describe('isMetaAuthError', () => {
 
   it('falls back to the message when no structured body is present', () => {
     expect(isMetaAuthError(new Error('The token has expired on Thursday'))).toBe(true);
-    expect(isMetaAuthError(new Error('OAuthException'))).toBe(true);
+    expect(isMetaAuthError(new Error('session has been invalidated'))).toBe(true);
+  });
+
+  // Meta stamps OAuthException on Graph errors that have nothing to do with the
+  // token. Trusting the type asked the user to reconnect WhatsApp because a
+  // call had a bad parameter, or because one was already in progress.
+  it('ignores a non-190 OAuthException', () => {
+    const paramError = new ApiError('Parameter value is not valid', {
+      status: 400,
+      body: {
+        meta_error: {
+          code: 131009,
+          type: 'OAuthException',
+          message: 'Parameter value is not valid',
+          error_data: { details: 'Missing session parameter' },
+        },
+      },
+    });
+    expect(isMetaAuthError(paramError)).toBe(false);
+
+    const busyError = new ApiError('Call already ongoing with this receiver', {
+      status: 400,
+      body: {
+        meta_error: { code: 138003, type: 'OAuthException', message: 'Call already ongoing with this receiver' },
+      },
+    });
+    expect(isMetaAuthError(busyError)).toBe(false);
   });
 
   it('ignores unrelated failures', () => {
