@@ -287,7 +287,11 @@ export function WhatsAppPage() {
                   connect to this workspace.
                 </p>
                 <div className="space-y-3">
-                  {wa.chooseNumberState.numbers.map((num) => (
+                  {/* The right row was sitting somewhere in a list of twenty,
+                      indistinguishable from its duplicates. Put it first. */}
+                  {[...wa.chooseNumberState.numbers]
+                    .sort((a, b) => Number(Boolean(b.recommended)) - Number(Boolean(a.recommended)))
+                    .map((num) => (
                     <button
                       key={num.id}
                       onClick={() => wa.selectNumber(num.id)}
@@ -306,8 +310,16 @@ export function WhatsAppPage() {
                           {num.verified_name ? `${num.verified_name} · ` : ''}
                           {num.waba_id ? `WABA ${num.waba_id}` : 'WABA unknown'}
                         </p>
+                        {/* The id is the only thing that actually tells two
+                            copies of the same number apart. */}
+                        <p className="truncate font-mono text-xs text-muted-foreground/70">ID {num.id}</p>
                       </div>
                       <div className="flex items-center gap-2">
+                        {num.recommended && (
+                          <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-semibold text-white">
+                            This one
+                          </span>
+                        )}
                         {num.quality_rating === 'GREEN' && (
                           <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Good quality</span>
                         )}
