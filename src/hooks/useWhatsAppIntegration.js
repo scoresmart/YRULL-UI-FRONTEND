@@ -32,6 +32,14 @@ export function useWhatsAppIntegration() {
       setError(null);
       const data = await whatsappIntegrationApi.getStatus();
       setStatus(data);
+      // The account is linked but no number is chosen — a reconnect that found
+      // several leaves the choice to us. Without this the page fell back to
+      // "Connect your WhatsApp Business account", which restarts the OAuth
+      // that just ran and returns to the same screen: a loop with no way out
+      // and an inbox that looks empty.
+      if (data?.needs_number && data.available_numbers?.length) {
+        setChooseNumberState({ numbers: data.available_numbers, workspaceId });
+      }
     } catch (err) {
       setError(err.message || 'Failed to load WhatsApp status');
       setStatus(null);
