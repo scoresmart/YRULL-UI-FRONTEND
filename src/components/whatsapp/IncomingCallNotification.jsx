@@ -37,6 +37,7 @@ export function IncomingCallNotification() {
   const ringtoneRef = useRef(null);
   const waCallIdRef = useRef(null); // The actual WhatsApp call_id (NOT the phone number)
   const answerPollRef = useRef(null); // Polls /calls/answered while an outbound call rings
+  const connectedAnnouncedRef = useRef(false); // One "connected" toast per call
 
   // Define cleanupCall FIRST before any useEffects that might use it
   const cleanupCall = useCallback(() => {
@@ -642,6 +643,7 @@ export function IncomingCallNotification() {
       }
 
       setCallState('dialling');
+      connectedAnnouncedRef.current = false;
       try {
         // 1. Microphone first — a denied mic must not ring the contact.
         const localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -673,17 +675,30 @@ export function IncomingCallNotification() {
           }, 2000);
         };
 
+        // Announced once, when audio actually exists — both handlers below can
+        // reach "connected", and two toasts for one call is noise.
+        const announceConnected = () => {
+          setCallState('active');
+          if (!connectedAnnouncedRef.current) {
+            connectedAnnouncedRef.current = true;
+            toast.success('Call connected!');
+          }
+        };
+
         pc.oniceconnectionstatechange = () => {
           const state = pc.iceConnectionState;
           console.debug('[WebRTC] Outbound ICE state:', state);
-          if (state === 'connected' || state === 'completed') setCallState('active');
-          else if (state === 'disconnected' || state === 'failed' || state === 'closed') onLost();
+          if (state === 'connected' || state === 'completed') announceConnected();
+          // 'disconnected' is often a blip that recovers on its own; only a
+          // terminal state should end the call. Treating it as fatal dropped
+          // calls that were still perfectly alive.
+          else if (state === 'failed' || state === 'closed') onLost();
         };
         pc.onconnectionstatechange = () => {
           const state = pc.connectionState;
           console.debug('[WebRTC] Outbound connection state:', state);
-          if (state === 'connected') setCallState('active');
-          else if (state === 'disconnected' || state === 'failed' || state === 'closed') onLost();
+          if (state === 'connected') announceConnected();
+          else if (state === 'failed' || state === 'closed') onLost();
         };
 
         // 3. Offer
@@ -723,7 +738,7 @@ export function IncomingCallNotification() {
         // 6. Wait for pickup. The answer is parked on the backend for ~120s.
         let waited = 0;
         answerPollRef.current = setInterval(async () => {
-          waited += 2;
+          waited += 1;
           if (waited > 90) {
             clearInterval(answerPollRef.current);
             answerPollRef.current = null;
@@ -740,13 +755,16 @@ export function IncomingCallNotification() {
               clearInterval(answerPollRef.current);
               answerPollRef.current = null;
               await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answer.sdp }));
-              setCallState('active');
-              toast.success('Call connected!');
+              // Applying the answer only starts the ICE handshake — there is no
+              // audio yet. Claiming the call had connected here is what put
+              // "Call connected!" on screen a moment before "Call ended"; the
+              // connection-state handlers above announce it once it is true.
+              setCallState('connecting');
             }
           } catch (e) {
             console.error('[Call] Answer poll failed:', e);
           }
-        }, 2000);
+        }, 1000);
       } catch (error) {
         console.error('Failed to place call:', error);
         toast.error(`Call failed: ${error.message}`);
