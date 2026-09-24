@@ -25,8 +25,9 @@ export function IncomingCallNotification() {
   const [isMuted, setIsMuted] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   // The contact we are calling, and why we can't, when that applies.
-  const [outgoing, setOutgoing] = useState(null); // { waId, name } | null
+  const [outgoing, setOutgoing] = useState(null); // { waId, name, windowOpen } | null
   const [permissionState, setPermissionState] = useState(null);
+  const [canRequestPermission, setCanRequestPermission] = useState(true);
   const [requestingPermission, setRequestingPermission] = useState(false);
 
   const peerConnectionRef = useRef(null);
@@ -613,10 +614,11 @@ export function IncomingCallNotification() {
    * inline, so the answer has to be polled for.
    */
   const dialOut = useCallback(
-    async (waId, name) => {
+    async (waId, name, windowOpen = null) => {
       if (!waId) return;
-      setOutgoing({ waId, name: name || '' });
+      setOutgoing({ waId, name: name || '', windowOpen });
       setPermissionState(null);
+      setCanRequestPermission(true);
 
       // Permission first. Dialling without it just earns a refusal from Meta,
       // and the staff member has no idea why.
@@ -624,6 +626,10 @@ export function IncomingCallNotification() {
         const perm = await whatsappApi.getCallPermission(waId);
         if (!perm?.can_call) {
           setPermissionState(perm?.state || 'never_asked');
+          // Meta caps permission requests at one a day and two a week, and
+          // reports here whether we are over it — better than finding out from
+          // a refusal after the staff member has tapped Ask.
+          setCanRequestPermission(perm?.can_request !== false);
           setCallState('needs_permission');
           return;
         }
@@ -786,7 +792,7 @@ export function IncomingCallNotification() {
       toast.error('Already on a call');
       return;
     }
-    dialOut(callRequest.waId, callRequest.name);
+    dialOut(callRequest.waId, callRequest.name, callRequest.windowOpen);
   }, [callRequest, clearCallRequest, callState, dialOut]);
 
   const handleReject = useCallback(async () => {
@@ -899,6 +905,13 @@ export function IncomingCallNotification() {
     return callState !== 'idle' || (incomingCall && incomingCall.source === 'pending');
   }, [callState, incomingCall]);
 
+  // A call permission request is an ordinary free-form message, so WhatsApp
+  // drops it once the 24-hour window has closed. Offering the button then only
+  // earns the staff member a rejection they can do nothing about — they need a
+  // template to reopen the conversation first.
+  const windowClosed = outgoing?.windowOpen === false;
+  const canAskPermission = permissionState !== 'declined' && !windowClosed && canRequestPermission;
+
   if (!shouldShow) return null;
 
   return (
@@ -986,9 +999,9 @@ export function IncomingCallNotification() {
                       variant="outline"
                       className="flex-1"
                     >
-                      Cancel
+                      {canAskPermission ? 'Cancel' : 'Close'}
                     </Button>
-                    {permissionState !== 'declined' && (
+                    {canAskPermission && (
                       <Button
                         onClick={handleRequestPermission}
                         disabled={requestingPermission}
@@ -1045,9 +1058,13 @@ export function IncomingCallNotification() {
                 <p className="mt-4 text-center text-xs text-gray-500">
                   {permissionState === 'declined'
                     ? 'This contact declined being called. You can ask again 24 hours after the last request.'
-                    : permissionState === 'expired'
-                      ? 'Their permission to be called has expired. Ask again to call them.'
-                      : "WhatsApp won't let us call someone who hasn't agreed to it. They'll get a message they can accept — then the call button works for 7 days."}
+                    : windowClosed
+                      ? `WhatsApp won't let us call someone who hasn't agreed to it, and the request to agree can only be sent inside the 24-hour window — which has closed. Send ${outgoing?.name || 'them'} a template and ask them to reply, then the call button works.`
+                      : !canRequestPermission
+                        ? 'They were already asked recently. WhatsApp allows one request a day and two a week — try again tomorrow.'
+                        : permissionState === 'expired'
+                        ? 'Their permission to be called has expired. Ask again to call them.'
+                        : "WhatsApp won't let us call someone who hasn't agreed to it. They'll get a message they can accept — then the call button works for 7 days."}
                 </p>
               )}
             </div>

@@ -167,6 +167,29 @@ export function ContactInfoPanel({ onClose }) {
       ? `Open · ${Math.floor(windowLeft / 3600000)}h ${Math.floor((windowLeft % 3600000) / 60000)}m left`
       : 'Closed · templates only';
 
+  // WhatsApp refuses a business-initiated call until the contact allows it, so
+  // whether we may call is worth showing next to the Call button rather than
+  // discovering it after tapping.
+  const permissionQ = useQuery({
+    queryKey: ['whatsapp_call_permission', selectedWaId],
+    enabled: Boolean(selectedWaId),
+    queryFn: () => whatsappApi.getCallPermission(selectedWaId),
+    staleTime: 60_000,
+    retry: false,
+  });
+  const permission = permissionQ.data;
+  const permissionText = !permission
+    ? '—'
+    : permission.can_call
+      ? permission.state === 'granted_permanent'
+        ? 'Allowed'
+        : 'Allowed · 7 days'
+      : permission.state === 'declined'
+        ? 'Declined'
+        : permission.state === 'expired'
+          ? 'Expired · ask again'
+          : 'Not asked yet';
+
   /* ── Calls ── */
   const callsQ = useQuery({
     queryKey: ['whatsapp_calls', selectedWaId],
@@ -308,7 +331,7 @@ export function ContactInfoPanel({ onClose }) {
   }, [nameDraft, contact, workspaceId, queryClient]);
 
   /* ── Actions ── */
-  const onCall = () => contact?.wa_id && dialContact(contact.wa_id, contact.name || '');
+  const onCall = () => contact?.wa_id && dialContact(contact.wa_id, contact.name || '', windowLeft > 0);
 
   const onSendCallButton = async () => {
     if (!contact?.wa_id || sendingCallButton) return;
@@ -413,6 +436,13 @@ export function ContactInfoPanel({ onClose }) {
             icon={Clock}
             label="24-hour window"
             value={<span className={windowLeft > 0 ? 'text-[#008069]' : 'text-[#667781]'}>{windowText}</span>}
+          />
+          <InfoRow
+            icon={PhoneOutgoing}
+            label="Calling them"
+            value={
+              <span className={permission?.can_call ? 'text-[#008069]' : 'text-[#667781]'}>{permissionText}</span>
+            }
           />
           {contact?.source ? (
             <InfoRow icon={Megaphone} label="Source" value={SOURCE_LABEL[contact.source] || contact.source} />

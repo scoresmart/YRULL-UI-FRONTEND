@@ -9,6 +9,7 @@ import {
   PhoneCall,
   PhoneIncoming,
   PhoneMissed,
+  PhoneOutgoing,
   Table2,
   Tag,
   Tags,
@@ -171,6 +172,17 @@ export const ACTIONS = [
     icon: PhoneCall,
     tone: 'green',
     summary: (d) => clip(d.message || 'Tap below to call us!'),
+    issues: () => [],
+  },
+  {
+    type: 'request_call_permission',
+    group: 'Send',
+    label: 'Ask to call them',
+    description:
+      "WhatsApp blocks outgoing calls until the contact agrees. This asks them, so the Call button works when you need it.",
+    icon: PhoneOutgoing,
+    tone: 'green',
+    summary: (d) => clip(d.message || 'May we call you on WhatsApp about your enquiry?'),
     issues: () => [],
   },
   {

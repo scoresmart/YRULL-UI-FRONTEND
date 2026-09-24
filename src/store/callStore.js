@@ -10,11 +10,15 @@ import { create } from 'zustand';
  * navigating away from the conversation, or two live peer connections at once.
  *
  * `request` is a one-shot: the notification consumes it and clears it.
+ *
+ * `windowOpen` rides along because a call permission request is a free-form
+ * message — outside the 24-hour window Meta rejects it, so the dialler needs to
+ * know before it offers to send one.
  */
 export const useCallStore = create((set) => ({
-  request: null, // { waId, name } | null
+  request: null, // { waId, name, windowOpen } | null
 
-  dial: (waId, name = '') => set({ request: { waId, name } }),
+  dial: (waId, name = '', windowOpen = null) => set({ request: { waId, name, windowOpen } }),
 
   clearRequest: () => set({ request: null }),
 }));

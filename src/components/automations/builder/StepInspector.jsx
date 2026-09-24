@@ -425,6 +425,23 @@ function ActionFields({ data, onChange, templates, templatesLoading, tags, membe
           </Field>
         </div>
       );
+    case 'request_call_permission':
+      return (
+        <div className="space-y-5">
+          <TextWithVariables
+            label="What to ask"
+            value={data.message}
+            onChange={(v) => onChange({ message: v })}
+            rows={3}
+            placeholder="May we call you on WhatsApp about your enquiry?"
+          />
+          <p className="text-xs leading-relaxed text-gray-500">
+            The contact gets an Allow / Decline prompt. Allow lets you call them for the next 7 days, or
+            permanently if they choose that. WhatsApp only delivers this inside the 24-hour window and
+            allows one ask per contact per day, so put this step after they reply.
+          </p>
+        </div>
+      );
     case 'send_email':
       return (
         <div className="space-y-5">

@@ -276,12 +276,34 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
     }
   }, [selectedTemplate, contact, selectedWaId, sendingTemplate, templateParams, queryClient, closeTemplatePicker]);
 
+  // The 24h "customer service window" opens on every inbound message from the
+  // contact and closes 24h after the most recent one. Outside of it, WhatsApp
+  // only allows pre-approved template messages — never freeform text/voice.
+  const lastInboundAt = useMemo(() => {
+    let latest = 0;
+    for (const m of messagesQ.data ?? []) {
+      if (m.direction !== 'inbound' || !m.created_at) continue;
+      const t = new Date(m.created_at).getTime();
+      if (Number.isFinite(t) && t > latest) latest = t;
+    }
+    return latest || null;
+  }, [messagesQ.data]);
+
+  // While messages are still loading we treat the window as open to avoid a
+  // brief lock-flash on chat switch — once data arrives we re-evaluate.
+  const windowOpen = messagesQ.isLoading
+    ? true
+    : lastInboundAt != null && now - lastInboundAt < WINDOW_MS;
+  const windowExpiresIn = lastInboundAt ? lastInboundAt + WINDOW_MS - now : 0;
+
   // Dials the contact. IncomingCallNotification owns the peer connection and
   // the in-call UI for both directions, so this only hands over the request.
+  // The window state travels with it: if the contact has not granted call
+  // permission, the dialler can only ask for it while the window is open.
   const onCall = useCallback(() => {
     if (!contact || !selectedWaId) return;
-    dialContact(contact.wa_id, contact.name || '');
-  }, [contact, selectedWaId, dialContact]);
+    dialContact(contact.wa_id, contact.name || '', windowOpen);
+  }, [contact, selectedWaId, dialContact, windowOpen]);
 
   // Sends the contact a tappable "Call ScoreSmart" message — it does NOT place
   // a call. Still the only way to reach someone who hasn't granted call
@@ -494,26 +516,6 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
     el.style.height = 'auto';
     el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
   }, [draft]);
-
-  // The 24h "customer service window" opens on every inbound message from the
-  // contact and closes 24h after the most recent one. Outside of it, WhatsApp
-  // only allows pre-approved template messages — never freeform text/voice.
-  const lastInboundAt = useMemo(() => {
-    let latest = 0;
-    for (const m of messagesQ.data ?? []) {
-      if (m.direction !== 'inbound' || !m.created_at) continue;
-      const t = new Date(m.created_at).getTime();
-      if (Number.isFinite(t) && t > latest) latest = t;
-    }
-    return latest || null;
-  }, [messagesQ.data]);
-
-  // While messages are still loading we treat the window as open to avoid a
-  // brief lock-flash on chat switch — once data arrives we re-evaluate.
-  const windowOpen = messagesQ.isLoading
-    ? true
-    : lastInboundAt != null && now - lastInboundAt < WINDOW_MS;
-  const windowExpiresIn = lastInboundAt ? lastInboundAt + WINDOW_MS - now : 0;
 
   if (!selectedWaId) {
     return (
