@@ -343,8 +343,15 @@ export function IncomingCallNotification() {
       activeCallIdRef.current &&
       callHistoryQ.data
     ) {
-      // Check if the active call has ended by looking for calls from the same number
+      // Find rows for THIS call. Matching on the contact's number instead
+      // meant the previous call to the same person could end the current one:
+      // its terminate row says COMPLETED forever, and any moment where it was
+      // the newest row for that number — the gap between dialling and the
+      // first webhook for the new call — read as "the call has ended" and hung
+      // up a call that was still connecting. Two of four calls died that way.
+      const currentCallId = waCallIdRef.current;
       const recentCallsFromNumber = callHistoryQ.data.filter((call) => {
+        if (currentCallId) return (call.call_id || call.id) === currentCallId;
         const callFrom = call.from_number || call.from;
         const callTo = call.to_number || call.to;
         return callFrom === activeCallIdRef.current || callTo === activeCallIdRef.current;
