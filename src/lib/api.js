@@ -252,6 +252,12 @@ export const whatsappApi = {
   getAnsweredCalls: (callId) =>
     apiJSON('GET', `/whatsapp/calls/answered?call_id=${encodeURIComponent(callId)}`),
 
+  // Whether the person has actually picked up. The peer connection reaches
+  // "connected" while their phone is still ringing — Meta's ACCEPTED status is
+  // the only thing that means answered.
+  getOutboundCallStatus: (callId) =>
+    apiJSON('GET', `/whatsapp/call/status?call_id=${encodeURIComponent(callId)}`),
+
   // The file behind an inbound voice note / image / video / document. Meta's own
   // links need our token, so the backend proxies it; an <audio src> can't send
   // auth headers, hence a Blob the caller turns into an object URL.

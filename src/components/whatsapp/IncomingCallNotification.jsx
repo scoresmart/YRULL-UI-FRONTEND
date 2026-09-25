@@ -675,30 +675,23 @@ export function IncomingCallNotification() {
           }, 2000);
         };
 
-        // Announced once, when audio actually exists — both handlers below can
-        // reach "connected", and two toasts for one call is noise.
-        const announceConnected = () => {
-          setCallState('active');
-          if (!connectedAnnouncedRef.current) {
-            connectedAnnouncedRef.current = true;
-            toast.success('Call connected!');
-          }
-        };
-
+        // The peer connection reaching "connected" only means Meta's media
+        // server is on the line — their phone is still ringing at that point.
+        // Meta's ACCEPTED status is the only thing that means someone picked
+        // up, so the timer and the "connected" toast wait for it; until then
+        // the call stays in 'dialling' and the modal says Calling.
         pc.oniceconnectionstatechange = () => {
           const state = pc.iceConnectionState;
           console.debug('[WebRTC] Outbound ICE state:', state);
-          if (state === 'connected' || state === 'completed') announceConnected();
           // 'disconnected' is often a blip that recovers on its own; only a
           // terminal state should end the call. Treating it as fatal dropped
           // calls that were still perfectly alive.
-          else if (state === 'failed' || state === 'closed') onLost();
+          if (state === 'failed' || state === 'closed') onLost();
         };
         pc.onconnectionstatechange = () => {
           const state = pc.connectionState;
           console.debug('[WebRTC] Outbound connection state:', state);
-          if (state === 'connected') announceConnected();
-          else if (state === 'failed' || state === 'closed') onLost();
+          if (state === 'failed' || state === 'closed') onLost();
         };
 
         // 3. Offer
@@ -735,8 +728,13 @@ export function IncomingCallNotification() {
         setActiveCallId(waId);
         activeCallIdRef.current = waId;
 
-        // 6. Wait for pickup. The answer is parked on the backend for ~120s.
+        // 6. Two things have to happen before this is a call: Meta's SDP
+        // answer has to arrive so there is a media path, and the person has to
+        // actually pick up. They are not the same moment — the media path is
+        // ready while the phone is still ringing — so both are waited for here
+        // and only the second one starts the timer.
         let waited = 0;
+        let sdpApplied = false;
         answerPollRef.current = setInterval(async () => {
           waited += 1;
           if (waited > 90) {
@@ -749,17 +747,32 @@ export function IncomingCallNotification() {
             return;
           }
           try {
-            const d = await whatsappApi.getAnsweredCalls(callId);
-            const answer = d?.answered?.[0];
-            if (answer?.sdp) {
+            if (!sdpApplied) {
+              const d = await whatsappApi.getAnsweredCalls(callId);
+              const answer = d?.answered?.[0];
+              if (answer?.sdp) {
+                await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answer.sdp }));
+                sdpApplied = true;
+              }
+            }
+
+            const s = await whatsappApi.getOutboundCallStatus(callId);
+            if (s?.answered) {
               clearInterval(answerPollRef.current);
               answerPollRef.current = null;
-              await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answer.sdp }));
-              // Applying the answer only starts the ICE handshake — there is no
-              // audio yet. Claiming the call had connected here is what put
-              // "Call connected!" on screen a moment before "Call ended"; the
-              // connection-state handlers above announce it once it is true.
-              setCallState('connecting');
+              setCallState('active');
+              if (!connectedAnnouncedRef.current) {
+                connectedAnnouncedRef.current = true;
+                toast.success('Call connected!');
+              }
+            } else if (s?.ended) {
+              // They declined, or it rang out on their side.
+              clearInterval(answerPollRef.current);
+              answerPollRef.current = null;
+              toast('No answer');
+              cleanupCall();
+              setCallState('idle');
+              setOutgoing(null);
             }
           } catch (e) {
             console.error('[Call] Answer poll failed:', e);
@@ -968,7 +981,7 @@ export function IncomingCallNotification() {
                   <div className="text-sm text-gray-500">{callerPhoneFormatted}</div>
                   <div className="mt-1 text-xs text-gray-400">
                     {callState === 'ringing' && 'Incoming call...'}
-                    {callState === 'dialling' && 'Calling...'}
+                    {callState === 'dialling' && 'Ringing…'}
                     {callState === 'needs_permission' && 'Permission needed'}
                     {callState === 'connecting' && 'Connecting...'}
                     {callState === 'active' && formatDuration(callDuration)}
