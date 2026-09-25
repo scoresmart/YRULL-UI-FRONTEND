@@ -29,6 +29,9 @@ export function IncomingCallNotification() {
   const [permissionState, setPermissionState] = useState(null);
   const [canRequestPermission, setCanRequestPermission] = useState(true);
   const [requestingPermission, setRequestingPermission] = useState(false);
+  // Why the last call finished, when Meta told us — "Call ended" alone reads
+  // as a fault here rather than a decision at the other end.
+  const [endedReason, setEndedReason] = useState('');
 
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
@@ -651,6 +654,7 @@ export function IncomingCallNotification() {
 
       setCallState('dialling');
       connectedAnnouncedRef.current = false;
+      setEndedReason('');
       try {
         // 1. Microphone first — a denied mic must not ring the contact.
         const localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -772,14 +776,20 @@ export function IncomingCallNotification() {
                 connectedAnnouncedRef.current = true;
                 toast.success('Call connected!');
               }
-            } else if (s?.ended) {
-              // They declined, or it rang out on their side.
+            } else if (s?.rejected || s?.ended) {
+              // Meta distinguishes declined from unanswered, and so should we:
+              // "Call ended" on a call the contact turned down reads as a
+              // fault in the dialler rather than a decision at the other end.
               clearInterval(answerPollRef.current);
               answerPollRef.current = null;
-              toast('No answer');
+              setEndedReason(s?.rejected ? 'They declined the call' : 'No answer');
+              toast(s?.rejected ? 'They declined the call' : 'No answer');
               cleanupCall();
-              setCallState('idle');
-              setOutgoing(null);
+              setCallState('ended');
+              setTimeout(() => {
+                setCallState('idle');
+                setOutgoing(null);
+              }, 2500);
             }
           } catch (e) {
             console.error('[Call] Answer poll failed:', e);
@@ -992,7 +1002,7 @@ export function IncomingCallNotification() {
                     {callState === 'needs_permission' && 'Permission needed'}
                     {callState === 'connecting' && 'Connecting...'}
                     {callState === 'active' && formatDuration(callDuration)}
-                    {callState === 'ended' && 'Call ended'}
+                    {callState === 'ended' && (endedReason || 'Call ended')}
                   </div>
                 </div>
               </div>
