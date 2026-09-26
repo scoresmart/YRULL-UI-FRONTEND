@@ -10,6 +10,7 @@ import {
   PhoneIncoming,
   PhoneMissed,
   PhoneOutgoing,
+  Sparkles,
   Table2,
   Tag,
   Tags,
@@ -101,7 +102,7 @@ export const TRIGGERS = [
   },
 ];
 
-export const ACTION_GROUPS = ['Send', 'Contact', 'Flow', 'Integrations'];
+export const ACTION_GROUPS = ['Send', 'AI', 'Contact', 'Flow', 'Integrations'];
 
 // Variables the engine fills in (_resolve_variables). Both {x} and {{x}} work.
 export const VARIABLES = [
@@ -113,6 +114,35 @@ export const VARIABLES = [
   { token: '{course_name}', label: 'Course' },
   { token: '{status}', label: 'CRM status' },
   { token: '{source}', label: 'Lead source' },
+  { token: '{course_label}', label: 'Course, as a phrase ("the PTE course")' },
+  { token: '{desired_score}', label: 'Desired score' },
+  { token: '{previous_score}', label: 'Previous score' },
+  { token: '{exam_deadline}', label: 'Exam deadline' },
+  { token: '{lead_opening}', label: 'Personalised question (from the CRM)' },
+  { token: '{ai_summary}', label: 'Claude: one-line summary' },
+  { token: '{ai_temperature}', label: 'Claude: hot / warm / cold' },
+];
+
+export const CLAUDE_MODES = [
+  {
+    value: 'qualify',
+    label: 'Qualify lead',
+    short: 'Qualify',
+    description:
+      'Asks for the details missing from the CRM (desired score, deadline, previous score), reads their reply and sends the right plan.',
+  },
+  {
+    value: 'reply',
+    label: 'Write a reply',
+    short: 'Reply',
+    description: 'Claude writes and sends a WhatsApp message from your instructions, their CRM details and the chat so far.',
+  },
+  {
+    value: 'analyse',
+    label: 'Analyse & sort',
+    short: 'Analyse',
+    description: 'Claude reads their message and marks them hot, warm or cold with an intent, for Condition steps to branch on.',
+  },
 ];
 
 export const DELAY_UNITS = ['minutes', 'hours', 'days', 'seconds'];
@@ -125,6 +155,10 @@ export const CONDITION_FIELDS = [
   { value: 'campaign_name', label: 'Ad campaign' },
   { value: 'email', label: 'Email' },
   { value: 'phone', label: 'Phone' },
+  { value: 'ai_temperature', label: 'Claude: hot / warm / cold' },
+  { value: 'ai_intent', label: 'Claude: intent' },
+  { value: 'desired_score', label: 'Desired score' },
+  { value: 'exam_deadline', label: 'Exam deadline' },
 ];
 
 export const CONDITION_OPERATORS = [
@@ -204,6 +238,21 @@ export const ACTIONS = [
     tone: 'purple',
     summary: (d) => (d.message ? `“${clip(d.message)}”` : ''),
     issues: (d) => (d.message?.trim() ? [] : ['Write the message']),
+  },
+  {
+    type: 'claude_ai',
+    group: 'AI',
+    label: 'Claude AI',
+    description: 'Let Claude qualify the lead, write a reply, or read their message and sort them.',
+    icon: Sparkles,
+    tone: 'violet',
+    defaults: { mode: 'qualify', addTag: true },
+    summary: (d) => {
+      const mode = CLAUDE_MODES.find((m) => m.value === (d.mode || 'reply'));
+      if (d.mode === 'reply') return d.instructions ? `Reply: ${clip(d.instructions, 60)}` : 'Reply';
+      return mode?.label || '';
+    },
+    issues: (d) => (d.mode === 'reply' && !d.instructions?.trim() ? ['Tell Claude what to write'] : []),
   },
   {
     type: 'add_tag',
@@ -310,6 +359,7 @@ export const TONES = {
   cyan: { chip: 'bg-cyan-50 text-cyan-600', ring: 'ring-cyan-200', bar: 'bg-cyan-500' },
   indigo: { chip: 'bg-indigo-50 text-indigo-600', ring: 'ring-indigo-200', bar: 'bg-indigo-500' },
   amber: { chip: 'bg-amber-50 text-amber-600', ring: 'ring-amber-200', bar: 'bg-amber-500' },
+  violet: { chip: 'bg-violet-50 text-violet-600', ring: 'ring-violet-200', bar: 'bg-violet-500' },
   trigger: { chip: 'bg-violet-50 text-violet-600', ring: 'ring-violet-200', bar: 'bg-violet-500' },
 };
 

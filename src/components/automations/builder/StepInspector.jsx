@@ -7,6 +7,7 @@ import { tagsApi } from '../../../lib/api';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../ui/dropdown-menu';
 import {
   ACTIONS_BY_TYPE,
+  CLAUDE_MODES,
   CONDITION_FIELDS,
   CONDITION_OPERATORS,
   DELAY_UNITS,
@@ -324,6 +325,156 @@ function AirtableFields({ data, onChange }) {
   );
 }
 
+const PLAN_FIELDS = [
+  ['crash', 'Short plan', 'our 2-Week PTE Crash Course'],
+  ['month', 'Longer plan', 'our 1-Month PTE Course'],
+  ['mocks', 'Practice only', 'our scored PTE mock tests'],
+];
+
+/** A template picker without {{1}} inputs — the Qualify step fills those itself. */
+function TemplateSelect({ label, hint, name, lang, onChange, templates, emptyLabel }) {
+  return (
+    <Field label={label} hint={hint}>
+      {templates.length ? (
+        <select
+          value={name ? `${name}::${lang || templates.find((t) => t.name === name)?.language || ''}` : ''}
+          onChange={(e) => {
+            const [n, l] = e.target.value.split('::');
+            onChange(n || '', l || '');
+          }}
+          className={inputCls}
+        >
+          <option value="">{emptyLabel}</option>
+          {templates.map((t) => (
+            <option key={`${t.name}::${t.language}`} value={`${t.name}::${t.language}`}>
+              {t.name} · {t.language}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <input value={name || ''} onChange={(e) => onChange(e.target.value, lang)} placeholder={emptyLabel} className={inputCls} />
+      )}
+    </Field>
+  );
+}
+
+function ClaudeFields({ data, onChange, templates }) {
+  const mode = data.mode || 'reply';
+  const plans = data.plans || {};
+  return (
+    <div className="space-y-5">
+      <Field label="What should Claude do?">
+        <div className="grid grid-cols-3 gap-2">
+          {CLAUDE_MODES.map((m) => (
+            <button
+              key={m.value}
+              type="button"
+              onClick={() => onChange({ mode: m.value })}
+              className={cn(
+                'rounded-lg border px-2 py-2 text-[13px] transition-colors',
+                mode === m.value ? 'border-violet-400 bg-violet-50 font-medium text-violet-800' : 'border-gray-200 text-gray-700 hover:bg-gray-50',
+              )}
+            >
+              {m.short}
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-xs leading-relaxed text-gray-500">{CLAUDE_MODES.find((m) => m.value === mode)?.description}</p>
+      </Field>
+
+      {mode === 'qualify' ? (
+        <>
+          <div className="rounded-lg border border-gray-100 bg-[#F0F2F5] p-3 text-[13px] leading-relaxed text-gray-800">
+            <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Example</div>
+            Hi Priya, we have received your enquiry regarding the PTE course. We have noted your previous score of 6 each
+            after 2 attempts. To help you further, could you tell us your desired score and your exam deadline?
+          </div>
+          <TemplateSelect
+            label="Template for new leads"
+            hint="Leads who haven't messaged you can only get an approved template. It must take {{1}} name, {{2}} course and {{3}} the question. If they've written in the last 24 hours, a plain message is sent instead."
+            name={data.templateName}
+            lang={data.templateLang}
+            templates={templates}
+            emptyLabel="new_lead_personalised (default)"
+            onChange={(n, l) => onChange({ templateName: n, templateLang: l })}
+          />
+          <TemplateSelect
+            label="Backup template"
+            hint="Sent while the template above is waiting for Meta's approval, paused or disabled. Gets only {{1}} name."
+            name={data.backupTemplate}
+            lang={data.backupTemplateLang}
+            templates={templates}
+            emptyLabel="No backup"
+            onChange={(n, l) => onChange({ backupTemplate: n, backupTemplateLang: l })}
+          />
+          <Field label="Plans Claude can recommend" hint="Chosen by the gap between their scores and the time left. Leave a box empty to keep the default.">
+            <div className="space-y-2">
+              {PLAN_FIELDS.map(([key, label, placeholder]) => (
+                <div key={key}>
+                  <div className="mb-1 text-xs text-gray-500">{label}</div>
+                  <input
+                    value={plans[key] || ''}
+                    onChange={(e) => onChange({ plans: { ...plans, [key]: e.target.value } })}
+                    placeholder={placeholder}
+                    className={inputCls}
+                  />
+                </div>
+              ))}
+            </div>
+          </Field>
+          <TextWithVariables
+            label="How to word the recommendation (optional)"
+            value={data.instructions}
+            onChange={(v) => onChange({ instructions: v })}
+            rows={3}
+            placeholder="Mention we have weekend batches. Keep it short."
+            hint="Claude rewords the reply to follow this, but always keeps the plan that was chosen."
+          />
+        </>
+      ) : null}
+
+      {mode === 'reply' ? (
+        <>
+          <TextWithVariables
+            label="Instructions for Claude"
+            value={data.instructions}
+            onChange={(v) => onChange({ instructions: v })}
+            rows={5}
+            placeholder="Answer their question, then suggest a free scored mock test and offer a call. Don't quote prices."
+            hint="Claude also sees their CRM details and the last 20 messages. It never quotes prices or guarantees scores."
+          />
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800">
+            WhatsApp only delivers these to contacts who messaged you in the last 24 hours, so use this after a “Message
+            received” trigger. For brand-new CRM leads use Qualify, which sends a template. When this step answers a
+            message, the automatic AI reply is skipped so they don&apos;t get two.
+          </p>
+        </>
+      ) : null}
+
+      {mode === 'analyse' ? (
+        <>
+          <label className="flex items-start gap-2.5 text-[13px] text-gray-700">
+            <input type="checkbox" checked={data.addTag !== false} onChange={(e) => onChange({ addTag: e.target.checked })} className="mt-0.5 h-4 w-4 accent-violet-600" />
+            <span>
+              Tag them <span className="font-medium">Hot lead</span>, <span className="font-medium">Warm lead</span> or{' '}
+              <span className="font-medium">Cold lead</span>
+            </span>
+          </label>
+          <label className="flex items-start gap-2.5 text-[13px] text-gray-700">
+            <input type="checkbox" checked={!!data.saveToCrm} onChange={(e) => onChange({ saveToCrm: e.target.checked })} className="mt-0.5 h-4 w-4 accent-violet-600" />
+            <span>Write the scores and deadline they mention to the CRM, with a one-line summary in Notes</span>
+          </label>
+          <p className="text-xs leading-relaxed text-gray-500">
+            Add a Condition step after this and check <span className="font-medium">Claude: hot / warm / cold</span> or{' '}
+            <span className="font-medium">Claude: intent</span> (enquiry, pricing, ready_to_enrol, wants_call, not_interested,
+            other). Later messages can use {'{ai_summary}'}.
+          </p>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 function TriggerFields({ data, onChange, tags }) {
   if (data.triggerType === 'new_message') {
     const mode = data.keyword ? 'keyword' : data.keywordMode || 'any';
@@ -541,6 +692,8 @@ function ActionFields({ data, onChange, templates, templatesLoading, tags, membe
         </div>
       );
     }
+    case 'claude_ai':
+      return <ClaudeFields data={data} onChange={onChange} templates={templates} />;
     case 'custom_integration':
       return <AirtableFields data={data} onChange={onChange} />;
     case 'webhook':
