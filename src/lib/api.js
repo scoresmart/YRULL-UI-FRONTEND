@@ -177,9 +177,12 @@ export const whatsappIntegrationApi = {
 // -- WhatsApp API -------------------------------------------------------------
 
 export const whatsappApi = {
-  async sendMessage({ to, message }) {
+  // replyTo is the wa_message_id being answered; WhatsApp shows it quoted.
+  async sendMessage({ to, message, replyTo }) {
     try {
-      return await apiJSON('POST', '/whatsapp/send', { body: JSON.stringify({ to, message }) });
+      return await apiJSON('POST', '/whatsapp/send', {
+        body: JSON.stringify({ to, message, ...(replyTo ? { reply_to: replyTo } : {}) }),
+      });
     } catch (error) {
       toast.error(error.message || 'Failed to send message');
       throw error;
@@ -275,10 +278,16 @@ export const whatsappApi = {
     return res.blob();
   },
 
-  async sendAudio({ to, audioBlob }) {
+  async sendAudio({ to, audioBlob, replyTo }) {
     const ext = audioBlob.type.includes('ogg') ? 'ogg' : 'webm';
     try {
-      return await postMedia('/whatsapp/send-audio', { to, field: 'audio', file: audioBlob, filename: `voice-${Date.now()}.${ext}` });
+      return await postMedia('/whatsapp/send-audio', {
+        to,
+        field: 'audio',
+        file: audioBlob,
+        filename: `voice-${Date.now()}.${ext}`,
+        replyTo,
+      });
     } catch (error) {
       toast.error(error.message || 'Failed to send voice message');
       throw error;
@@ -287,8 +296,23 @@ export const whatsappApi = {
 
   // Photo, video or document from the attach button. Errors are left to the
   // caller, which keeps the preview open so the user can retry.
-  sendMedia: ({ to, file, caption }) =>
-    postMedia('/whatsapp/send-media', { to, field: 'file', file, filename: file.name, caption }),
+  sendMedia: ({ to, file, caption, replyTo }) =>
+    postMedia('/whatsapp/send-media', { to, field: 'file', file, filename: file.name, caption, replyTo }),
+
+  // -- Message menu: react, forward, star, pin, delete for me ---------------
+  // React and Forward reach the customer; star, pin and delete are only in
+  // the inbox (the Cloud API can't pin or delete in the customer's chat).
+  react: ({ to, messageId, emoji }) =>
+    apiJSON('POST', '/whatsapp/react', { body: JSON.stringify({ to, message_id: messageId, emoji }) }),
+
+  // messageId is the row id; to is a list of wa_ids. Resolves with
+  // { results: [{ to, ok, error }] }, one per contact.
+  forward: ({ messageId, to }) =>
+    apiJSON('POST', '/whatsapp/forward', { body: JSON.stringify({ message_id: messageId, to }) }),
+
+  // changes: any of { starred, pinned, deleted } (booleans).
+  updateMessage: (id, changes) =>
+    apiJSON('PATCH', `/whatsapp/messages/${encodeURIComponent(id)}`, { body: JSON.stringify(changes) }),
 
   sendLocation: ({ to, latitude, longitude, name, address }) =>
     apiJSON('POST', '/whatsapp/send-location', {
@@ -299,10 +323,11 @@ export const whatsappApi = {
     apiJSON('POST', '/whatsapp/send-contact', { body: JSON.stringify({ to, name, phone, email, company }) }),
 };
 
-async function postMedia(path, { to, field, file, filename, caption }) {
+async function postMedia(path, { to, field, file, filename, caption, replyTo }) {
   const form = new FormData();
   form.append('to', to);
   if (caption) form.append('caption', caption);
+  if (replyTo) form.append('reply_to', replyTo);
   form.append(field, file, filename);
   // authFetch would add a JSON Content-Type; FormData must set its own boundary.
   const { data: sessionData } = await supabase.auth.getSession();

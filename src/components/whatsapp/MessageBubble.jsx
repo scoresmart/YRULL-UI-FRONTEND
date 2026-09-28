@@ -7,23 +7,33 @@ import {
   ChevronDown,
   Clock,
   Contact,
+  Camera,
+  CornerUpLeft,
   Copy,
   Download,
   ExternalLink,
   FileText,
+  Forward,
   ImageOff,
   Info,
   LayoutTemplate,
   Loader2,
   MapPin,
+  Mic,
   MicOff,
   Pause,
   Phone,
   PhoneIncoming,
   PhoneMissed,
   PhoneOutgoing,
+  Pin,
+  PinOff,
   Play,
   ShieldCheck,
+  Star,
+  StarOff,
+  Trash2,
+  Video,
   VideoOff,
   X,
 } from 'lucide-react';
@@ -32,25 +42,15 @@ import toast from 'react-hot-toast';
 import { cn } from '../../lib/utils';
 import { whatsappApi } from '../../lib/api';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
-
-// "[image]", "[audio]" … is what the backend stores for media with no caption.
-const PLACEHOLDER_RE = /^\[\w+\]$/;
-// Templates sent before the backend recorded their wording were stored as
-// "[Template] name", "[template:name]" or "[Template: name] the text…".
-// Show the message where there is one, and the template's name otherwise.
-const TEMPLATE_PREFIX_RE = /^\[template:?\s*([^\]]*)\]\s*/i;
-
-function templateParts(body) {
-  const text = (body || '').trim();
-  const match = TEMPLATE_PREFIX_RE.exec(text);
-  if (!match) return { text };
-  return { name: match[1].trim(), text: text.slice(match[0].length).trim() };
-}
-
-function captionOf(msg) {
-  const body = (msg.body || '').trim();
-  return body && !PLACEHOLDER_RE.test(body) ? body : '';
-}
+import {
+  MessageActionsContext,
+  PLACEHOLDER_RE,
+  RECORD_TYPES,
+  captionOf,
+  messagePreview,
+  parseLocation,
+  templateParts,
+} from './messageHelpers';
 
 /* ── Rich text: links, WhatsApp formatting and search highlights ───────── */
 
@@ -194,6 +194,7 @@ function VoiceNote({ src, loading, outbound }) {
   const [playing, setPlaying] = useState(false);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [rate, setRate] = useState(1);
 
   if (loading) {
     return (
@@ -219,6 +220,11 @@ function VoiceNote({ src, loading, outbound }) {
     el.currentTime = (Number(e.target.value) / 100) * duration;
   };
   const progress = duration ? (current / duration) * 100 : 0;
+  const cycleRate = () => {
+    const next = rate === 1 ? 1.5 : rate === 1.5 ? 2 : 1;
+    setRate(next);
+    if (audioRef.current) audioRef.current.playbackRate = next;
+  };
 
   return (
     <div className="flex w-64 max-w-full items-center gap-3 py-1">
@@ -226,7 +232,10 @@ function VoiceNote({ src, loading, outbound }) {
         ref={audioRef}
         src={src}
         preload="metadata"
-        onPlay={() => setPlaying(true)}
+        onPlay={(e) => {
+          e.currentTarget.playbackRate = rate;
+          setPlaying(true);
+        }}
         onPause={() => setPlaying(false)}
         onEnded={() => {
           setPlaying(false);
@@ -262,9 +271,22 @@ function VoiceNote({ src, loading, outbound }) {
             background: `linear-gradient(to right, #128C7E ${progress}%, rgba(0,0,0,0.12) ${progress}%)`,
           }}
         />
-        <span className="text-[11px] tabular-nums text-gray-500">
-          {formatDuration(playing || current ? current : duration)}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] tabular-nums text-gray-500">
+            {formatDuration(playing || current ? current : duration)}
+          </span>
+          {playing || current || rate !== 1 ? (
+            <button
+              type="button"
+              onClick={cycleRate}
+              aria-label={`Playback speed ${rate}×`}
+              title="Playback speed"
+              className="rounded-full bg-black/[0.08] px-1.5 text-[11px] font-semibold leading-4 text-gray-600 hover:bg-black/[0.12]"
+            >
+              {rate}×
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -440,19 +462,6 @@ function BodyText({ children, spacer = 0, className }) {
       {spacer ? <span className="inline-block h-3 align-bottom" style={{ width: spacer }} aria-hidden="true" /> : null}
     </div>
   );
-}
-
-// The backend stores a location as "name\naddress\nhttps://maps.google.com/?q=lat,lng".
-function parseLocation(body) {
-  const lines = (body || '').split('\n').filter(Boolean);
-  const link = lines.find((l) => l.startsWith('https://maps.google.com/?q='));
-  const [lat, lng] = (link?.split('?q=')[1] || '').split(',').map(Number);
-  return {
-    link,
-    lat: Number.isFinite(lat) ? lat : null,
-    lng: Number.isFinite(lng) ? lng : null,
-    lines: lines.filter((l) => l !== link),
-  };
 }
 
 // A 3×3 block of OpenStreetMap tiles centred on the pin — a map thumbnail
@@ -662,15 +671,61 @@ function DeliveryStatus({ status }) {
   return <Check className="h-[15px] w-[15px] text-gray-400" aria-label="Sent" />;
 }
 
+// WhatsApp's quick reactions.
+const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+
+/** The quoted message at the top of a reply, as WhatsApp draws it. */
+export function QuotedMessage({ quoted, contactName, onClick, className }) {
+  const { icon: Icon, text } = messagePreview(quoted);
+  const mine = quoted && quoted.direction !== 'inbound';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!onClick}
+      className={cn(
+        'flex w-full min-w-0 overflow-hidden rounded-md bg-black/[0.05] text-left enabled:hover:bg-black/[0.08]',
+        className,
+      )}
+    >
+      <span className={cn('w-1 shrink-0', mine ? 'bg-[#06CF9C]' : 'bg-[#53BDEB]')} />
+      <span className="min-w-0 flex-1 px-2 py-1.5">
+        <span className={cn('block truncate text-[12.5px] font-medium', mine ? 'text-[#06A77D]' : 'text-[#1FA2D8]')}>
+          {quoted ? (mine ? 'You' : contactName || 'Contact') : ''}
+        </span>
+        <span className="flex items-center gap-1 text-[13px] leading-[18px] text-gray-600">
+          {Icon ? <Icon className="h-3.5 w-3.5 shrink-0 text-gray-500" /> : null}
+          <span className="line-clamp-2 break-words">{text}</span>
+        </span>
+      </span>
+    </button>
+  );
+}
+
 function MessageMenu({ msg, media, inbound }) {
+  const actions = useContext(MessageActionsContext);
   const type = msg.message_type || 'text';
   const text = captionOf(msg);
   const location = type === 'location' ? parseLocation(msg.body) : null;
   const copyable =
     text && !['call_event', 'location', 'call_permission', 'call_permission_request'].includes(type) && !text.startsWith('__');
   const fileName = type === 'document' ? text || 'document' : `whatsapp-${type}-${msg.wa_message_id || msg.id || 'file'}`;
+  // A message still being sent has no ids yet.
+  const saved = Boolean(msg.id && !String(msg.id).startsWith('temp_'));
+  const onWhatsApp = saved && Boolean(msg.wa_message_id) && !RECORD_TYPES.includes(type);
+  const windowOpen = actions?.windowOpen;
+  const closedHint = 'WhatsApp only allows this within 24 hours of their last message';
+  const reacted = msg.reactions?.outbound;
 
-  const actions = [
+  const items = [
+    actions && saved && !inbound && { label: 'Message info', icon: Info, onSelect: () => actions.onInfo(msg) },
+    actions && onWhatsApp && {
+      label: 'Reply',
+      icon: CornerUpLeft,
+      disabled: !windowOpen,
+      title: windowOpen ? undefined : closedHint,
+      onSelect: () => actions.onReply(msg),
+    },
     copyable && {
       label: 'Copy',
       icon: Copy,
@@ -680,10 +735,26 @@ function MessageMenu({ msg, media, inbound }) {
           .then(() => toast.success('Copied'))
           .catch(() => toast.error('Could not copy')),
     },
+    actions && saved && !RECORD_TYPES.includes(type) && type !== 'voice_call' && {
+      label: 'Forward',
+      icon: Forward,
+      onSelect: () => actions.onForward(msg),
+    },
     media.src && { label: 'Download', icon: Download, href: media.src, download: fileName },
     location?.link && { label: 'Open in Google Maps', icon: ExternalLink, href: location.link },
+    actions && saved && {
+      label: msg.pinned_at ? 'Unpin' : 'Pin',
+      icon: msg.pinned_at ? PinOff : Pin,
+      onSelect: () => actions.onTogglePin(msg),
+    },
+    actions && saved && {
+      label: msg.starred ? 'Unstar' : 'Star',
+      icon: msg.starred ? StarOff : Star,
+      onSelect: () => actions.onToggleStar(msg),
+    },
+    actions && saved && { label: 'Delete for me', icon: Trash2, danger: true, onSelect: () => actions.onDelete(msg) },
   ].filter(Boolean);
-  if (!actions.length) return null;
+  if (!items.length) return null;
 
   return (
     <DropdownMenu>
@@ -699,8 +770,29 @@ function MessageMenu({ msg, media, inbound }) {
           <ChevronDown className="h-4 w-4" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align={inbound ? 'start' : 'end'} className="w-48">
-        {actions.map((a) =>
+      <DropdownMenuContent align={inbound ? 'start' : 'end'} className="w-56">
+        {actions && onWhatsApp ? (
+          <div
+            className="mb-1 flex items-center justify-between gap-0.5 border-b border-black/[0.06] px-1 pb-1.5 pt-0.5"
+            title={windowOpen ? undefined : closedHint}
+          >
+            {QUICK_REACTIONS.map((emoji) => (
+              <DropdownMenuItem
+                key={emoji}
+                disabled={!windowOpen}
+                onSelect={() => actions.onReact(msg, reacted === emoji ? '' : emoji)}
+                aria-label={reacted === emoji ? `Remove ${emoji} reaction` : `React ${emoji}`}
+                className={cn(
+                  'h-8 w-8 justify-center rounded-full p-0 text-[19px]',
+                  reacted === emoji && 'bg-black/[0.08]',
+                )}
+              >
+                {emoji}
+              </DropdownMenuItem>
+            ))}
+          </div>
+        ) : null}
+        {items.map((a) =>
           a.href ? (
             <DropdownMenuItem key={a.label} asChild className="gap-3">
               <a href={a.href} download={a.download} target="_blank" rel="noopener noreferrer">
@@ -709,8 +801,14 @@ function MessageMenu({ msg, media, inbound }) {
               </a>
             </DropdownMenuItem>
           ) : (
-            <DropdownMenuItem key={a.label} onSelect={a.onSelect} className="gap-3">
-              <a.icon className="h-4 w-4 text-gray-500" />
+            <DropdownMenuItem
+              key={a.label}
+              onSelect={a.onSelect}
+              disabled={a.disabled}
+              title={a.title}
+              className={cn('gap-3', a.danger && 'text-red-600 focus:text-red-700')}
+            >
+              <a.icon className={cn('h-4 w-4', a.danger ? 'text-red-500' : 'text-gray-500')} />
               {a.label}
             </DropdownMenuItem>
           ),
@@ -720,8 +818,42 @@ function MessageMenu({ msg, media, inbound }) {
   );
 }
 
-export const MessageBubble = memo(function MessageBubble({ msg, groupStart = true, highlight = '', activeMatch = false }) {
+/** The emoji pill under a message: the contact's reaction and ours. */
+function Reactions({ reactions, inbound, onRemoveOwn }) {
+  const theirs = reactions?.inbound;
+  const ours = reactions?.outbound;
+  if (!theirs && !ours) return null;
+  const emojis = [...new Set([theirs, ours].filter(Boolean))];
+  return (
+    <button
+      type="button"
+      onClick={ours && onRemoveOwn ? onRemoveOwn : undefined}
+      title={[theirs && `They reacted ${theirs}`, ours && `You reacted ${ours}${onRemoveOwn ? ' · click to remove' : ''}`]
+        .filter(Boolean)
+        .join('\n')}
+      className={cn(
+        'absolute -bottom-3.5 z-10 flex h-[22px] items-center gap-0.5 rounded-full bg-white px-1.5 text-[13px] leading-none shadow-[0_1px_2px_rgba(11,20,26,0.2)]',
+        inbound ? 'left-2' : 'right-2',
+        !(ours && onRemoveOwn) && 'cursor-default',
+      )}
+    >
+      {emojis.map((e) => (
+        <span key={e}>{e}</span>
+      ))}
+      {theirs && ours && theirs !== ours ? null : theirs && ours ? <span className="ml-0.5 text-[11px] text-gray-500">2</span> : null}
+    </button>
+  );
+}
+
+export const MessageBubble = memo(function MessageBubble({
+  msg,
+  groupStart = true,
+  highlight = '',
+  activeMatch = false,
+  quoted = null,
+}) {
   const media = useMediaSrc(msg);
+  const actions = useContext(MessageActionsContext);
   if (!msg) return null;
 
   const inbound = msg.direction === 'inbound';
@@ -737,8 +869,17 @@ export const MessageBubble = memo(function MessageBubble({ msg, groupStart = tru
     (caption && !['location', 'contacts', 'document', 'audio', 'voice_call', 'call_event', 'call_permission', 'call_permission_request'].includes(type));
   const spacer = endsWithText ? (inbound ? 40 : 58) + (isAiReply ? 16 : 0) : 0;
 
+  const hasReactions = Boolean(msg.reactions?.inbound || msg.reactions?.outbound);
+
   return (
-    <div className={cn('flex w-full', inbound ? 'justify-start' : 'justify-end', groupStart ? 'mt-2' : 'mt-0.5')}>
+    <div
+      className={cn(
+        'flex w-full',
+        inbound ? 'justify-start' : 'justify-end',
+        groupStart ? 'mt-2' : 'mt-0.5',
+        hasReactions && 'mb-4',
+      )}
+    >
       <div
         className={cn(
           'group relative max-w-[85%] sm:max-w-[65%]',
@@ -764,6 +905,20 @@ export const MessageBubble = memo(function MessageBubble({ msg, groupStart = tru
         ) : null}
 
         <MessageMenu msg={msg} media={media} inbound={inbound} />
+        {msg.forwarded ? (
+          <div className={cn('flex items-center gap-1 text-[12px] italic text-gray-500', visual ? 'px-1.5 pt-0.5' : 'mb-0.5')}>
+            <Forward className="h-3 w-3" />
+            Forwarded
+          </div>
+        ) : null}
+        {msg.reply_to ? (
+          <QuotedMessage
+            quoted={quoted}
+            contactName={actions?.contactName}
+            onClick={quoted && actions ? () => actions.onJump(quoted) : undefined}
+            className={cn('mb-1', visual ? '' : 'min-w-[180px]')}
+          />
+        ) : null}
         <HighlightContext.Provider value={highlight}>
           <MessageContent msg={msg} inbound={inbound} media={media} spacer={spacer} />
         </HighlightContext.Provider>
@@ -778,10 +933,16 @@ export const MessageBubble = memo(function MessageBubble({ msg, groupStart = tru
                 : 'mt-1',
           )}
         >
+          {msg.starred ? <Star className="h-3 w-3 fill-current" aria-label="Starred" /> : null}
           {isAiReply ? <Bot className="h-3 w-3" aria-label="AI auto-reply" title="AI auto-reply" /> : null}
           <span className="tabular-nums">{formatTime(msg.created_at)}</span>
           {!inbound && type !== 'call_event' ? <DeliveryStatus status={msg.status} /> : null}
         </div>
+        <Reactions
+          reactions={msg.reactions}
+          inbound={inbound}
+          onRemoveOwn={actions?.windowOpen ? () => actions.onReact(msg, '') : undefined}
+        />
       </div>
     </div>
   );

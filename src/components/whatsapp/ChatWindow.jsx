@@ -14,6 +14,7 @@ import {
   ChevronDown,
   ChevronUp,
   Search,
+  Pin,
   X,
 } from 'lucide-react';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
@@ -26,7 +27,9 @@ import { useChatStore } from '../../store/chatStore';
 import { useCallStore } from '../../store/callStore';
 import { useContacts, useMessages, useTags, useContactTags } from '../../lib/dataHooks';
 import { whatsappApi, tagsApi, templatesApi } from '../../lib/api';
-import { MessageBubble } from './MessageBubble';
+import { MessageBubble, QuotedMessage } from './MessageBubble';
+import { MessageActionsContext, messagePreview } from './messageHelpers';
+import { ForwardDialog, MessageInfoDialog } from './MessageDialogs';
 import { AttachButton, EmojiButton } from './ComposerExtras';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import toast from 'react-hot-toast';
@@ -116,6 +119,13 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingTimerRef = useRef(null);
+  // The message being replied to, shown above the box. A ref too, because the
+  // voice recorder's stop handler is created when recording starts.
+  const [replyTo, setReplyTo] = useState(null);
+  const replyToRef = useRef(null);
+  replyToRef.current = replyTo;
+  const [forwardMsg, setForwardMsg] = useState(null);
+  const [infoMsg, setInfoMsg] = useState(null);
 
   const tagsQ = useTags();
   const contactTagsQ = useContactTags();
@@ -174,7 +184,9 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
     if (!draft.trim() || !contact || !selectedWaId || sending) return;
 
     const messageText = draft.trim();
+    const quoting = replyTo;
     setDraft('');
+    setReplyTo(null);
     setSending(true);
 
     const optimisticId = `temp_${Date.now()}_${Math.random()}`;
@@ -186,6 +198,7 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
       message_type: 'text',
       created_at: new Date().toISOString(),
       ai_intent: null,
+      reply_to: quoting?.wa_message_id || null,
     };
 
     queryClient.setQueryData(['whatsapp_messages', selectedWaId], (oldData) => {
@@ -202,7 +215,7 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
     }, 50);
 
     try {
-      await whatsappApi.sendMessage({ to: contact.wa_id, message: messageText });
+      await whatsappApi.sendMessage({ to: contact.wa_id, message: messageText, replyTo: quoting?.wa_message_id });
 
       // Refetch messages after a short delay to get the real message from backend
       setTimeout(async () => {
@@ -218,10 +231,11 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
       );
       toast.error(error.message || 'Failed to send message');
       setDraft(messageText);
+      setReplyTo(quoting);
     } finally {
       setSending(false);
     }
-  }, [draft, contact, selectedWaId, sending, queryClient]);
+  }, [draft, contact, selectedWaId, sending, queryClient, replyTo]);
 
   const closeTemplatePicker = useCallback(() => {
     setShowTemplatePicker(false);
@@ -349,9 +363,11 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
         setRecordingSeconds(0);
         if (!audioChunksRef.current.length) return;
         const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        const quoting = replyToRef.current;
         setSending(true);
         try {
-          await whatsappApi.sendAudio({ to: contact.wa_id, audioBlob: blob });
+          await whatsappApi.sendAudio({ to: contact.wa_id, audioBlob: blob, replyTo: quoting?.wa_message_id });
+          setReplyTo(null);
           await queryClient.invalidateQueries({ queryKey: ['whatsapp_messages', selectedWaId] });
           toast.success('Voice message sent');
         } catch {
@@ -402,6 +418,8 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
     const seen = new Set();
     const result = [];
     for (const msg of messages) {
+      // "Delete for me" hides a message from the inbox; the contact still has it.
+      if (msg.deleted_at) continue;
       const key = msg.wa_message_id;
       if (key) {
         if (seen.has(key)) continue;
@@ -411,6 +429,131 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
     }
     return result;
   }, [messagesQ.data]);
+
+  /* ── Message menu: reply, react, forward, star, pin, delete, info ── */
+  const byWaId = useMemo(() => {
+    const map = new Map();
+    for (const m of messagesQ.data ?? []) if (m.wa_message_id) map.set(m.wa_message_id, m);
+    return map;
+  }, [messagesQ.data]);
+
+  // Newest pin first, as WhatsApp shows them.
+  const pinned = useMemo(
+    () =>
+      deduplicatedMessages
+        .filter((m) => m.pinned_at)
+        .sort((a, b) => new Date(b.pinned_at) - new Date(a.pinned_at)),
+    [deduplicatedMessages],
+  );
+  const [pinIndex, setPinIndex] = useState(0);
+  const [flashKey, setFlashKey] = useState(null);
+
+  // Apply a change to the cached row straight away; the server confirms it.
+  const patchCached = useCallback(
+    (id, changes) =>
+      queryClient.setQueryData(['whatsapp_messages', selectedWaId], (old) =>
+        (old ?? []).map((m) => (m.id === id ? { ...m, ...changes } : m)),
+      ),
+    [queryClient, selectedWaId],
+  );
+  const refreshMessages = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: ['whatsapp_messages', selectedWaId] }),
+    [queryClient, selectedWaId],
+  );
+
+  const updateMessage = useCallback(
+    async (msg, cached, changes, failText) => {
+      patchCached(msg.id, cached);
+      try {
+        await whatsappApi.updateMessage(msg.id, changes);
+      } catch (err) {
+        refreshMessages();
+        toast.error(err.message || failText);
+        throw err;
+      }
+    },
+    [patchCached, refreshMessages],
+  );
+
+  const messageActions = useMemo(
+    () => ({
+      windowOpen,
+      contactName: contact?.name || (contact?.wa_id ? formatPhone(contact.wa_id) : ''),
+      onReply: (msg) => {
+        setReplyTo(msg);
+        requestAnimationFrame(() => draftRef.current?.focus());
+      },
+      onReact: async (msg, emoji) => {
+        const reactions = { ...(msg.reactions || {}) };
+        if (emoji) reactions.outbound = emoji;
+        else delete reactions.outbound;
+        patchCached(msg.id, { reactions });
+        try {
+          await whatsappApi.react({ to: contact.wa_id, messageId: msg.wa_message_id, emoji });
+        } catch (err) {
+          refreshMessages();
+          toast.error(err.message || 'Could not send the reaction');
+        }
+      },
+      onForward: (msg) => setForwardMsg(msg),
+      onInfo: (msg) => setInfoMsg(msg),
+      onToggleStar: (msg) =>
+        updateMessage(msg, { starred: !msg.starred }, { starred: !msg.starred }, 'Could not star the message')
+          .then(() => toast.success(msg.starred ? 'Unstarred' : 'Starred'))
+          .catch(() => {}),
+      onTogglePin: (msg) => {
+        const pinning = !msg.pinned_at;
+        updateMessage(
+          msg,
+          { pinned_at: pinning ? new Date().toISOString() : null },
+          { pinned: pinning },
+          'Could not pin the message',
+        )
+          .then(() => {
+            setPinIndex(0);
+            toast.success(pinning ? 'Pinned in the inbox — the contact doesn’t see pins' : 'Unpinned');
+          })
+          .catch(() => {});
+      },
+      onDelete: (msg) => {
+        if (replyToRef.current?.id === msg.id) setReplyTo(null);
+        updateMessage(msg, { deleted_at: new Date().toISOString() }, { deleted: true }, 'Could not delete the message')
+          .then(() =>
+            toast(
+              (t) => (
+                <span className="flex items-center gap-3 text-sm">
+                  Deleted for you — {contact?.name || 'the contact'} still has it.
+                  <button
+                    type="button"
+                    className="font-semibold text-[#008069] hover:underline"
+                    onClick={() => {
+                      toast.dismiss(t.id);
+                      updateMessage(msg, { deleted_at: null }, { deleted: false }, 'Could not undo').catch(() => {});
+                    }}
+                  >
+                    Undo
+                  </button>
+                </span>
+              ),
+              { duration: 6000 },
+            ),
+          )
+          .catch(() => {});
+      },
+      onJump: (target) => {
+        const key = target?.id || target?.wa_message_id;
+        const el = key && listRef.current?.querySelector(`[data-msg-key="${CSS.escape(key)}"]`);
+        if (!el) {
+          toast('That message isn’t in this chat any more');
+          return;
+        }
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        setFlashKey(key);
+        setTimeout(() => setFlashKey((k) => (k === key ? null : k)), 1600);
+      },
+    }),
+    [windowOpen, contact, patchCached, refreshMessages, updateMessage],
+  );
 
   /* ── Scrolling ── open at the latest message, follow new ones while the
      user is at the bottom, and otherwise count them on the jump button. */
@@ -500,6 +643,8 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
 
   useEffect(() => {
     closeSearch();
+    setReplyTo(null);
+    setPinIndex(0);
     setUnseenCount(0);
     atBottomRef.current = true;
     setAtBottom(true);
@@ -698,6 +843,51 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
         </div>
       ) : null}
 
+      {pinned.length ? (
+        (() => {
+          const current = pinned[pinIndex % pinned.length];
+          const { icon: PinIcon, text } = messagePreview(current);
+          return (
+            <div className="flex h-12 shrink-0 items-center gap-2 border-b border-black/[0.06] bg-white px-4">
+              <button
+                type="button"
+                onClick={() => {
+                  messageActions.onJump(current);
+                  setPinIndex((i) => (i + 1) % pinned.length);
+                }}
+                className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                title={pinned.length > 1 ? 'Go to this message, then the next pin' : 'Go to this message'}
+              >
+                {pinned.length > 1 ? (
+                  <span className="flex h-7 flex-col justify-center gap-0.5" aria-hidden="true">
+                    {pinned.slice(0, 3).map((p, i) => (
+                      <span
+                        key={p.id}
+                        className={cn('w-[3px] flex-1 rounded-full', i === pinIndex % pinned.length ? 'bg-[#25D366]' : 'bg-gray-300')}
+                      />
+                    ))}
+                  </span>
+                ) : null}
+                <Pin className="h-4 w-4 shrink-0 text-[#54656F]" />
+                <span className="flex min-w-0 items-center gap-1.5 text-[14px] text-[#3B4A54]">
+                  {PinIcon ? <PinIcon className="h-4 w-4 shrink-0 text-gray-500" /> : null}
+                  <span className="truncate">{text}</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                aria-label="Unpin"
+                title="Unpin"
+                onClick={() => messageActions.onTogglePin(current)}
+                className="rounded-full p-1.5 text-[#54656F] hover:bg-black/[0.06]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          );
+        })()
+      ) : null}
+
       <div className="relative min-h-0 flex-1">
       <div ref={listRef} onScroll={onListScroll} className="h-full overflow-auto bg-[#EFEAE2] px-4 py-3 sm:px-[6%] sm:py-4">
         {messagesQ.isLoading ? (
@@ -708,6 +898,7 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
           </div>
         ) : (
           <>
+            <MessageActionsContext.Provider value={messageActions}>
             <div ref={contentRef} className="pb-1">
               {deduplicatedMessages.map((m, idx) => {
                 const prev = deduplicatedMessages[idx - 1];
@@ -722,13 +913,15 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
                         msg={m}
                         groupStart={groupStart}
                         highlight={query}
-                        activeMatch={activeMatchKey === messageKey(m, idx)}
+                        activeMatch={activeMatchKey === messageKey(m, idx) || flashKey === messageKey(m, idx)}
+                        quoted={m.reply_to ? byWaId.get(m.reply_to) || null : null}
                       />
                     </div>
                   </Fragment>
                 );
               })}
             </div>
+            </MessageActionsContext.Provider>
             {typing ? (
               <div className="mt-4 flex items-center gap-2 text-sm text-gray-500">
                 <div className="flex gap-1">
@@ -807,6 +1000,24 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
               </span>
             </div>
           )}
+          {replyTo ? (
+            <div className="flex items-center gap-2 px-4 pt-2">
+              <QuotedMessage
+                quoted={replyTo}
+                contactName={messageActions.contactName}
+                onClick={() => messageActions.onJump(replyTo)}
+                className="bg-white/70"
+              />
+              <button
+                type="button"
+                aria-label="Cancel reply"
+                onClick={() => setReplyTo(null)}
+                className="shrink-0 rounded-full p-1.5 text-[#54656F] hover:bg-black/[0.06]"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          ) : null}
           <div className="flex items-end gap-1 px-3 py-2 text-[#54656F]">
             <EmojiButton onPick={insertEmoji} disabled={recording} />
             <AttachButton
@@ -816,7 +1027,9 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
               onFileChange={setPendingFile}
               onTemplate={() => setShowTemplatePicker(true)}
               onCallButton={onSendCallButton}
+              replyTo={replyTo?.wa_message_id}
               onSent={() => {
+                setReplyTo(null);
                 queryClient.invalidateQueries({ queryKey: ['whatsapp_messages', selectedWaId] });
                 setTimeout(() => {
                   if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
@@ -830,6 +1043,10 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => {
+                  if (e.key === 'Escape' && replyTo) {
+                    setReplyTo(null);
+                    return;
+                  }
                   // Enter sends, Shift+Enter starts a new line.
                   if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                     e.preventDefault();
@@ -889,6 +1106,11 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
           </div>
         </div>
       )}
+
+      {forwardMsg ? (
+        <ForwardDialog msg={forwardMsg} contacts={contactsQ.data ?? []} onClose={() => setForwardMsg(null)} />
+      ) : null}
+      {infoMsg ? <MessageInfoDialog msg={infoMsg} onClose={() => setInfoMsg(null)} /> : null}
 
       {/* Tag Selection Dialog */}
       <Dialog open={showTagPanel} onOpenChange={setShowTagPanel}>

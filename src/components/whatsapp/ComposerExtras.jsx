@@ -148,7 +148,7 @@ function FilePreview({ file }) {
   );
 }
 
-function SendFileDialog({ file, to, onClose, onSent }) {
+function SendFileDialog({ file, to, replyTo, onClose, onSent }) {
   const [caption, setCaption] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -163,7 +163,7 @@ function SendFileDialog({ file, to, onClose, onSent }) {
     if (!file || !to || tooBig) return;
     setSending(true);
     try {
-      await whatsappApi.sendMedia({ to, file, caption: info.kind === 'audio' ? '' : caption.trim() });
+      await whatsappApi.sendMedia({ to, file, caption: info.kind === 'audio' ? '' : caption.trim(), replyTo });
       toast.success({ image: 'Photo sent', video: 'Video sent', audio: 'Audio sent' }[info.kind] || 'File sent');
       onSent?.();
       onClose();
@@ -515,7 +515,7 @@ function MenuIcon({ icon, color }) {
 
 // The file awaiting send is owned by the chat window, so a file dropped on the
 // chat or pasted into the message box opens the same preview.
-export function AttachButton({ to, disabled, onSent, file, onFileChange, onTemplate, onCallButton }) {
+export function AttachButton({ to, disabled, onSent, file, onFileChange, onTemplate, onCallButton, replyTo }) {
   const mediaInputRef = useRef(null);
   const docInputRef = useRef(null);
   const audioInputRef = useRef(null);
@@ -580,7 +580,7 @@ export function AttachButton({ to, disabled, onSent, file, onFileChange, onTempl
       <input ref={docInputRef} type="file" className="hidden" onChange={choose} />
       <input ref={audioInputRef} type="file" accept="audio/*" className="hidden" onChange={choose} />
 
-      <SendFileDialog file={file} to={to} onClose={() => onFileChange(null)} onSent={onSent} />
+      <SendFileDialog file={file} to={to} replyTo={replyTo} onClose={() => onFileChange(null)} onSent={onSent} />
       {dialog === 'camera' ? <CameraDialog open onClose={() => setDialog(null)} onCapture={onFileChange} /> : null}
       {dialog === 'location' ? <LocationDialog open to={to} onClose={() => setDialog(null)} onSent={onSent} /> : null}
       {dialog === 'contact' ? <ContactDialog open to={to} onClose={() => setDialog(null)} onSent={onSent} /> : null}
