@@ -27,7 +27,30 @@ const FALLBACK = {
   border: 'border-l-gray-300',
 };
 
-/** Look up a tag's color classes, falling back to gray for unknown keys. */
+const HEX_RE = /^#[0-9a-f]{3,8}$/i;
+
+/**
+ * Look up a tag's color classes, falling back to gray for unknown keys.
+ *
+ * Some tags store a hex value instead of a key (the LMS sync writes
+ * "#4b9fe1"); those come back with `hex` set and no classes, so render them
+ * with tagStyle().
+ */
 export function tagColor(key) {
-  return TAG_COLORS.find((c) => c.key === key) ?? FALLBACK;
+  const named = TAG_COLORS.find((c) => c.key === key);
+  if (named) return named;
+  if (HEX_RE.test(key || '')) return { key, label: key, dot: '', bar: '', border: '', hex: key };
+  return FALLBACK;
+}
+
+/**
+ * className + style for a tag's colored dot or bar, whichever form its color
+ * is stored in. Spread it onto the element: <span {...tagDot(t.color, 'h-2 w-2 rounded-full')} />
+ */
+export function tagDot(key, className = '') {
+  const c = tagColor(key);
+  return {
+    className: [className, c.dot].filter(Boolean).join(' '),
+    style: c.hex ? { backgroundColor: c.hex } : undefined,
+  };
 }

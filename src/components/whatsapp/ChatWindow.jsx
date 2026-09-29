@@ -28,6 +28,7 @@ import { useCallStore } from '../../store/callStore';
 import { useContacts, useMessages, useTags, useContactTags } from '../../lib/dataHooks';
 import { whatsappApi, tagsApi, templatesApi } from '../../lib/api';
 import { MessageBubble, QuotedMessage } from './MessageBubble';
+import { tagDot } from '../../lib/tagColors';
 import { MessageActionsContext, messagePreview } from './messageHelpers';
 import { ForwardDialog, MessageInfoDialog } from './MessageDialogs';
 import { AttachButton, EmojiButton } from './ComposerExtras';
@@ -1160,22 +1161,7 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
                         isApplied ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:bg-gray-50',
                       )}
                     >
-                      <span
-                        className={cn(
-                          'h-3 w-3 rounded-full',
-                          tag.color === 'green'
-                            ? 'bg-green-500'
-                            : tag.color === 'blue'
-                              ? 'bg-blue-500'
-                              : tag.color === 'purple'
-                                ? 'bg-purple-500'
-                                : tag.color === 'orange'
-                                  ? 'bg-amber-500'
-                                  : tag.color === 'red'
-                                    ? 'bg-red-500'
-                                    : 'bg-gray-500',
-                        )}
-                      />
+                      <span {...tagDot(tag.color, 'h-3 w-3 rounded-full')} />
                       <div className="flex-1">
                         <div className="text-sm font-medium text-gray-900">{tag.name}</div>
                         {tag.description && <div className="text-xs text-gray-500">{tag.description}</div>}

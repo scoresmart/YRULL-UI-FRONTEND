@@ -12,21 +12,9 @@ import { ENV } from '../../lib/env';
 import { useChatStore } from '../../store/chatStore';
 import { useContacts, useTags, useContactTags } from '../../lib/dataHooks';
 import { cn } from '../../lib/utils';
+import { tagDot } from '../../lib/tagColors';
 import { MessageSquare, Loader2, ChevronLeft, ChevronRight, Users, UserCheck, Clock, Plus } from 'lucide-react';
 
-function tagColorDot(color) {
-  return color === 'green'
-    ? 'bg-green-500'
-    : color === 'blue'
-      ? 'bg-blue-500'
-      : color === 'purple'
-        ? 'bg-purple-500'
-        : color === 'orange'
-          ? 'bg-amber-500'
-          : color === 'red'
-            ? 'bg-red-500'
-            : 'bg-gray-400';
-}
 
 function LabelsSidebar({ collapsed, onToggle }) {
   const tagsQ = useTags();
@@ -160,12 +148,7 @@ function LabelsSidebar({ collapsed, onToggle }) {
                   className={itemCls(active)}
                   onClick={() => { setTagFilter(tag.id); setFilter('all'); }}
                 >
-                  <span
-                    className={cn(
-                      'h-3.5 w-3.5 shrink-0 rounded-sm',
-                      tagColorDot(tag.color),
-                    )}
-                  />
+                  <span {...tagDot(tag.color, 'h-3.5 w-3.5 shrink-0 rounded-sm')} />
                   <span className="flex-1 truncate">{tag.name}</span>
                   {countBadge(tagCounts[tag.id] ?? 0, active)}
                 </button>

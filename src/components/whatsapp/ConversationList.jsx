@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn, initialsFromName, pastelClassFromString, formatPhone } from '../../lib/utils';
+import { tagDot } from '../../lib/tagColors';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { useChatStore } from '../../store/chatStore';
 import { useContacts, useTags, useContactTags } from '../../lib/dataHooks';
@@ -138,13 +139,6 @@ function listTime(iso) {
   return d.toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-const TAG_DOT = {
-  green: 'bg-green-500',
-  blue: 'bg-blue-500',
-  purple: 'bg-purple-500',
-  orange: 'bg-amber-500',
-  red: 'bg-red-500',
-};
 
 const ConversationRow = memo(function ConversationRow({
   contact,
@@ -211,7 +205,7 @@ const ConversationRow = memo(function ConversationRow({
           <div className="mt-1 flex items-center gap-2 overflow-hidden">
             {appliedTags.slice(0, 3).map((tag) => (
               <span key={tag.id} className="inline-flex min-w-0 items-center gap-1 text-[11.5px] text-[#667781]">
-                <span className={cn('h-2 w-2 shrink-0 rounded-full', TAG_DOT[tag.color] || 'bg-gray-400')} />
+                <span {...tagDot(tag.color, 'h-2 w-2 shrink-0 rounded-full')} />
                 <span className="truncate">{tag.name}</span>
               </span>
             ))}

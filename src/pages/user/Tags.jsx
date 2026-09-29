@@ -10,7 +10,7 @@ import { TagModal } from '../../components/tags/TagModal';
 import { useContacts, useContactTags, useTags } from '../../lib/dataHooks';
 import { tagsApi } from '../../lib/api';
 import { cn, formatRelativeTime } from '../../lib/utils';
-import { tagColor } from '../../lib/tagColors';
+import { tagColor, tagDot } from '../../lib/tagColors';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import toast from 'react-hot-toast';
 
@@ -57,7 +57,7 @@ function UsageBreakdown({ rows }) {
           return (
             <div key={row.id} className="flex items-center gap-3">
               <div className="flex w-32 flex-shrink-0 items-center gap-2 sm:w-40">
-                <span className={cn('h-2 w-2 flex-shrink-0 rounded-full', color.dot)} />
+                <span {...tagDot(row.color, 'h-2 w-2 flex-shrink-0 rounded-full')} />
                 <span className="truncate text-sm text-gray-700" title={row.name}>
                   {row.name}
                 </span>
@@ -65,7 +65,7 @@ function UsageBreakdown({ rows }) {
               <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
                 <div
                   className={cn('h-2 rounded-full', color.bar)}
-                  style={{ width: `${Math.max((row.count / max) * 100, 3)}%` }}
+                  style={{ width: `${Math.max((row.count / max) * 100, 3)}%`, backgroundColor: color.hex }}
                 />
               </div>
               <div className="w-10 flex-shrink-0 text-right text-sm tabular-nums text-gray-600">{row.count}</div>
@@ -266,11 +266,15 @@ export function TagsPage() {
             const color = tagColor(t.color);
             const isConfirming = confirmId === t.id;
             return (
-              <Card key={t.id} className={cn('group border-l-4 p-5', color.border)}>
+              <Card
+                key={t.id}
+                className={cn('group border-l-4 p-5', color.border)}
+                style={color.hex ? { borderLeftColor: color.hex } : undefined}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className={cn('h-2.5 w-2.5 flex-shrink-0 rounded-full', color.dot)} />
+                      <span {...tagDot(t.color, 'h-2.5 w-2.5 flex-shrink-0 rounded-full')} />
                       <div className="truncate text-base font-semibold text-gray-900" title={t.name}>
                         {t.name}
                       </div>

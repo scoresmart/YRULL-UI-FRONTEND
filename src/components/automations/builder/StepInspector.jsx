@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '../../../lib/utils';
 import { tagsApi } from '../../../lib/api';
+import { tagDot } from '../../../lib/tagColors';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../ui/dropdown-menu';
 import {
   ACTIONS_BY_TYPE,
@@ -33,7 +34,6 @@ const AIRTABLE_FIELDS = [
   'SOURCE',
 ];
 
-const TAG_DOT = { green: 'bg-green-500', blue: 'bg-blue-500', purple: 'bg-purple-500', orange: 'bg-amber-500', red: 'bg-red-500' };
 
 function Field({ label, hint, children, action }) {
   return (
@@ -221,7 +221,7 @@ function TagFields({ data, onChange, tags }) {
               current === t.name ? 'border-[#25D366] bg-emerald-50 text-emerald-800' : 'border-gray-200 text-gray-700 hover:bg-gray-50',
             )}
           >
-            <span className={cn('h-2 w-2 rounded-full', TAG_DOT[t.color] || 'bg-gray-400')} />
+            <span {...tagDot(t.color, 'h-2 w-2 rounded-full')} />
             {t.name}
           </button>
         ))}

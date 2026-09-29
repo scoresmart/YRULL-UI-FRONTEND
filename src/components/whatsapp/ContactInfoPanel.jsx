@@ -28,16 +28,10 @@ import { whatsappApi, notesApi, tagsApi } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { ENV } from '../../lib/env';
 import { MediaThumb } from './MessageBubble';
+import { tagDot } from '../../lib/tagColors';
 
 const WINDOW_MS = 24 * 60 * 60 * 1000;
 
-const TAG_DOT = {
-  green: 'bg-green-500',
-  blue: 'bg-blue-500',
-  purple: 'bg-purple-500',
-  orange: 'bg-amber-500',
-  red: 'bg-red-500',
-};
 
 const SOURCE_LABEL = { META: 'Meta ad', TIKTOK: 'TikTok ad', manual: 'Added manually', ad: 'Ad' };
 
@@ -550,7 +544,7 @@ export function ContactInfoPanel({ onClose }) {
                           onClick={() => handleAddTag(tag.id)}
                           className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[14.5px] text-[#111B21] hover:bg-[#F5F6F6] disabled:opacity-50"
                         >
-                          <span className={cn('h-3 w-3 shrink-0 rounded-full', TAG_DOT[tag.color] || 'bg-gray-400')} />
+                          <span {...tagDot(tag.color, 'h-3 w-3 shrink-0 rounded-full')} />
                           {tag.name}
                         </button>
                       ))
@@ -570,7 +564,7 @@ export function ContactInfoPanel({ onClose }) {
                   key={tag.id}
                   className="group inline-flex items-center gap-2 rounded-full bg-[#F0F2F5] py-1 pl-2.5 pr-1.5 text-[14px] text-[#111B21]"
                 >
-                  <span className={cn('h-2.5 w-2.5 rounded-full', TAG_DOT[tag.color] || 'bg-gray-400')} />
+                  <span {...tagDot(tag.color, 'h-2.5 w-2.5 rounded-full')} />
                   {tag.name}
                   <button
                     type="button"
