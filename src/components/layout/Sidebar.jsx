@@ -25,6 +25,7 @@ import { useSidebar } from './SidebarContext';
 import { cn, initialsFromName, pastelClassFromString } from '../../lib/utils';
 import { useAuthStore } from '../../store/authStore';
 import { useIsDesktop } from '../../hooks/useMediaQuery';
+import { useAdsAccess } from '../../hooks/useAdsAccess';
 
 const nav = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -52,6 +53,7 @@ export function Sidebar() {
   const { open, close } = useSidebar();
   const isDesktop = useIsDesktop();
   const isCollapsed = isDesktop && location.pathname.startsWith('/whatsapp');
+  const ads = useAdsAccess();
 
   useEffect(() => {
     if (!isDesktop) close();
@@ -113,7 +115,9 @@ export function Sidebar() {
                     )}
                   />
                   <Icon className="h-4 w-4 opacity-90" />
-                  <span className="font-medium">{item.label}</span>
+                  <span className="font-medium">
+                    {item.to === '/meta-ads' && ads.allowed ? 'Ads dashboard' : item.label}
+                  </span>
                 </>
               )}
             </NavLink>

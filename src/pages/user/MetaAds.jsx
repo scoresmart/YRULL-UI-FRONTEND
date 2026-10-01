@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { BarChart3, BrainCircuit, Database, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { useAdsAccess } from '../../hooks/useAdsAccess';
+import { AdsDashboard } from './AdsDashboard';
 
 const FEATURES = [
   {
@@ -28,6 +30,14 @@ const STEPS = [
 ];
 
 export function MetaAdsPage() {
+  const access = useAdsAccess();
+  if (access.loading) return <div className="mx-auto h-64 max-w-[1400px] animate-pulse rounded-xl bg-gray-50" />;
+  // Score Smart's own workspace gets the live dashboard; everyone else the intro.
+  if (access.allowed) return <AdsDashboard />;
+  return <MetaAdsIntro />;
+}
+
+function MetaAdsIntro() {
   useDocumentTitle('Meta Ads', 'Connect Meta Ads data and analyze campaign performance with Claude, GPT, and other LLMs.');
 
   return (

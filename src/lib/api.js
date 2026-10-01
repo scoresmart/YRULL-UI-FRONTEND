@@ -411,6 +411,16 @@ export const analyticsApi = {
   getDashboard: () => apiJSON('GET', '/api/analytics/dashboard'),
 };
 
+// -- Ads dashboard API --------------------------------------------------------
+
+// Score Smart's own ads dashboard: spend from Meta and TikTok, leads and revenue
+// from the CRM. The backend only answers for the workspaces it is enabled for.
+export const adsApi = {
+  access: () => apiJSON('GET', '/api/ads/access'),
+  overview: ({ since, until, refresh = false }) =>
+    apiJSON('GET', `/api/ads/overview?since=${since}&until=${until}${refresh ? '&refresh=1' : ''}`),
+};
+
 // -- Broadcasts API -----------------------------------------------------------
 
 export const broadcastsApi = {
