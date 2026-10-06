@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState, useEffect } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, useEffect } from 'react';
 import {
   Send,
   Tag,
@@ -903,26 +903,33 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
           <>
             <MessageActionsContext.Provider value={messageActions}>
             <div ref={contentRef} className="pb-1">
-              {deduplicatedMessages.map((m, idx) => {
-                const prev = deduplicatedMessages[idx - 1];
-                const label = m.created_at ? dayLabel(m.created_at) : null;
-                const newDay = label && (!prev?.created_at || dayLabel(prev.created_at) !== label);
-                const groupStart = newDay || !prev || prev.direction !== m.direction;
-                return (
-                  <Fragment key={messageKey(m, idx)}>
-                    {newDay ? <DateSeparator label={label} /> : null}
-                    <div data-msg-key={messageKey(m, idx)}>
-                      <MessageBubble
-                        msg={m}
-                        groupStart={groupStart}
-                        highlight={query}
-                        activeMatch={activeMatchKey === messageKey(m, idx) || flashKey === messageKey(m, idx)}
-                        quoted={m.reply_to ? byWaId.get(m.reply_to) || null : null}
-                      />
-                    </div>
-                  </Fragment>
-                );
-              })}
+              {/* Each day is its own section so its sticky date pill scrolls away with it
+                  instead of piling up under the next day's pill. */}
+              {deduplicatedMessages
+                .reduce((days, m, idx) => {
+                  const prev = deduplicatedMessages[idx - 1];
+                  const label = m.created_at ? dayLabel(m.created_at) : null;
+                  const newDay = label && (!prev?.created_at || dayLabel(prev.created_at) !== label);
+                  if (newDay || !days.length) days.push({ label: newDay ? label : null, items: [] });
+                  days[days.length - 1].items.push({ m, idx, groupStart: newDay || !prev || prev.direction !== m.direction });
+                  return days;
+                }, [])
+                .map((day) => (
+                  <section key={messageKey(day.items[0].m, day.items[0].idx)}>
+                    {day.label ? <DateSeparator label={day.label} /> : null}
+                    {day.items.map(({ m, idx, groupStart }) => (
+                      <div key={messageKey(m, idx)} data-msg-key={messageKey(m, idx)}>
+                        <MessageBubble
+                          msg={m}
+                          groupStart={groupStart}
+                          highlight={query}
+                          activeMatch={activeMatchKey === messageKey(m, idx) || flashKey === messageKey(m, idx)}
+                          quoted={m.reply_to ? byWaId.get(m.reply_to) || null : null}
+                        />
+                      </div>
+                    ))}
+                  </section>
+                ))}
             </div>
             </MessageActionsContext.Provider>
             {typing ? (
