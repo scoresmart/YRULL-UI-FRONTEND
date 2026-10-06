@@ -411,6 +411,15 @@ export const analyticsApi = {
   getDashboard: () => apiJSON('GET', '/api/analytics/dashboard'),
 };
 
+// -- Human handoff API --------------------------------------------------------
+
+// Who answers a WhatsApp chat: the AI agent or a person (support rules R26–R30).
+export const handoffApi = {
+  get: (waId) => apiJSON('GET', `/api/whatsapp/handoff/${encodeURIComponent(waId)}`),
+  set: (waId, action) =>
+    apiJSON('POST', `/api/whatsapp/handoff/${encodeURIComponent(waId)}`, { body: JSON.stringify({ action }) }),
+};
+
 // -- Ads dashboard API --------------------------------------------------------
 
 // Score Smart's own ads dashboard: spend from Meta and TikTok, leads and revenue

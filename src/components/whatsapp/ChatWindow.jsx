@@ -32,6 +32,7 @@ import { tagDot } from '../../lib/tagColors';
 import { MessageActionsContext, messagePreview } from './messageHelpers';
 import { ForwardDialog, MessageInfoDialog } from './MessageDialogs';
 import { AttachButton, EmojiButton } from './ComposerExtras';
+import { HandoffControl } from './HandoffControl';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import toast from 'react-hot-toast';
 
@@ -727,6 +728,7 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
           </div>
         </div>
         <div className="flex items-center gap-0.5 text-[#54656F]">
+          <HandoffControl waId={contact?.wa_id} />
           <button
             className={cn('rounded-full p-2 hover:bg-black/[0.06]', searchOpen && 'bg-black/[0.06]')}
             type="button"
