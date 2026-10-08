@@ -172,8 +172,11 @@ export function WhatsAppPage() {
   const [showContactInfo, setShowContactInfo] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+  // /whatsapp?chat=<number> opens that chat, e.g. from a "Reply to <student>"
+  // alert sent to the team on WhatsApp.
   useEffect(() => {
-    setSelectedWaId(null);
+    const chat = (new URLSearchParams(window.location.search).get('chat') || '').replace(/\D/g, '');
+    setSelectedWaId(chat || null);
   }, [setSelectedWaId]);
 
   useRealtime({
