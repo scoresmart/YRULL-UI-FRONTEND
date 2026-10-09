@@ -6,7 +6,7 @@ import { cn, formatPhone, initialsFromName, pastelClassFromString } from '../../
 import { whatsappApi } from '../../lib/api';
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { messagePreview } from './messageHelpers';
+import { UNPAID_BILL_CODE, messagePreview } from './messageHelpers';
 
 // WhatsApp lets you forward to five chats at a time.
 const MAX_FORWARD = 5;
@@ -188,6 +188,12 @@ export function MessageInfoDialog({ msg, onClose }) {
         </dl>
         {msg.status === 'failed' ? (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-xs leading-relaxed text-red-700">
+            {Number(msg.error_code) === UNPAID_BILL_CODE ? (
+              <span className="mb-1 block font-medium">
+                Not delivered because the WhatsApp Business bill is unpaid. Pay it in Meta Business billing, then
+                send the message again.
+              </span>
+            ) : null}
             {[msg.error_title, msg.error_details].filter(Boolean).join(' — ') || 'WhatsApp could not deliver this message.'}
             {msg.error_code ? ` (code ${msg.error_code})` : ''}
           </p>

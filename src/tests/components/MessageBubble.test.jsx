@@ -118,3 +118,20 @@ describe('MessageBubble message menu', () => {
     expect(within(menu).getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Copy']);
   });
 });
+
+describe('MessageBubble delivery failure', () => {
+  const failed = { ...voiceNote, message_type: 'text', body: 'Hi', media_url: null, status: 'failed' };
+
+  it('says the bill is unpaid when Meta refused the send for it (131042)', () => {
+    renderBubble({ ...failed, error_code: 131042 }, makeActions());
+    expect(screen.getByText('Not delivered – WhatsApp bill unpaid')).toBeInTheDocument();
+  });
+
+  it('says not delivered for any other failure, and nothing for a delivered message', () => {
+    const { unmount } = renderBubble({ ...failed, error_code: 131026 }, makeActions());
+    expect(screen.getByText('Not delivered')).toBeInTheDocument();
+    unmount();
+    renderBubble({ ...failed, status: 'delivered' }, makeActions());
+    expect(screen.queryByText(/Not delivered/)).not.toBeInTheDocument();
+  });
+});

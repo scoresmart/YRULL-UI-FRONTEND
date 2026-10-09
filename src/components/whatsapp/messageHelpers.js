@@ -48,6 +48,17 @@ export const RECORD_TYPES = ['call_event', 'call_permission', 'call_permission_r
  */
 export const MessageActionsContext = createContext(null);
 
+// Meta error 131042: the WhatsApp Business account has an unpaid bill, so
+// every send is refused until it is paid.
+export const UNPAID_BILL_CODE = 131042;
+
+/** Why an outbound message didn't reach the contact, in a few words; null when it did. */
+export function failureReason(msg) {
+  if (msg?.direction === 'inbound' || msg?.status !== 'failed') return null;
+  if (Number(msg.error_code) === UNPAID_BILL_CODE) return 'Not delivered – WhatsApp bill unpaid';
+  return 'Not delivered';
+}
+
 const PREVIEW_BY_TYPE = {
   audio: [Mic, 'Voice message'],
   image: [Camera, 'Photo'],

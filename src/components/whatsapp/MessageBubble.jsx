@@ -47,6 +47,7 @@ import {
   PLACEHOLDER_RE,
   RECORD_TYPES,
   captionOf,
+  failureReason,
   messagePreview,
   parseLocation,
   templateParts,
@@ -870,12 +871,13 @@ export const MessageBubble = memo(function MessageBubble({
   const spacer = endsWithText ? (inbound ? 40 : 58) + (isAiReply ? 16 : 0) : 0;
 
   const hasReactions = Boolean(msg.reactions?.inbound || msg.reactions?.outbound);
+  const failed = failureReason(msg);
 
   return (
     <div
       className={cn(
-        'flex w-full',
-        inbound ? 'justify-start' : 'justify-end',
+        'flex w-full flex-col',
+        inbound ? 'items-start' : 'items-end',
         groupStart ? 'mt-2' : 'mt-0.5',
         hasReactions && 'mb-4',
       )}
@@ -944,6 +946,12 @@ export const MessageBubble = memo(function MessageBubble({
           onRemoveOwn={actions?.windowOpen ? () => actions.onReact(msg, '') : undefined}
         />
       </div>
+      {failed ? (
+        <div className={cn('mt-1 flex items-center gap-1 text-[11px] text-red-600', hasReactions && 'mt-5')}>
+          <Info className="h-3 w-3" />
+          {failed}
+        </div>
+      ) : null}
     </div>
   );
 });
