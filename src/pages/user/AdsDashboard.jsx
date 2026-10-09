@@ -203,7 +203,30 @@ function Table({ columns, rows, empty }) {
 export function AdsDashboard() {
   useDocumentTitle('Ads dashboard', 'Ad spend, cost per lead, revenue and ROAS across Meta and TikTok.');
   const [preset, setPreset] = useState('30d');
-  const range = useMemo(() => PRESETS.find((p) => p.key === preset).range(), [preset]);
+  const [custom, setCustom] = useState(null);
+  const range = useMemo(
+    () => (preset === 'custom' && custom ? custom : PRESETS.find((p) => p.key === preset).range()),
+    [preset, custom],
+  );
+  const today = iso(new Date());
+
+  function openCustom() {
+    if (!custom) setCustom(range);
+    setPreset('custom');
+  }
+
+  function setCustomDate(field, value) {
+    if (!value) return;
+    setCustom((c) => {
+      const next = { ...c, [field]: value };
+      // Keep the range the right way round: moving one end past the other drags it along.
+      if (next.since > next.until) {
+        if (field === 'since') next.until = value;
+        else next.since = value;
+      }
+      return next;
+    });
+  }
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -318,7 +341,38 @@ export function AdsDashboard() {
                 {p.label}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={openCustom}
+              className={cn(
+                'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                preset === 'custom' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-50',
+              )}
+            >
+              Custom
+            </button>
           </div>
+          {preset === 'custom' && custom ? (
+            <div className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600">
+              <input
+                type="date"
+                aria-label="From"
+                value={custom.since}
+                max={today}
+                onChange={(e) => setCustomDate('since', e.target.value)}
+                className="rounded px-1 py-0.5 text-xs text-gray-900 outline-none focus:bg-gray-50"
+              />
+              <span className="text-gray-400">–</span>
+              <input
+                type="date"
+                aria-label="To"
+                value={custom.until}
+                max={today}
+                onChange={(e) => setCustomDate('until', e.target.value)}
+                className="rounded px-1 py-0.5 text-xs text-gray-900 outline-none focus:bg-gray-50"
+              />
+            </div>
+          ) : null}
           <button
             type="button"
             onClick={refresh}
