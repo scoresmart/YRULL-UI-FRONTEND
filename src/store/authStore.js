@@ -33,7 +33,17 @@ export const useAuthStore = create((set, get) => ({
     }
     set({ status: 'loading' });
     const { data } = await supabase.auth.getSession();
-    set({ session: data?.session ?? null, status: data?.session ? 'authed' : 'guest' });
+    const session = data?.session ?? null;
+    if (!session) {
+      set({ session: null, status: 'guest' });
+      return;
+    }
+    // Load the profile (and so workspace_id) before flipping to 'authed', so pages
+    // never render with an empty profile — on refresh that flashed the
+    // "Connect WhatsApp" card and "Team Member" placeholder for a second.
+    set({ session });
+    await get().fetchProfile();
+    set({ status: 'authed' });
   },
 
   fetchProfile: async () => {
