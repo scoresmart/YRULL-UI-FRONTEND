@@ -53,15 +53,24 @@ function activityTime(contact, lastMessages) {
   return when ? new Date(when).getTime() : 0;
 }
 
+// Unread = the client's messages since our last reply (and since the chat was
+// last opened here). Rows come newest first, so once we meet one of ours, the
+// client's older messages in that chat have been answered. A send that failed
+// never reached them, so it doesn't count as a reply.
 function summarise(rows) {
   const lastMessages = {};
   const unreadCounts = {};
   const lastReadCache = {};
+  const answered = new Set();
   for (const row of rows) {
     const waId = row.wa_id;
     if (!waId) continue;
     if (!lastMessages[waId]) lastMessages[waId] = row;
-    if (row.direction !== 'inbound') continue;
+    if (answered.has(waId)) continue;
+    if (row.direction !== 'inbound') {
+      if (row.status !== 'failed') answered.add(waId);
+      continue;
+    }
     if (!(waId in lastReadCache)) {
       lastReadCache[waId] = localStorage.getItem(`lastRead_${waId}`) || '';
     }
