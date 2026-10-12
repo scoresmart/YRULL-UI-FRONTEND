@@ -22,15 +22,25 @@ if (!envResult.ok) {
 
 if (isRealSupabaseClient()) {
   supabase.auth.onAuthStateChange((_event, session) => {
-    useAuthStore.setState({
-      session: session ?? null,
-      status: session ? 'authed' : 'guest',
-    });
-    if (session) {
-      void useAuthStore.getState().fetchProfile();
-    } else {
-      useAuthStore.setState({ profile: null });
+    if (!session) {
+      useAuthStore.setState({ session: null, status: 'guest', profile: null });
+      return;
     }
+    const { profile } = useAuthStore.getState();
+    if (profile && profile.id === session.user?.id) {
+      useAuthStore.setState({ session, status: 'authed' });
+      return;
+    }
+    // On page load this fires before the profile is fetched. Stay in 'loading'
+    // until it arrives, otherwise pages render with no workspace and flash
+    // "Connect WhatsApp" / the "Team Member" placeholder for a second.
+    useAuthStore.setState({ session, status: 'loading' });
+    void useAuthStore
+      .getState()
+      .fetchProfile()
+      .finally(() => {
+        if (useAuthStore.getState().session) useAuthStore.setState({ status: 'authed' });
+      });
   });
 }
 
