@@ -16,6 +16,8 @@ function normalizeRpcWorkspaceId(data) {
   return null;
 }
 
+let _profileInFlight = null;
+
 export const useAuthStore = create((set, get) => ({
   session: null,
   profile: null,
@@ -46,18 +48,36 @@ export const useAuthStore = create((set, get) => ({
     set({ status: 'authed' });
   },
 
-  fetchProfile: async () => {
+  // On page load hydrate(), the auth listener and authFetch all ask for the
+  // profile at once. Run them on one shared request, and retry once: a parallel
+  // getUser() can lose Supabase's auth lock, and that failure used to wipe the
+  // profile another call had just loaded — the app then rendered with no
+  // workspace ("Connect WhatsApp", "Team Member") until a later refetch.
+  fetchProfile: () => {
+    // Share only during startup; once authed, a refetch after a save must see fresh data.
+    if (_profileInFlight && get().status !== 'authed') return _profileInFlight;
+    _profileInFlight = (async () => {
+      let profile = await get()._loadProfile();
+      if (!profile && get().session) profile = await get()._loadProfile();
+      return profile;
+    })().finally(() => {
+      _profileInFlight = null;
+    });
+    return _profileInFlight;
+  },
+
+  _loadProfile: async () => {
     if (ENV.USE_MOCK) {
       const profile = mockProfiles.find((p) => p.role === 'user') ?? mockProfiles[0];
       set({ profile });
       return profile;
     }
     try {
-      const { data } = await supabase.auth.getUser();
+      const { data, error: userError } = await supabase.auth.getUser();
       const userId = data?.user?.id;
       if (!userId) {
-        console.warn('No user ID found');
-        set({ profile: null });
+        // Usually transient (auth lock / network) — leave any loaded profile alone.
+        console.warn('No user ID found', userError?.message ?? '');
         return null;
       }
       const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
@@ -70,7 +90,6 @@ export const useAuthStore = create((set, get) => ({
           code: error.code,
           userId,
         });
-        set({ profile: null });
         return null;
       }
 
@@ -103,7 +122,6 @@ export const useAuthStore = create((set, get) => ({
       return profile;
     } catch (err) {
       console.error('Unexpected error in fetchProfile:', err);
-      set({ profile: null });
       return null;
     }
   },
