@@ -264,18 +264,16 @@ export const whatsappApi = {
   // The file behind an inbound voice note / image / video / document. Meta's own
   // links need our token, so the backend proxies it; an <audio src> can't send
   // auth headers, hence a Blob the caller turns into an object URL.
-  async getMessageMedia(waMessageId) {
-    const res = await authFetch(`${ENV.API_BASE_URL}/whatsapp/media/${encodeURIComponent(waMessageId)}`);
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new ApiError(body.error || `${res.status} Failed to load media`, {
-        status: res.status,
-        body,
-        method: 'GET',
-        path: '/whatsapp/media',
-      });
+  getMessageMedia(waMessageId) {
+    let pending = _mediaCache.get(waMessageId);
+    if (!pending) {
+      pending = _mediaSlot(() => fetchMessageMedia(waMessageId));
+      _mediaCache.set(waMessageId, pending);
+      if (_mediaCache.size > MEDIA_CACHE_MAX) _mediaCache.delete(_mediaCache.keys().next().value);
+      // A failure isn't kept, so the next look tries again.
+      pending.catch(() => _mediaCache.delete(waMessageId));
     }
-    return res.blob();
+    return pending;
   },
 
   async sendAudio({ to, audioBlob, replyTo }) {
@@ -323,7 +321,51 @@ export const whatsappApi = {
     apiJSON('POST', '/whatsapp/send-contact', { body: JSON.stringify({ to, name, phone, email, company }) }),
 };
 
-async function postMedia(path, { to, field, file, filename, caption, replyTo }) {
+// Opening a chat with dozens of images used to fire every download at once. Each
+// one waits seconds on Meta, and together they held up the backend so long that
+// label changes failed and sign-in checks came back "invalid_token". So: at most
+// a few at a time, and a file already fetched isn't fetched again.
+const MEDIA_CONCURRENCY = 4;
+const MEDIA_CACHE_MAX = 200;
+const _mediaCache = new Map();
+const _mediaQueue = [];
+let _mediaActive = 0;
+
+function _mediaSlot(task) {
+  return new Promise((resolve, reject) => {
+    _mediaQueue.push({ task, resolve, reject });
+    _mediaNext();
+  });
+}
+
+function _mediaNext() {
+  while (_mediaActive < MEDIA_CONCURRENCY && _mediaQueue.length) {
+    const { task, resolve, reject } = _mediaQueue.shift();
+    _mediaActive += 1;
+    task()
+      .then(resolve, reject)
+      .finally(() => {
+        _mediaActive -= 1;
+        _mediaNext();
+      });
+  }
+}
+
+async function fetchMessageMedia(waMessageId) {
+  const res = await authFetch(`${ENV.API_BASE_URL}/whatsapp/media/${encodeURIComponent(waMessageId)}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(body.error || `${res.status} Failed to load media`, {
+      status: res.status,
+      body,
+      method: 'GET',
+      path: '/whatsapp/media',
+    });
+  }
+  return res.blob();
+}
+
+async function postMedia(path,{ to, field, file, filename, caption, replyTo }) {
   const form = new FormData();
   form.append('to', to);
   if (caption) form.append('caption', caption);
