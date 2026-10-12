@@ -20,7 +20,7 @@ export function SessionExpiredModal() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'TOKEN_REFRESHED') return;
-      if (event === 'SIGNED_OUT' && status === 'authed') {
+      if (event === 'SIGNED_OUT' && status === 'authed' && !useAuthStore.getState().loggingOut) {
         setShow(true);
       }
     });

@@ -388,8 +388,13 @@ export const useAuthStore = create((set, get) => ({
   },
 
   logout: async () => {
-    if (!ENV.USE_MOCK) await supabase.auth.signOut();
-    set({ session: null, profile: null, status: 'guest', workspaces: [], activeWorkspaceId: null });
+    // Flag the sign-out as intentional so SessionExpiredModal doesn't treat it as an expiry.
+    set({ loggingOut: true });
+    try {
+      if (!ENV.USE_MOCK) await supabase.auth.signOut();
+    } finally {
+      set({ session: null, profile: null, status: 'guest', workspaces: [], activeWorkspaceId: null, loggingOut: false });
+    }
     const { useChatStore } = await import('./chatStore');
     useChatStore.getState().reset();
     try {
