@@ -217,7 +217,13 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
     }, 50);
 
     try {
-      await whatsappApi.sendMessage({ to: contact.wa_id, message: messageText, replyTo: quoting?.wa_message_id });
+      const sent = await whatsappApi.sendMessage({ to: contact.wa_id, message: messageText, replyTo: quoting?.wa_message_id });
+      // Tag the placeholder with Meta's id so it gives way to the saved row.
+      if (sent?.message_id) {
+        queryClient.setQueryData(['whatsapp_messages', selectedWaId], (oldData) =>
+          (oldData ?? []).map((m) => (m.id === optimisticId ? { ...m, wa_message_id: sent.message_id } : m)),
+        );
+      }
 
       // Refetch messages after a short delay to get the real message from backend
       setTimeout(async () => {
@@ -417,11 +423,31 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
     const messages = messagesQ.data ?? [];
     if (messages.length === 0) return [];
 
+    // A sent message showed twice when the saved row arrived while the local
+    // placeholder (temp_…) was still in the cache: one at the minute it was
+    // typed, one at the minute the server saved it. The placeholder gives way
+    // to the saved row, matched by Meta's id or, failing that, by the same text
+    // saved within two minutes after it was typed (so sending "hi" twice in a
+    // row doesn't hide the second one behind the first).
+    const isTemp = (m) => String(m.id ?? '').startsWith('temp_');
+    const saved = messages.filter((m) => !isTemp(m) && m.direction === 'outbound');
+    const savedIds = new Set(saved.map((m) => m.wa_message_id).filter(Boolean));
+    const replaced = (temp) => {
+      if (temp.wa_message_id && savedIds.has(temp.wa_message_id)) return true;
+      const typed = new Date(temp.created_at).getTime();
+      return saved.some((m) => {
+        const gap = new Date(m.created_at).getTime() - typed;
+        // A few seconds' slack for the browser clock running ahead of the server's.
+        return m.body === temp.body && gap > -5000 && gap < 120000;
+      });
+    };
+
     const seen = new Set();
     const result = [];
     for (const msg of messages) {
       // "Delete for me" hides a message from the inbox; the contact still has it.
       if (msg.deleted_at) continue;
+      if (isTemp(msg) && replaced(msg)) continue;
       const key = msg.wa_message_id;
       if (key) {
         if (seen.has(key)) continue;
