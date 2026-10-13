@@ -48,6 +48,7 @@ const BroadcastDetailPage = lazy(() =>
   import('./pages/user/BroadcastDetail').then((m) => ({ default: m.BroadcastDetailPage })),
 );
 const MetaAdsPage = lazy(() => import('./pages/user/MetaAds').then((m) => ({ default: m.MetaAdsPage })));
+const SocialPage = lazy(() => import('./pages/user/Social').then((m) => ({ default: m.SocialPage })));
 const WhatsAppTemplatesPage = lazy(() =>
   import('./pages/user/WhatsAppTemplates').then((m) => ({ default: m.WhatsAppTemplatesPage })),
 );
@@ -163,6 +164,7 @@ export default function App() {
             <Route path="/broadcasts/templates/new" element={<Navigate to="/templates/new" replace />} />
             <Route path="/broadcasts/:id" element={<BroadcastDetailPage />} />
             <Route path="/meta-ads" element={<MetaAdsPage />} />
+            <Route path="/social" element={<SocialPage />} />
             <Route path="/integrations" element={<IntegrationsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>

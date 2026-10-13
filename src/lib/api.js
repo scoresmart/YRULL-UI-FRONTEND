@@ -590,3 +590,23 @@ export const instagramApi = {
     return apiJSON('GET', `/instagram/media?${params}`);
   },
 };
+
+export const socialApi = {
+  getIdeas: ({ platform, status } = {}) => {
+    const params = new URLSearchParams();
+    if (platform && platform !== 'all') params.set('platform', platform);
+    if (status && status !== 'all') params.set('status', status);
+    return apiJSON('GET', `/social/ideas?${params}`);
+  },
+  generateIdeas: () => apiJSON('POST', '/social/ideas/generate'),
+  approveIdea: (id) => apiJSON('POST', `/social/ideas/${id}/approve`),
+  declineIdea: (id) => apiJSON('POST', `/social/ideas/${id}/decline`),
+  regenerateIdea: (id, note) =>
+    apiJSON('POST', `/social/ideas/${id}/regenerate`, {
+      body: JSON.stringify({ note }),
+    }),
+  chat: (message, history) =>
+    apiJSON('POST', '/social/chat', {
+      body: JSON.stringify({ message, history: history.slice(-10) }),
+    }),
+};

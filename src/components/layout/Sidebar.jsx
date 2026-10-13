@@ -18,6 +18,7 @@ import {
   BarChart3,
   FileText,
   X,
+  Sparkles,
 } from 'lucide-react';
 import { BrandMark } from '../brand/BrandMark';
 import { WorkspaceSwitcher } from './WorkspaceSwitcher';
@@ -40,6 +41,7 @@ const nav = [
   { to: '/broadcasts', label: 'Broadcasts', icon: Megaphone },
   { to: '/templates', label: 'Templates', icon: FileText },
   { to: '/meta-ads', label: 'Meta Ads', icon: BarChart3 },
+  { to: '/social', label: 'Social', icon: Sparkles },
   { to: '/integrations', label: 'Integrations', icon: Plug },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
