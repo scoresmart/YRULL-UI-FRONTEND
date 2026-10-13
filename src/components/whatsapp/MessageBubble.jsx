@@ -12,6 +12,7 @@ import {
   Copy,
   Download,
   ExternalLink,
+  EyeOff,
   FileText,
   Forward,
   ImageOff,
@@ -51,6 +52,7 @@ import {
   messagePreview,
   parseLocation,
   templateParts,
+  unsupportedInfo,
 } from './messageHelpers';
 
 /* ── Rich text: links, WhatsApp formatting and search highlights ───────── */
@@ -650,8 +652,18 @@ function MessageContent({ msg, inbound, media, spacer }) {
       return <LocationMessage msg={msg} />;
     case 'contacts':
       return <ContactsMessage msg={msg} />;
-    case 'unsupported':
-      return <MediaUnavailable icon={Info} label="This message type isn't supported yet" />;
+    case 'unsupported': {
+      const { title, hint } = unsupportedInfo(msg);
+      return (
+        <div className="flex w-72 max-w-full gap-2.5 rounded-md bg-black/[0.04] px-3 py-2.5">
+          <EyeOff className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+          <div>
+            <div className="text-[13px] text-gray-700">{title}</div>
+            <div className="mt-0.5 text-[12px] text-gray-500">{hint}</div>
+          </div>
+        </div>
+      );
+    }
     case 'text':
     case 'automated':
       return <BodyText spacer={spacer}>{caption || msg.body || ''}</BodyText>;

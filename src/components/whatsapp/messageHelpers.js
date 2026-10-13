@@ -1,5 +1,5 @@
 import { createContext } from 'react';
-import { Camera, Contact, FileText, LayoutTemplate, MapPin, Mic, Phone, Video } from 'lucide-react';
+import { Camera, Contact, EyeOff, FileText, LayoutTemplate, MapPin, Mic, Phone, Video } from 'lucide-react';
 
 /*
  * Message helpers shared by the bubble, the reply bar and the pinned-message
@@ -69,7 +69,29 @@ const PREVIEW_BY_TYPE = {
   contacts: [Contact, 'Contact'],
   template: [LayoutTemplate, 'Template'],
   call_event: [Phone, 'Voice call'],
+  unsupported: [EyeOff, 'Message WhatsApp did not share'],
 };
+
+// Meta passes some messages to businesses as an empty "unsupported" stub; the
+// backend stores "[unsupported_<kind>]" when it can tell which kind it was.
+const UNSUPPORTED_KINDS = {
+  view_once: 'View-once photo or video',
+  poll: 'Poll',
+  edit: 'Edited message',
+  event: 'Event invite',
+};
+
+/** What an unsupported message was, and what to do about it. */
+export function unsupportedInfo(msg) {
+  const kind = /^\[unsupported_(\w+)\]$/.exec((msg?.body || '').trim())?.[1];
+  const what = UNSUPPORTED_KINDS[kind];
+  return {
+    title: what ? `${what} — WhatsApp doesn't share these with business apps` : "WhatsApp didn't share this message",
+    hint: what
+      ? 'Ask the contact to send it again as a normal message.'
+      : 'Usually a view-once photo, a poll or an edited message. Ask the contact to send it again as a normal message.',
+  };
+}
 
 /** A one-line summary of a message, for quotes, the reply bar and pins. */
 export function messagePreview(msg) {

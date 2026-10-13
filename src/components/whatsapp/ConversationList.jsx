@@ -5,6 +5,7 @@ import {
   Check,
   CheckCheck,
   Contact,
+  EyeOff,
   FileText,
   LayoutTemplate,
   Loader2,
@@ -95,6 +96,7 @@ const PREVIEW = {
   template: [LayoutTemplate, null],
   call_event: [Phone, 'Voice call'],
   voice_call: [Phone, null],
+  unsupported: [EyeOff, 'Message WhatsApp did not share'],
 };
 
 // "[Template] name" / "[template:name]" is what older template sends stored.
