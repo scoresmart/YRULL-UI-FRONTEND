@@ -72,6 +72,17 @@ export function HandoffControl({ waId }) {
         {human ? (s.sensitive ? <ShieldAlert className="h-3.5 w-3.5" /> : <UserRound className="h-3.5 w-3.5" />) : <Bot className="h-3.5 w-3.5" />}
         {human ? `Person · ${REASONS[s.reason] || 'needs a person'}` : quietUntil ? 'AI · waiting for you' : 'AI agent'}
       </span>
+      {!human && quietUntil && (
+        // Your recent message keeps the agent quiet; this lets it reply now.
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => act('return_to_ai')}
+          className="rounded-full border border-black/10 bg-white px-2.5 py-1 text-[12px] font-medium text-[#111B21] hover:bg-black/[0.04] disabled:opacity-50"
+        >
+          Let AI reply now
+        </button>
+      )}
       <button
         type="button"
         disabled={busy}
