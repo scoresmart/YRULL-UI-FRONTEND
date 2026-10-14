@@ -37,6 +37,9 @@ const AutomationsPage = lazy(() => import('./pages/user/Automations').then((m) =
 const AutomationBuilderPage = lazy(() =>
   import('./pages/user/AutomationBuilder').then((m) => ({ default: m.AutomationBuilderPage })),
 );
+const SupportTicketsPage = lazy(() =>
+  import('./pages/user/SupportTickets').then((m) => ({ default: m.SupportTicketsPage })),
+);
 const SettingsPage = lazy(() => import('./pages/user/Settings').then((m) => ({ default: m.SettingsPage })));
 const IntegrationsPage = lazy(() => import('./pages/user/Integrations').then((m) => ({ default: m.IntegrationsPage })));
 const CommentsPage = lazy(() => import('./pages/user/Comments').then((m) => ({ default: m.CommentsPage })));
@@ -165,6 +168,7 @@ export default function App() {
             <Route path="/broadcasts/:id" element={<BroadcastDetailPage />} />
             <Route path="/meta-ads" element={<MetaAdsPage />} />
             <Route path="/social" element={<SocialPage />} />
+            <Route path="/support-tickets" element={<SupportTicketsPage />} />
             <Route path="/integrations" element={<IntegrationsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>

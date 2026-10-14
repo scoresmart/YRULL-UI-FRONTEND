@@ -17,6 +17,7 @@ import {
   Megaphone,
   BarChart3,
   FileText,
+  LifeBuoy,
   X,
   Sparkles,
 } from 'lucide-react';
@@ -27,6 +28,7 @@ import { cn, initialsFromName, pastelClassFromString } from '../../lib/utils';
 import { useAuthStore } from '../../store/authStore';
 import { useIsDesktop } from '../../hooks/useMediaQuery';
 import { useAdsAccess } from '../../hooks/useAdsAccess';
+import { useSupportTicketsAccess } from '../../hooks/useSupportTicketsAccess';
 
 const nav = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -41,6 +43,8 @@ const nav = [
   { to: '/broadcasts', label: 'Broadcasts', icon: Megaphone },
   { to: '/templates', label: 'Templates', icon: FileText },
   { to: '/meta-ads', label: 'Meta Ads', icon: BarChart3 },
+  // Only shown to LMS admins (see useSupportTicketsAccess).
+  { to: '/support-tickets', label: 'Support Tickets', icon: LifeBuoy, lmsAdminOnly: true },
   { to: '/social', label: 'Social', icon: Sparkles },
   { to: '/integrations', label: 'Integrations', icon: Plug },
   { to: '/settings', label: 'Settings', icon: Settings },
@@ -56,6 +60,8 @@ export function Sidebar() {
   const isDesktop = useIsDesktop();
   const isCollapsed = isDesktop && location.pathname.startsWith('/whatsapp');
   const ads = useAdsAccess();
+  const support = useSupportTicketsAccess();
+  const visibleNav = nav.filter((item) => !item.lmsAdminOnly || support.allowed);
 
   useEffect(() => {
     if (!isDesktop) close();
@@ -91,7 +97,7 @@ export function Sidebar() {
       </div>
 
       <nav className="mt-6 flex-1 space-y-1 overflow-y-auto px-2">
-        {nav.map((item) => {
+        {visibleNav.map((item) => {
           const Icon = item.icon;
           return (
             <NavLink
@@ -164,7 +170,7 @@ export function Sidebar() {
 
             {/* Nav icons */}
             <nav className="flex flex-1 flex-col items-center gap-0.5 overflow-y-auto">
-              {nav.map((item) => {
+              {visibleNav.map((item) => {
                 const Icon = item.icon;
                 return (
                   <NavLink
