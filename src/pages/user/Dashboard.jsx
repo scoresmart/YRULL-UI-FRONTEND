@@ -25,12 +25,15 @@ import { Button } from '../../components/ui/button';
 import { Skeleton } from '../../components/ui/skeleton';
 import { EmptyState } from '../../components/EmptyState';
 import { ErrorState } from '../../components/ErrorState';
-import { useContacts, useAutomations, useActivityLogs } from '../../lib/dataHooks';
-import { analyticsApi } from '../../lib/api';
+import { useContacts } from '../../lib/dataHooks';
+import { analyticsApi, automationsApi } from '../../lib/api';
+import { mockDb } from '../../lib/mockData';
 import { useAuthStore } from '../../store/authStore';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { formatRelativeTime, cn } from '../../lib/utils';
 import { ENV } from '../../lib/env';
+
+const isLive = (a) => a.status === 'live' || a.is_active === true;
 
 function StatCardSkeleton() {
   return (
@@ -165,8 +168,20 @@ export function DashboardPage() {
   const profile = useAuthStore((s) => s.profile);
 
   const contactsQ = useContacts();
-  const automationsQ = useAutomations();
-  const activityQ = useActivityLogs({ limit: 20 });
+  // Same query as the Automations page. Reading the automations table straight
+  // from Supabase came back empty for the browser, so the dashboard said
+  // "No automations yet" while automations were live.
+  const automationsQ = useQuery({
+    queryKey: ['automations', 'list'],
+    queryFn: () => (ENV.USE_MOCK ? mockDb.automations : automationsApi.list()),
+    select: (d) => (Array.isArray(d) ? d : d?.automations ?? d?.data ?? []),
+  });
+  const runStatsQ = useQuery({
+    queryKey: ['automations', 'stats', 30],
+    queryFn: () => automationsApi.stats(30),
+    enabled: !ENV.USE_MOCK,
+    staleTime: 60_000,
+  });
 
   const dashQ = useQuery({
     queryKey: ['dashboard_analytics'],
@@ -184,23 +199,31 @@ export function DashboardPage() {
     staleTime: 60_000,
   });
 
+  // Without the backend numbers the cards show "—" rather than guesses (this
+  // used to put the total contact count under "Conversations today").
   const stats = useMemo(() => {
     if (dashQ.data) return dashQ.data;
-    const contacts = contactsQ.data?.length ?? 0;
-    const activeAutos = (automationsQ.data ?? []).filter((a) => a.is_active).length;
     return {
-      conversations_today: contacts,
-      messages_today: 0,
-      active_automations: activeAutos,
-      response_rate: 0,
+      conversations_today: null,
+      messages_today: null,
+      active_automations: (automationsQ.data ?? []).filter(isLive).length,
+      response_rate: null,
       delta_conversations: 0,
       delta_messages: 0,
     };
-  }, [dashQ.data, contactsQ.data, automationsQ.data]);
+  }, [dashQ.data, automationsQ.data]);
 
+  // Live automations, busiest (most runs in 30 days) first.
   const topAutomations = useMemo(() => {
-    return (automationsQ.data ?? []).filter((a) => a.is_active).slice(0, 5);
-  }, [automationsQ.data]);
+    const perAuto = runStatsQ.data?.per_automation ?? {};
+    return (automationsQ.data ?? [])
+      .filter(isLive)
+      .map((a) => ({ ...a, runs: perAuto[a.id]?.runs ?? 0 }))
+      .sort((x, y) => y.runs - x.runs)
+      .slice(0, 5);
+  }, [automationsQ.data, runStatsQ.data]);
+
+  const activity = dashQ.data?.activity ?? [];
 
   const isLoading = contactsQ.isLoading && automationsQ.isLoading;
   const hasData = (contactsQ.data?.length ?? 0) > 0 || (automationsQ.data?.length ?? 0) > 0;
@@ -271,7 +294,7 @@ export function DashboardPage() {
             <StatCard label="Active automations" value={stats.active_automations} icon={Zap} accent />
             <StatCard
               label="Response rate (7d)"
-              value={stats.response_rate ? `${stats.response_rate}%` : '—'}
+              value={stats.response_rate != null ? `${stats.response_rate}%` : '—'}
               icon={BarChart3}
             />
           </>
@@ -304,8 +327,12 @@ export function DashboardPage() {
               <div className="mt-4">
                 <EmptyState
                   icon={Workflow}
-                  title="No automations yet"
-                  description="Create your first automation to save time on repetitive tasks."
+                  title={(automationsQ.data ?? []).length ? 'No live automations' : 'No automations yet'}
+                  description={
+                    (automationsQ.data ?? []).length
+                      ? 'Turn an automation on to see it here.'
+                      : 'Create your first automation to save time on repetitive tasks.'
+                  }
                   actionLabel="Create automation"
                   actionHref="/automations"
                 />
@@ -325,11 +352,13 @@ export function DashboardPage() {
                       </div>
                       <div>
                         <div className="text-sm font-medium text-gray-900">{a.name}</div>
-                        <div className="text-xs text-gray-400">{a.trigger_type || 'Manual trigger'}</div>
+                        <div className="text-xs text-gray-400">
+                          {a.runs ? `${a.runs} run${a.runs === 1 ? '' : 's'} in 30 days` : 'No runs in 30 days'}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant={a.is_active ? 'success' : 'muted'}>{a.is_active ? 'Active' : 'Paused'}</Badge>
+                      <Badge variant="success">Live</Badge>
                       <ExternalLink className="h-3.5 w-3.5 text-gray-300" />
                     </div>
                   </button>
@@ -345,20 +374,20 @@ export function DashboardPage() {
             <div className="text-sm font-semibold text-gray-900">Recent Activity</div>
             <div className="mt-1 text-xs text-gray-400">Latest events in your workspace</div>
 
-            {activityQ.isLoading ? (
+            {dashQ.isLoading ? (
               <div className="mt-4 space-y-3">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <Skeleton key={i} className="h-10 w-full" />
                 ))}
               </div>
-            ) : !activityQ.data?.length ? (
+            ) : !activity.length ? (
               <div className="mt-4 rounded-lg border border-dashed border-gray-200 p-6 text-center">
                 <Circle className="mx-auto h-6 w-6 text-gray-300" />
                 <p className="mt-2 text-xs text-gray-400">No activity yet. Events will appear here as you use Yrull.</p>
               </div>
             ) : (
               <div className="mt-3 -mx-3 max-h-[400px] space-y-0.5 overflow-y-auto">
-                {(activityQ.data ?? []).slice(0, 20).map((item, i) => (
+                {activity.slice(0, 20).map((item, i) => (
                   <ActivityItem key={item.id || i} item={item} />
                 ))}
               </div>

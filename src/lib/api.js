@@ -450,7 +450,11 @@ export const notificationPrefsApi = {
 // -- Analytics API ------------------------------------------------------------
 
 export const analyticsApi = {
-  getDashboard: () => apiJSON('GET', '/api/analytics/dashboard'),
+  // tz: "today" on the dashboard is the viewer's local day.
+  getDashboard: () => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    return apiJSON('GET', `/api/analytics/dashboard?tz=${encodeURIComponent(tz)}`);
+  },
 };
 
 // -- Human handoff API --------------------------------------------------------
