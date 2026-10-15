@@ -17,6 +17,7 @@ import {
   Megaphone,
   BarChart3,
   FileText,
+  ClipboardCheck,
   X,
 } from 'lucide-react';
 import { BrandMark } from '../brand/BrandMark';
@@ -40,6 +41,7 @@ const nav = [
   { to: '/broadcasts', label: 'Broadcasts', icon: Megaphone },
   { to: '/templates', label: 'Templates', icon: FileText },
   { to: '/meta-ads', label: 'Meta Ads', icon: BarChart3 },
+  { to: '/free-assessment', label: 'Free Assessment', icon: ClipboardCheck },
   { to: '/integrations', label: 'Integrations', icon: Plug },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];

@@ -33,6 +33,18 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    server: {
+      // Free Assessment talks to the PrepSmart backend through the same path the
+      // Vercel rewrite uses in production (vercel.json), so the browser never makes
+      // a cross-origin call.
+      proxy: {
+        '/prepsmart-api': {
+          target: 'https://backend.prepsmart.au',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/prepsmart-api/, '/api/v1'),
+        },
+      },
+    },
     test: {
       globals: true,
       environment: 'jsdom',
