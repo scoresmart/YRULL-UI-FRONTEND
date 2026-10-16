@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { ClipboardCheck, Download, FileText, Loader2, MessageCircle, RotateCcw, Upload, X } from 'lucide-react';
 import { Button } from '../../components/ui/button';
@@ -8,7 +8,7 @@ import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import { Skeleton } from '../../components/ui/skeleton';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
-import { whatsappApi } from '../../lib/api';
+import { templatesApi, whatsappApi } from '../../lib/api';
 import { cn } from '../../lib/utils';
 import {
   MAX_FILES,
@@ -51,6 +51,23 @@ function normalizePhone(raw) {
   return String(raw ?? '').replace(/\D/g, '');
 }
 
+// The backend's message when Meta won't deliver a file outside the 24-hour window.
+function isWindowClosed(err) {
+  return /24[- ]hour|window/i.test(err?.message ?? '');
+}
+
+// Body text of a template, and how many {{n}} parameters it takes.
+function templateBody(template) {
+  const body = (template?.components ?? []).find((c) => (c.type || '').toUpperCase() === 'BODY');
+  return body?.text || '';
+}
+
+function templateParamCount(text) {
+  const matches = String(text ?? '').match(/{{\s*\d+\s*}}/g);
+  if (!matches) return 0;
+  return Math.max(...matches.map((m) => parseInt(m.replace(/\D/g, ''), 10)), 0);
+}
+
 function inRange(value, min, max) {
   const n = Number(value);
   return value !== '' && Number.isInteger(n) && n >= min && n <= max;
@@ -78,6 +95,7 @@ export function FreeAssessmentPage() {
   const [examDate, setExamDate] = useState('');
   const [dailyMinutes, setDailyMinutes] = useState('60');
   const [studentPhone, setStudentPhone] = useState('');
+  const [openerTemplate, setOpenerTemplate] = useState('');
 
   const analyze = useMutation({
     mutationFn: () => {
@@ -107,6 +125,44 @@ export function FreeAssessmentPage() {
       return whatsappApi.sendMedia({ to, file, caption });
     },
     onSuccess: () => toast.success('Assessment sent on WhatsApp'),
+    onError: (err) => toast.error(errMessage(err)),
+  });
+
+  const windowClosed = sendToStudent.isError && isWindowClosed(sendToStudent.error);
+
+  // Approved templates the staff can use to open the chat. Only those without
+  // {{n}} parameters, because this panel doesn't ask for values.
+  const templatesQ = useQuery({
+    queryKey: ['whatsapp_templates'],
+    queryFn: () => templatesApi.list(),
+    enabled: windowClosed,
+    staleTime: 60_000,
+  });
+  const openerOptions = useMemo(
+    () =>
+      (Array.isArray(templatesQ.data) ? templatesQ.data : templatesQ.data?.templates ?? []).filter(
+        (t) => t.status === 'APPROVED' && templateParamCount(templateBody(t)) === 0,
+      ),
+    [templatesQ.data],
+  );
+
+  // Sends an approved template to open the 24-hour window. The student's reply
+  // opens it, then the PDF can be sent.
+  const sendOpener = useMutation({
+    mutationFn: () => {
+      const t = openerOptions.find((o) => o.name === openerTemplate);
+      if (!t) throw new Error('Choose a template first.');
+      return templatesApi.sendTest({
+        to: normalizePhone(studentPhone),
+        template_name: t.name,
+        language: t.language,
+        components: [],
+      });
+    },
+    onSuccess: () => {
+      toast.success('Template sent. Send the PDF again once they reply.');
+      sendToStudent.reset();
+    },
     onError: (err) => toast.error(errMessage(err)),
   });
 
@@ -143,10 +199,12 @@ export function FreeAssessmentPage() {
     setExamDate('');
     setDailyMinutes('60');
     setStudentPhone('');
+    setOpenerTemplate('');
     analyze.reset();
     reportPdf.reset();
     studyPlan.reset();
     sendToStudent.reset();
+    sendOpener.reset();
     if (inputRef.current) inputRef.current.value = '';
   };
 
@@ -404,6 +462,53 @@ export function FreeAssessmentPage() {
             {sendToStudent.isError && (
               <div role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                 {errMessage(sendToStudent.error)}
+              </div>
+            )}
+            {windowClosed && (
+              <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-sm">
+                <div className="font-medium text-gray-900">Open the chat first</div>
+                <div className="mb-3 mt-1 text-gray-600">
+                  Send an approved template that asks the student to reply. Once they reply, click Send assessment PDF
+                  again.
+                </div>
+                {templatesQ.isLoading && <div className="text-gray-500">Loading templates…</div>}
+                {templatesQ.isError && <div className="text-red-600">Could not load templates.</div>}
+                {templatesQ.isSuccess && openerOptions.length === 0 && (
+                  <div className="text-gray-600">
+                    No approved templates without variables. Create and approve one in Templates.
+                  </div>
+                )}
+                {openerOptions.length > 0 && (
+                  <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                    <div>
+                      <label htmlFor="fa-opener" className="mb-1 block text-xs font-medium text-gray-600">
+                        Template
+                      </label>
+                      <select
+                        id="fa-opener"
+                        className="h-10 w-full rounded-md border border-gray-200 bg-white px-3 text-sm"
+                        value={openerTemplate}
+                        onChange={(e) => setOpenerTemplate(e.target.value)}
+                      >
+                        <option value="">Choose a template</option>
+                        {openerOptions.map((t) => (
+                          <option key={`${t.name}-${t.language}`} value={t.name}>
+                            {t.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <Button
+                      variant="outline"
+                      disabled={!openerTemplate || sendOpener.isPending}
+                      onClick={() => sendOpener.mutate()}
+                      className="w-full sm:w-auto"
+                    >
+                      {sendOpener.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                      {sendOpener.isPending ? 'Sending…' : 'Send template'}
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
             {sendToStudent.isSuccess && (
