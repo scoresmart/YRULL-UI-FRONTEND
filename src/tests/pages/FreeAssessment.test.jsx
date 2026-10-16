@@ -4,11 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-vi.mock('../../lib/api', () => ({ whatsappApi: { sendMedia: vi.fn() } }));
+vi.mock('../../lib/api', () => ({ whatsappApi: { sendMedia: vi.fn() }, templatesApi: { list: vi.fn(), sendTest: vi.fn() } }));
 vi.mock('react-hot-toast', () => ({ default: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }));
 
 const { FreeAssessmentPage } = await import('../../pages/user/FreeAssessment');
-const { whatsappApi } = await import('../../lib/api');
+const { whatsappApi, templatesApi } = await import('../../lib/api');
 
 const PROFILE = {
   open_response_speaking_writing_score: 62,
@@ -178,5 +178,45 @@ describe('FreeAssessmentPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Outside the 24-hour window');
     expect(screen.getByRole('button', { name: /send assessment pdf/i })).toBeEnabled();
+  });
+
+  it('offers an approved template when the 24-hour window is closed, then sends it', async () => {
+    whatsappApi.sendMedia.mockRejectedValue(new Error('Their 24-hour WhatsApp window is closed, so WhatsApp will not deliver a file.'));
+    templatesApi.list.mockResolvedValue([
+      { name: 'free_assessment_reply', language: 'en', status: 'APPROVED', components: [{ type: 'BODY', text: 'Reply YES to get your free assessment.' }] },
+      { name: 'needs_vars', language: 'en', status: 'APPROVED', components: [{ type: 'BODY', text: 'Hi {{1}}' }] },
+      { name: 'pending_one', language: 'en', status: 'PENDING', components: [{ type: 'BODY', text: 'Hi' }] },
+    ]);
+    templatesApi.sendTest.mockResolvedValue({ ok: true });
+    globalThis.fetch.mockResolvedValueOnce(respond(200, analysis())).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      blob: async () => new Blob(['%PDF-1.4'], { type: 'application/pdf' }),
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.upload(screen.getByTestId('fa-file-input'), new File(['x'], 'report.png', { type: 'image/png' }));
+    await user.click(screen.getByRole('button', { name: /analyze/i }));
+    await screen.findByText('Skills Profile');
+    await user.type(screen.getByLabelText(/whatsapp number/i), '61412345678');
+    await user.click(screen.getByRole('button', { name: /send assessment pdf/i }));
+
+    expect(await screen.findByText('Open the chat first')).toBeInTheDocument();
+    const select = await screen.findByLabelText('Template');
+    const options = within(select).getAllByRole('option').map((o) => o.textContent);
+    expect(options).toEqual(['Choose a template', 'free_assessment_reply']);
+
+    const sendTemplate = screen.getByRole('button', { name: /send template/i });
+    expect(sendTemplate).toBeDisabled();
+    await user.selectOptions(select, 'free_assessment_reply');
+    await user.click(sendTemplate);
+
+    expect(templatesApi.sendTest).toHaveBeenCalledWith({
+      to: '61412345678',
+      template_name: 'free_assessment_reply',
+      language: 'en',
+      components: [],
+    });
   });
 });
