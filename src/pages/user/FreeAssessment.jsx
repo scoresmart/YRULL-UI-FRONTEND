@@ -1,13 +1,14 @@
 import { useMemo, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { ClipboardCheck, Download, FileText, Loader2, RotateCcw, Upload, X } from 'lucide-react';
+import { ClipboardCheck, Download, FileText, Loader2, MessageCircle, RotateCcw, Upload, X } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import { Skeleton } from '../../components/ui/skeleton';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { whatsappApi } from '../../lib/api';
 import { cn } from '../../lib/utils';
 import {
   MAX_FILES,
@@ -45,6 +46,11 @@ function errMessage(err) {
   return err?.message || 'Something went wrong. Please try again.';
 }
 
+// Digits only, with country code (e.g. 61412345678). Spaces, + and dashes are dropped.
+function normalizePhone(raw) {
+  return String(raw ?? '').replace(/\D/g, '');
+}
+
 function inRange(value, min, max) {
   const n = Number(value);
   return value !== '' && Number.isInteger(n) && n >= min && n <= max;
@@ -71,6 +77,7 @@ export function FreeAssessmentPage() {
   const [target, setTarget] = useState('');
   const [examDate, setExamDate] = useState('');
   const [dailyMinutes, setDailyMinutes] = useState('60');
+  const [studentPhone, setStudentPhone] = useState('');
 
   const analyze = useMutation({
     mutationFn: () => {
@@ -89,6 +96,17 @@ export function FreeAssessmentPage() {
   const studyPlan = useMutation({
     mutationFn: (payload) => downloadStudyPlanPdf(payload),
     onSuccess: (blob) => saveBlob(blob, `${fileSlug(name)}-study-plan.pdf`),
+    onError: (err) => toast.error(errMessage(err)),
+  });
+
+  // Lead magnet: build the assessment PDF and send it to the student on WhatsApp.
+  const sendToStudent = useMutation({
+    mutationFn: async ({ payload, to, caption }) => {
+      const blob = await downloadReportPdf(payload);
+      const file = new File([blob], `${fileSlug(payload.name)}-assessment.pdf`, { type: 'application/pdf' });
+      return whatsappApi.sendMedia({ to, file, caption });
+    },
+    onSuccess: () => toast.success('Assessment sent on WhatsApp'),
     onError: (err) => toast.error(errMessage(err)),
   });
 
@@ -124,9 +142,11 @@ export function FreeAssessmentPage() {
     setTarget('');
     setExamDate('');
     setDailyMinutes('60');
+    setStudentPhone('');
     analyze.reset();
     reportPdf.reset();
     studyPlan.reset();
+    sendToStudent.reset();
     if (inputRef.current) inputRef.current.value = '';
   };
 
@@ -138,6 +158,19 @@ export function FreeAssessmentPage() {
 
   const targetValid = inRange(target, 10, 90);
   const minutesValid = inRange(dailyMinutes, 10, 600);
+
+  const phoneDigits = normalizePhone(studentPhone);
+  const phoneValid = /^\d{8,15}$/.test(phoneDigits);
+
+  const onSendToStudent = (e) => {
+    e.preventDefault();
+    if (!basePayload || !phoneValid) return;
+    sendToStudent.mutate({
+      payload: basePayload,
+      to: phoneDigits,
+      caption: trimmedName ? `Your free PTE assessment, ${trimmedName}` : 'Your free PTE assessment',
+    });
+  };
 
   const onStudyPlan = (e) => {
     e.preventDefault();
@@ -338,6 +371,46 @@ export function FreeAssessmentPage() {
                 <ScoreTile key={f.key} label={f.label} value={result.scores?.[f.key]} />
               ))}
             </div>
+          </Card>
+
+          <Card className="p-4 sm:p-6">
+            <div className="mb-1 text-lg font-semibold text-gray-900">Send to student</div>
+            <div className="mb-4 text-sm text-gray-500">
+              Sends the assessment PDF to the student on WhatsApp. WhatsApp only delivers free-form messages to numbers
+              that have messaged us in the last 24 hours.
+            </div>
+            <form onSubmit={onSendToStudent} className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
+              <div>
+                <label htmlFor="fa-phone" className="mb-1 block text-sm font-medium text-gray-700">
+                  WhatsApp number (with country code)
+                </label>
+                <Input
+                  id="fa-phone"
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="e.g. 61 412 345 678"
+                  value={studentPhone}
+                  onChange={(e) => setStudentPhone(e.target.value)}
+                />
+                {studentPhone && !phoneValid && (
+                  <div className="mt-1 text-xs text-red-600">Enter 8–15 digits including the country code.</div>
+                )}
+              </div>
+              <Button type="submit" disabled={!phoneValid || sendToStudent.isPending} className="w-full sm:w-auto">
+                {sendToStudent.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+                {sendToStudent.isPending ? 'Sending…' : 'Send assessment PDF'}
+              </Button>
+            </form>
+            {sendToStudent.isError && (
+              <div role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {errMessage(sendToStudent.error)}
+              </div>
+            )}
+            {sendToStudent.isSuccess && (
+              <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                Sent to {phoneDigits}.
+              </div>
+            )}
           </Card>
 
           <Card className="p-4 sm:p-6">

@@ -4,9 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+vi.mock('../../lib/api', () => ({ whatsappApi: { sendMedia: vi.fn() } }));
 vi.mock('react-hot-toast', () => ({ default: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }));
 
 const { FreeAssessmentPage } = await import('../../pages/user/FreeAssessment');
+const { whatsappApi } = await import('../../lib/api');
 
 const PROFILE = {
   open_response_speaking_writing_score: 62,
@@ -127,5 +129,54 @@ describe('FreeAssessmentPage', () => {
     expect(screen.queryByText('IMG_1.heic')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /analyze/i })).toBeDisabled();
     expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it('sends the assessment PDF to the student on WhatsApp', async () => {
+    whatsappApi.sendMedia.mockResolvedValue({ ok: true });
+    globalThis.fetch.mockResolvedValueOnce(respond(200, analysis())).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      blob: async () => new Blob(['%PDF-1.4'], { type: 'application/pdf' }),
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.type(screen.getByLabelText(/student name/i), 'Priya Sharma');
+    await user.upload(screen.getByTestId('fa-file-input'), new File(['x'], 'report.png', { type: 'image/png' }));
+    await user.click(screen.getByRole('button', { name: /analyze/i }));
+    await screen.findByText('Skills Profile');
+
+    const send = screen.getByRole('button', { name: /send assessment pdf/i });
+    expect(send).toBeDisabled();
+    await user.type(screen.getByLabelText(/whatsapp number/i), '+61 412-345-678');
+    expect(send).toBeEnabled();
+    await user.click(send);
+
+    expect(await screen.findByText('Sent to 61412345678.')).toBeInTheDocument();
+    const args = whatsappApi.sendMedia.mock.calls[0][0];
+    expect(args.to).toBe('61412345678');
+    expect(args.caption).toBe('Your free PTE assessment, Priya Sharma');
+    expect(args.file.name).toBe('priya-sharma-assessment.pdf');
+    expect(args.file.type).toBe('application/pdf');
+  });
+
+  it('shows the send error and keeps the form usable', async () => {
+    whatsappApi.sendMedia.mockRejectedValue(new Error('Outside the 24-hour window'));
+    globalThis.fetch.mockResolvedValueOnce(respond(200, analysis())).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      blob: async () => new Blob(['%PDF-1.4'], { type: 'application/pdf' }),
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.upload(screen.getByTestId('fa-file-input'), new File(['x'], 'report.png', { type: 'image/png' }));
+    await user.click(screen.getByRole('button', { name: /analyze/i }));
+    await screen.findByText('Skills Profile');
+    await user.type(screen.getByLabelText(/whatsapp number/i), '61412345678');
+    await user.click(screen.getByRole('button', { name: /send assessment pdf/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Outside the 24-hour window');
+    expect(screen.getByRole('button', { name: /send assessment pdf/i })).toBeEnabled();
   });
 });
