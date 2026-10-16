@@ -42,6 +42,9 @@ const SupportTicketsPage = lazy(() =>
 );
 const SettingsPage = lazy(() => import('./pages/user/Settings').then((m) => ({ default: m.SettingsPage })));
 const IntegrationsPage = lazy(() => import('./pages/user/Integrations').then((m) => ({ default: m.IntegrationsPage })));
+const FreeAssessmentPage = lazy(() =>
+  import('./pages/user/FreeAssessment').then((m) => ({ default: m.FreeAssessmentPage })),
+);
 const CommentsPage = lazy(() => import('./pages/user/Comments').then((m) => ({ default: m.CommentsPage })));
 const BroadcastsPage = lazy(() => import('./pages/user/Broadcasts').then((m) => ({ default: m.BroadcastsPage })));
 const BroadcastComposerPage = lazy(() =>
@@ -169,6 +172,7 @@ export default function App() {
             <Route path="/meta-ads" element={<MetaAdsPage />} />
             <Route path="/social" element={<SocialPage />} />
             <Route path="/support-tickets" element={<SupportTicketsPage />} />
+            <Route path="/free-assessment" element={<FreeAssessmentPage />} />
             <Route path="/integrations" element={<IntegrationsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>

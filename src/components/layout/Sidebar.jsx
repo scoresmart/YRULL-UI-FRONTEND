@@ -18,6 +18,7 @@ import {
   BarChart3,
   FileText,
   LifeBuoy,
+  ClipboardCheck,
   X,
   Sparkles,
 } from 'lucide-react';
@@ -46,6 +47,7 @@ const nav = [
   // Only shown to LMS admins (see useSupportTicketsAccess).
   { to: '/support-tickets', label: 'Support Tickets', icon: LifeBuoy, lmsAdminOnly: true },
   { to: '/social', label: 'Social', icon: Sparkles },
+  { to: '/free-assessment', label: 'Free Assessment', icon: ClipboardCheck },
   { to: '/integrations', label: 'Integrations', icon: Plug },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
