@@ -462,6 +462,14 @@ export const handoffApi = {
     apiJSON('POST', `/api/whatsapp/handoff/${encodeURIComponent(waId)}`, { body: JSON.stringify({ action }) }),
 };
 
+// Automation pause for one chat: a stop request pauses it for an hour (see
+// AutomationPauseControl.jsx). pause_version is the version the page saw.
+export const automationPauseApi = {
+  get: (waId) => apiJSON('GET', `/api/whatsapp/automation/${encodeURIComponent(waId)}`),
+  set: (waId, body) =>
+    apiJSON('POST', `/api/whatsapp/automation/${encodeURIComponent(waId)}`, { body: JSON.stringify(body) }),
+};
+
 // -- Ads dashboard API --------------------------------------------------------
 
 // Score Smart's own ads dashboard: spend from Meta and TikTok, leads and revenue
