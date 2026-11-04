@@ -715,6 +715,35 @@ export function QuotedMessage({ quoted, contactName, onClick, className }) {
   );
 }
 
+/** The Meta ad a chat came from (Click-to-WhatsApp), shown above its first message. */
+function AdReferralCard({ referral }) {
+  const { image_url: image, headline, body, source_url: link } = referral;
+  const content = (
+    <>
+      {image ? <img src={image} alt="" loading="lazy" className="max-h-44 w-full object-cover" /> : null}
+      <span className="block px-2.5 py-1.5">
+        <span className="block text-[11px] font-medium uppercase tracking-wide text-[#1FA2D8]">Ad</span>
+        {headline ? <span className="block text-[13.5px] font-semibold leading-[18px] text-gray-800">{headline}</span> : null}
+        {body ? <span className="line-clamp-3 block text-[12.5px] leading-[17px] text-gray-600">{body}</span> : null}
+        {link ? (
+          <span className="mt-1 inline-flex items-center gap-1 text-[12px] text-[#1FA2D8]">
+            <ExternalLink className="h-3 w-3" />
+            View ad
+          </span>
+        ) : null}
+      </span>
+    </>
+  );
+  const className = 'mb-1 block overflow-hidden rounded-md border border-black/[0.06] bg-black/[0.03]';
+  return link ? (
+    <a href={link} target="_blank" rel="noreferrer" className={cn(className, 'hover:bg-black/[0.06]')}>
+      {content}
+    </a>
+  ) : (
+    <div className={className}>{content}</div>
+  );
+}
+
 function MessageMenu({ msg, media, inbound }) {
   const actions = useContext(MessageActionsContext);
   const type = msg.message_type || 'text';
@@ -932,6 +961,11 @@ export const MessageBubble = memo(function MessageBubble({
             onClick={quoted && actions ? () => actions.onJump(quoted) : undefined}
             className={cn('mb-1', visual ? '' : 'min-w-[180px]')}
           />
+        ) : null}
+        {msg.metadata?.referral ? (
+          <div className={cn(visual ? 'px-1.5 pt-0.5' : '')}>
+            <AdReferralCard referral={msg.metadata.referral} />
+          </div>
         ) : null}
         <HighlightContext.Provider value={highlight}>
           <MessageContent msg={msg} inbound={inbound} media={media} spacer={spacer} />
