@@ -226,6 +226,11 @@ def _handle_message(
             access_token, media_id, workspace_id, wa_message_id or media_id, mime_type
         )
 
+    metadata: dict[str, Any] = {"raw_type": message.get("type"), "context": message.get("context")}
+    referral = _capture_referral(workspace_id, wa_message_id or wa_id, message.get("referral"))
+    if referral:
+        metadata["referral"] = referral
+
     row: dict[str, Any] = {
         "workspace_id": workspace_id,
         "wa_id": wa_id,
@@ -237,13 +242,43 @@ def _handle_message(
         "media_mime_type": mime_type,
         "status": "received",
         "created_at": created_at,
-        "metadata": {"raw_type": message.get("type"), "context": message.get("context")},
+        "metadata": metadata,
     }
 
     if insert_message(row):
         log.info("Inbound %s from %s stored (%s)", message_type, wa_id, wa_message_id)
     else:
         log.info("Duplicate re-delivery of %s ignored", wa_message_id)
+
+
+_REFERRAL_FIELDS = ("source_type", "source_id", "source_url", "headline", "body", "media_type", "ctwa_clid")
+
+
+def _capture_referral(workspace_id: str, key: str, referral: Any) -> dict[str, Any] | None:
+    """Keep the Click-to-WhatsApp ad a chat came from, so staff can see what the
+    lead clicked. Meta only sends this on the first message after an ad click.
+
+    The ad image is re-hosted: Meta's image links expire like its media links.
+    A failed download just leaves the text of the ad without a picture.
+    """
+    if not isinstance(referral, dict) or not referral:
+        return None
+
+    info: dict[str, Any] = {k: referral.get(k) for k in _REFERRAL_FIELDS if referral.get(k)}
+    image_src = referral.get("image_url") or referral.get("thumbnail_url")
+    if image_src:
+        try:
+            resp = requests.get(image_src, timeout=10)
+            resp.raise_for_status()
+            if len(resp.content) <= MAX_MEDIA_BYTES:
+                mime = (resp.headers.get("Content-Type") or "image/jpeg").split(";")[0]
+                ext = mimetypes.guess_extension(mime) or ".jpg"
+                info["image_url"] = upload_media(
+                    f"{workspace_id}/referral-{key}{ext}", resp.content, mime
+                )
+        except Exception:  # noqa: BLE001 - the message must still land without its picture
+            log.exception("Ad image download failed for %s", key)
+    return info or None
 
 
 def _extract_content(
