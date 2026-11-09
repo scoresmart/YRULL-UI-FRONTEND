@@ -13,12 +13,34 @@ import { useAuthStore } from './store/authStore';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { checkEnvVars } from './lib/envCheck';
 import { registerServiceWorker } from './lib/push';
+import { useChatStore } from './store/chatStore';
 
 // Register the service worker so the app can receive push notifications
 // (and so iOS treats it as an installed PWA). Best-effort; never blocks boot.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     registerServiceWorker();
+  });
+
+  // Tapping a notification asks the open app to jump to that exact chat.
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    const d = event.data || {};
+    if (d.type !== 'yrull-open-chat') return;
+    const waId = String(d.waId || '').replace(/\D/g, '');
+    if (!waId) {
+      window.location.assign('/whatsapp');
+      return;
+    }
+    if (window.location.pathname.startsWith('/whatsapp')) {
+      // Already in the inbox — switch chats in-app, no reload.
+      try {
+        useChatStore.getState().setSelectedWaId(waId);
+      } catch {
+        window.location.assign(`/whatsapp?chat=${waId}`);
+      }
+    } else {
+      window.location.assign(`/whatsapp?chat=${waId}`);
+    }
   });
 }
 
