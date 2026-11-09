@@ -140,15 +140,15 @@ export function HandoffControl({ waId }) {
           type="button"
           aria-label="Chat automation options"
           title={statusLabel}
-          className={cn('relative rounded-full p-2 hover:bg-black/[0.06]', tint)}
+          className={cn('relative shrink-0 rounded-full p-2 hover:bg-black/[0.06]', tint)}
         >
-          <MoreVertical className="h-5 w-5" />
+          <MoreVertical className="h-6 w-6" />
           {dot ? (
-            <span className={cn('absolute right-1.5 top-1.5 h-2 w-2 rounded-full ring-2 ring-white', dot)} />
+            <span className={cn('absolute right-1 top-1 h-2 w-2 rounded-full ring-2 ring-white', dot)} />
           ) : null}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[240px]">
+      <DropdownMenuContent side="top" align="start" sideOffset={10} className="min-w-[240px]">
         <div className="px-3 py-2">
           <div className="flex items-center gap-2 text-[13px] font-medium text-gray-900">
             <StateIcon className={cn('h-4 w-4 shrink-0', tint)} />
