@@ -89,7 +89,8 @@ function SessionCard({ s }) {
   ].filter(Boolean);
   const hasDetail = Boolean(s.summary || s.note || s.next_steps || links.length);
   const time = s.time || fmtTime(s.date);
-  const sub = [s.tutor ? `with ${s.tutor}` : '', s.subject || '', s.status || '']
+  const kindLabel = s.kind === 'group' ? 'Group class' : s.kind === '1-to-1' ? '1-to-1' : '';
+  const sub = [s.tutor ? `with ${s.tutor}` : '', kindLabel, s.status || '']
     .filter(Boolean)
     .join(' · ');
   return (
@@ -682,19 +683,41 @@ export function ContactInfoPanel({ onClose }) {
               </div>
             ) : null}
 
-            {/* Previous classes — tap to reveal notes + recording */}
-            {(student.past_sessions || []).length ? (
-              <div className="pt-2">
-                <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-[#8696A0]">
-                  Previous classes
-                </div>
-                <div className="space-y-1">
-                  {student.past_sessions.slice(0, 15).map((s, i) => (
-                    <SessionCard key={i} s={s} />
-                  ))}
-                </div>
-              </div>
-            ) : null}
+            {/* Previous classes, split by type so the 1-to-1 quota above doesn't
+                look inconsistent with the (separate) group-class recordings. */}
+            {(() => {
+              const past = student.past_sessions || [];
+              const o2o = past.filter((s) => s.kind !== 'group');
+              const group = past.filter((s) => s.kind === 'group');
+              return (
+                <>
+                  {o2o.length ? (
+                    <div className="pt-2">
+                      <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-[#8696A0]">
+                        Previous 1-to-1 sessions
+                      </div>
+                      <div className="space-y-1">
+                        {o2o.slice(0, 15).map((s, i) => (
+                          <SessionCard key={i} s={s} />
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  {group.length ? (
+                    <div className="pt-2">
+                      <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-[#8696A0]">
+                        Group classes
+                      </div>
+                      <div className="space-y-1">
+                        {group.slice(0, 12).map((s, i) => (
+                          <SessionCard key={i} s={s} />
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </>
+              );
+            })()}
           </Card>
         ) : null}
 
