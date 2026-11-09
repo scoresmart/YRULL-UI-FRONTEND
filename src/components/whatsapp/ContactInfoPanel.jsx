@@ -70,10 +70,10 @@ function ActionButton({ icon, label, onClick, disabled }) {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex w-[88px] flex-col items-center gap-2 rounded-lg border border-[#E9EDEF] px-2 pb-2.5 pt-3 transition-colors hover:bg-[#F5F6F6] disabled:opacity-50"
+      className="flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-xl border border-[#E9EDEF] bg-white px-2 pb-2.5 pt-3 text-[#111B21] transition-colors hover:bg-[#F5F6F6] active:bg-[#E9EDEF] disabled:opacity-50"
     >
       <Icon className="h-5 w-5 text-[#00A884]" />
-      <span className="text-[13px] text-[#111B21]">{label}</span>
+      <span className="truncate text-[13px] font-medium">{label}</span>
     </button>
   );
 }
@@ -355,7 +355,7 @@ export function ContactInfoPanel({ onClose }) {
   const mediaToShow = showAllMedia ? shared.media : shared.media.slice(0, 3);
 
   return (
-    <div className="flex h-full w-[340px] flex-shrink-0 flex-col border-l border-[#E9EDEF] bg-[#F0F2F5]">
+    <div className="flex h-full w-full flex-shrink-0 flex-col border-l border-[#E9EDEF] bg-[#F0F2F5] sm:w-[340px]">
       <div className="flex h-[60px] shrink-0 items-center gap-6 bg-[#F0F2F5] px-4">
         {onClose ? (
           <button

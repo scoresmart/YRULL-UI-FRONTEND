@@ -172,7 +172,9 @@ export function WhatsAppPage() {
   const wa = useWhatsAppIntegration();
   const isMobile = useIsMobile();
   const isDesktop = useIsDesktop();
-  const [showContactInfo, setShowContactInfo] = useState(true);
+  // Open by default on desktop; closed on mobile (it opens as a full-screen
+  // drawer there, so it must not cover the thread on load).
+  const [showContactInfo, setShowContactInfo] = useState(() => !isMobile);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // /whatsapp?chat=<number> opens that chat, e.g. from a "Reply to <student>"
@@ -361,9 +363,14 @@ export function WhatsAppPage() {
             className="flex-1"
           />
         )}
-        {showContactInfo && !isMobile && (
-          <ContactInfoPanel onClose={() => setShowContactInfo(false)} />
-        )}
+        {showContactInfo &&
+          (isMobile ? (
+            <div className="fixed inset-0 z-50 bg-white">
+              <ContactInfoPanel onClose={() => setShowContactInfo(false)} />
+            </div>
+          ) : (
+            <ContactInfoPanel onClose={() => setShowContactInfo(false)} />
+          ))}
       </div>
       <IncomingCallNotification />
     </div>
