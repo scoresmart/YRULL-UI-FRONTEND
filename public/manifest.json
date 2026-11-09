@@ -4,7 +4,7 @@
   "description": "Manage WhatsApp, Instagram, and Facebook Messenger conversations in one unified inbox.",
   "start_url": "/dashboard",
   "display": "standalone",
-  "theme_color": "#0F0F0F",
+  "theme_color": "#ffffff",
   "background_color": "#ffffff",
   "icons": [
     {
