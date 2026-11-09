@@ -39,22 +39,6 @@ const WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const SOURCE_LABEL = { META: 'Meta ad', TIKTOK: 'TikTok ad', manual: 'Added manually', ad: 'Ad' };
 
-// Friendly labels for the LMS course_type codes.
-const COURSE_TYPE_LABEL = {
-  smart_quad: 'Smart Quad',
-  quad: 'Quad',
-  one_to_one: 'One-to-One',
-  o2o: 'One-to-One',
-  group: 'Group',
-  self_study: 'Self Study',
-  crash: 'Crash Course',
-};
-
-function courseTypeLabel(code) {
-  if (!code) return '';
-  return COURSE_TYPE_LABEL[String(code).toLowerCase()] || String(code).replace(/_/g, ' ');
-}
-
 function fmtDay(d) {
   if (!d) return '';
   const dt = new Date(d);
@@ -62,42 +46,85 @@ function fmtDay(d) {
   return dt.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-// One past/upcoming class row: date · subject · tutor · status, with the
-// recording, transcript and meeting links the tutor panel also shows.
-function SessionRow({ s }) {
+function fmtTime(d) {
+  if (!d || !String(d).includes('T')) return '';
+  const dt = new Date(d);
+  if (Number.isNaN(dt.getTime())) return '';
+  const t = dt.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+  return t === '12:00 am' ? '' : t;
+}
+
+// Compact collapsible class row: tutor avatar + date + time when collapsed;
+// tap to reveal the session summary, the tutor's notes / next steps and the
+// recording, transcript and join links (the tutor panel's per-session detail).
+function SessionCard({ s }) {
+  const [open, setOpen] = useState(false);
   const links = [
     s.recording_link ? { href: s.recording_link, label: 'Recording', icon: Video } : null,
     s.transcript_link ? { href: s.transcript_link, label: 'Transcript', icon: FileText } : null,
     s.meet_link ? { href: s.meet_link, label: 'Join', icon: Link2 } : null,
   ].filter(Boolean);
+  const hasDetail = Boolean(s.summary || s.note || s.next_steps || links.length);
+  const time = fmtTime(s.date);
+  const sub = [s.tutor ? `with ${s.tutor}` : '', s.subject || '', s.status || '']
+    .filter(Boolean)
+    .join(' · ');
   return (
-    <div className="rounded-lg bg-[#F5F6F6] px-2.5 py-2">
-      <div className="flex items-center justify-between gap-2">
-        <span className="truncate text-[13px] font-medium text-[#111B21]">
-          {fmtDay(s.date) || 'Session'}
-          {s.subject ? ` · ${s.subject}` : ''}
+    <div className="rounded-lg bg-[#F5F6F6]">
+      <button
+        type="button"
+        onClick={() => hasDetail && setOpen((o) => !o)}
+        className={cn('flex w-full items-center gap-2.5 px-2 py-1.5 text-left', !hasDetail && 'cursor-default')}
+      >
+        <span
+          className={cn(
+            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold',
+            pastelClassFromString(s.tutor || 'Tutor'),
+          )}
+        >
+          {initialsFromName(s.tutor || '·')}
         </span>
-        {s.status ? <span className="shrink-0 text-[11px] text-[#8696A0]">{s.status}</span> : null}
-      </div>
-      {s.tutor ? <div className="mt-0.5 text-[12px] text-[#667781]">with {s.tutor}</div> : null}
-      {s.summary ? <div className="mt-1 text-[12px] leading-snug text-[#3B4A54]">{s.summary}</div> : null}
-      {links.length ? (
-        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
-          {links.map((l, i) => {
-            const LinkIcon = l.icon;
-            return (
-              <a
-                key={i}
-                href={l.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[12px] text-[#027EB5] hover:underline"
-              >
-                <LinkIcon className="h-3.5 w-3.5" />
-                {l.label}
-              </a>
-            );
-          })}
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[13px] font-medium text-[#111B21]">
+            {fmtDay(s.date) || 'Session'}
+            {time ? ` · ${time}` : ''}
+          </span>
+          {sub ? <span className="block truncate text-[11px] text-[#667781]">{sub}</span> : null}
+        </span>
+        {hasDetail ? (
+          <ChevronRight
+            className={cn('h-4 w-4 shrink-0 text-[#8696A0] transition-transform', open && 'rotate-90')}
+          />
+        ) : null}
+      </button>
+      {open && hasDetail ? (
+        <div className="space-y-1.5 px-2 pb-2.5 pl-[42px] text-[12px] leading-snug">
+          {s.summary ? <div className="text-[#3B4A54]">{s.summary}</div> : null}
+          {s.note ? <div className="text-[#111B21]">{s.note}</div> : null}
+          {s.next_steps ? (
+            <div className="text-[#667781]">
+              <span className="font-medium">Next:</span> {s.next_steps}
+            </div>
+          ) : null}
+          {links.length ? (
+            <div className="flex flex-wrap gap-x-3 gap-y-1 pt-0.5">
+              {links.map((l, i) => {
+                const LinkIcon = l.icon;
+                return (
+                  <a
+                    key={i}
+                    href={l.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[#027EB5] hover:underline"
+                  >
+                    <LinkIcon className="h-3.5 w-3.5" />
+                    {l.label}
+                  </a>
+                );
+              })}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -514,18 +541,17 @@ export function ContactInfoPanel({ onClose }) {
 
         {student ? (
           <Card title="Course & sessions">
-            {/* Courses: type, status, expiry and exam date */}
+            {/* Courses: subject, status, and the expiries (course + group class) */}
             {(student.courses || []).map((c, i) => {
-              const expired = c.expiry && new Date(c.expiry).getTime() < Date.now();
+              const courseExp = c.course_expiry || c.expiry;
+              const courseExpired = courseExp && new Date(courseExp).getTime() < Date.now();
+              const groupExpired = c.group_expiry && new Date(c.group_expiry).getTime() < Date.now();
               return (
-                <div key={i} className="border-b border-[#F0F2F3] py-2.5 first:pt-0 last:border-0">
+                <div key={i} className="mb-2 border-b border-[#F0F2F3] pb-2 last:mb-0 last:border-0 last:pb-0">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex min-w-0 items-center gap-2 text-[15px] text-[#111B21]">
+                    <div className="flex min-w-0 items-center gap-2 text-[14px] font-medium text-[#111B21]">
                       <GraduationCap className="h-4 w-4 shrink-0 text-[#8696A0]" />
-                      <span className="truncate font-medium">
-                        {c.subject || 'Course'}
-                        {courseTypeLabel(c.course_type) ? ` · ${courseTypeLabel(c.course_type)}` : ''}
-                      </span>
+                      <span className="truncate">{c.subject || 'Course'}</span>
                     </div>
                     <span
                       className={cn(
@@ -536,22 +562,25 @@ export function ContactInfoPanel({ onClose }) {
                       {c.status || '—'}
                     </span>
                   </div>
-                  <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 pl-6 text-[12px] text-[#667781]">
-                    {c.start_date ? <span>Started {fmtDay(c.start_date)}</span> : null}
-                    {c.expiry ? (
-                      <span className={expired ? 'font-medium text-[#E53935]' : ''}>
-                        {expired ? 'Expired' : 'Expires'} {fmtDay(c.expiry)}
+                  <div className="mt-1 grid gap-0.5 pl-6 text-[12px] text-[#667781]">
+                    {courseExp ? (
+                      <span className={courseExpired ? 'font-medium text-[#E53935]' : ''}>
+                        Course {courseExpired ? 'expired' : 'expires'} {fmtDay(courseExp)}
                       </span>
                     ) : null}
-                    {c.exam_date ? <span>Exam {fmtDay(c.exam_date)}</span> : null}
+                    {c.group_expiry ? (
+                      <span className={groupExpired ? 'font-medium text-[#E53935]' : ''}>
+                        Group class {groupExpired ? 'expired' : 'expires'} {fmtDay(c.group_expiry)}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               );
             })}
 
-            {/* Target / previous score and booked exam */}
-            {student.target_score || student.previous_score || student.exam_deadline ? (
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-1 py-2.5 text-[13px] text-[#667781]">
+            {/* Desired / previous score and exam date — one compact line */}
+            {student.target_score || student.previous_score || student.exam_deadline || student.courses?.[0]?.exam_date ? (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2 text-[13px] text-[#667781]">
                 {student.target_score ? (
                   <span className="inline-flex items-center gap-1">
                     <Target className="h-3.5 w-3.5 text-[#8696A0]" />
@@ -563,17 +592,17 @@ export function ContactInfoPanel({ onClose }) {
                     Previous <b className="text-[#111B21]">{student.previous_score}</b>
                   </span>
                 ) : null}
-                {student.exam_deadline ? (
+                {student.exam_deadline || student.courses?.[0]?.exam_date ? (
                   <span className="inline-flex items-center gap-1">
                     <Calendar className="h-3.5 w-3.5 text-[#8696A0]" />
-                    Exam <b className="text-[#111B21]">{fmtDay(student.exam_deadline)}</b>
+                    Exam <b className="text-[#111B21]">{fmtDay(student.exam_deadline || student.courses[0].exam_date)}</b>
                   </span>
                 ) : null}
               </div>
             ) : null}
 
             {/* One-to-one session allowance */}
-            <div className="py-2.5">
+            <div className="py-2">
               <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#667781]">One-to-one sessions</span>
                 <span className="font-medium text-[#111B21]">
@@ -601,79 +630,29 @@ export function ContactInfoPanel({ onClose }) {
               ) : null}
             </div>
 
-            {/* Upcoming classes */}
+            {/* Upcoming classes (tap a row to open it) */}
             {(student.upcoming_sessions || []).length ? (
-              <div className="py-2">
-                <div className="mb-1.5 text-[12px] font-medium uppercase tracking-wide text-[#8696A0]">
-                  Upcoming classes
+              <div className="pt-1">
+                <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-[#8696A0]">
+                  Upcoming
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   {student.upcoming_sessions.slice(0, 5).map((s, i) => (
-                    <SessionRow key={i} s={s} />
+                    <SessionCard key={i} s={s} />
                   ))}
                 </div>
               </div>
             ) : null}
 
-            {/* Past classes with recordings & transcripts */}
+            {/* Previous classes — tap to reveal notes + recording */}
             {(student.past_sessions || []).length ? (
-              <div className="py-2">
-                <div className="mb-1.5 text-[12px] font-medium uppercase tracking-wide text-[#8696A0]">
+              <div className="pt-2">
+                <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-[#8696A0]">
                   Previous classes
                 </div>
-                <div className="space-y-1.5">
-                  {student.past_sessions.slice(0, 10).map((s, i) => (
-                    <SessionRow key={i} s={s} />
-                  ))}
-                </div>
-              </div>
-            ) : (student.recordings || []).length ? (
-              <div className="py-2">
-                <div className="mb-1.5 text-[12px] font-medium uppercase tracking-wide text-[#8696A0]">
-                  Class recordings
-                </div>
-                <div className="space-y-1.5">
-                  {student.recordings.slice(0, 10).map((r, i) => (
-                    <a
-                      key={i}
-                      href={r.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-[13px] text-[#027EB5] hover:underline"
-                    >
-                      <Video className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">
-                        {fmtDay(r.date) || 'Session'}
-                        {r.tutor ? ` · ${r.tutor}` : ''}
-                      </span>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            {/* All session notes */}
-            {(student.notes || []).length ? (
-              <div className="py-2">
-                <div className="mb-1.5 text-[12px] font-medium uppercase tracking-wide text-[#8696A0]">
-                  Session notes
-                </div>
-                <div className="space-y-1.5">
-                  {student.notes.slice(0, 10).map((n, i) => (
-                    <div key={i} className="rounded-lg bg-[#F5F6F6] p-2.5 text-[13px] text-[#111B21]">
-                      <div className="mb-0.5 text-[11px] text-[#8696A0]">
-                        {fmtDay(n.date)}
-                        {n.subject ? ` · ${n.subject}` : ''}
-                        {n.tutor ? ` · ${n.tutor}` : ''}
-                      </div>
-                      {n.summary ? <div className="leading-snug">{n.summary}</div> : null}
-                      {n.note ? <div className="mt-0.5 leading-snug text-[#3B4A54]">{n.note}</div> : null}
-                      {n.next_steps ? (
-                        <div className="mt-1 text-[12px] text-[#667781]">
-                          <span className="font-medium">Next:</span> {n.next_steps}
-                        </div>
-                      ) : null}
-                    </div>
+                <div className="space-y-1">
+                  {student.past_sessions.slice(0, 15).map((s, i) => (
+                    <SessionCard key={i} s={s} />
                   ))}
                 </div>
               </div>
