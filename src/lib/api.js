@@ -558,6 +558,14 @@ export const notesApi = {
   delete: (waId, noteId) => apiJSON('DELETE', `/api/notes/${waId}/${noteId}`),
 };
 
+// -- Student (LMS) API --------------------------------------------------------
+
+export const studentApi = {
+  // Enrolment, course, 1:1 sessions, notes and recordings for a contact,
+  // matched to the LMS by phone. {configured:false} until the LMS key is set.
+  get: (waId) => apiJSON('GET', `/api/students/${encodeURIComponent(waId)}`),
+};
+
 // -- Instagram API ------------------------------------------------------------
 
 export const instagramApi = {

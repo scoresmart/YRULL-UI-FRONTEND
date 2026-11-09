@@ -222,7 +222,7 @@ export function CallLogsPage() {
 
       {/* Summary Stats */}
       {callsQ.data && (
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="rounded-xl border border-gray-200 bg-white p-4">
             <div className="text-sm text-gray-500">Total Calls</div>
             <div className="mt-1 text-2xl font-semibold text-gray-900">{callsQ.data.length}</div>

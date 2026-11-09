@@ -164,12 +164,17 @@ function LabelsSidebar({ collapsed, onToggle }) {
 export function WhatsAppPage() {
   const queryClient = useQueryClient();
   const processingMessages = useRef(new Set());
+  // Coalesce conversation-list invalidations: a burst of inbound messages should
+  // refetch the (1000-row) contact list once, not once per message.
+  const contactsInvalidateTimer = useRef(null);
   const selectedWaId = useChatStore((s) => s.selectedWaId);
   const setSelectedWaId = useChatStore((s) => s.setSelectedWaId);
   const wa = useWhatsAppIntegration();
   const isMobile = useIsMobile();
   const isDesktop = useIsDesktop();
-  const [showContactInfo, setShowContactInfo] = useState(true);
+  // Open by default on desktop; closed on mobile (it opens as a full-screen
+  // drawer there, so it must not cover the thread on load).
+  const [showContactInfo, setShowContactInfo] = useState(() => !isMobile);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // /whatsapp?chat=<number> opens that chat, e.g. from a "Reply to <student>"
@@ -224,7 +229,12 @@ export function WhatsAppPage() {
               return true;
             });
           });
-          queryClient.invalidateQueries({ queryKey: ['whatsapp_contacts'] });
+          if (!contactsInvalidateTimer.current) {
+            contactsInvalidateTimer.current = setTimeout(() => {
+              contactsInvalidateTimer.current = null;
+              queryClient.invalidateQueries({ queryKey: ['whatsapp_contacts'] });
+            }, 1500);
+          }
         }
       } catch (error) {
         console.error('Error processing real-time message:', error);
@@ -337,9 +347,7 @@ export function WhatsAppPage() {
 
   return (
     <div className="-mx-4 -my-4 h-[calc(100vh-56px)] sm:-mx-6 sm:-my-6 sm:h-[calc(100vh-64px)] lg:-mx-8 lg:-my-8">
-      <WhatsAppConnectionCard wa={wa} compact />
-
-      <div className="flex h-[calc(100%-56px)]">
+      <div className="flex h-full">
         {!isMobile && (
           <LabelsSidebar
             collapsed={sidebarCollapsed}
@@ -355,9 +363,14 @@ export function WhatsAppPage() {
             className="flex-1"
           />
         )}
-        {showContactInfo && !isMobile && (
-          <ContactInfoPanel onClose={() => setShowContactInfo(false)} />
-        )}
+        {showContactInfo &&
+          (isMobile ? (
+            <div className="fixed inset-0 z-50 bg-white">
+              <ContactInfoPanel onClose={() => setShowContactInfo(false)} />
+            </div>
+          ) : (
+            <ContactInfoPanel onClose={() => setShowContactInfo(false)} />
+          ))}
       </div>
       <IncomingCallNotification />
     </div>

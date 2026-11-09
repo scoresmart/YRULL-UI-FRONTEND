@@ -4,6 +4,7 @@ import {
   ChevronRight,
   Clock,
   FileText,
+  GraduationCap,
   Link2,
   Megaphone,
   Pencil,
@@ -15,6 +16,7 @@ import {
   Search,
   Tag,
   Trash2,
+  Video,
   X,
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -23,7 +25,7 @@ import { cn, initialsFromName, pastelClassFromString, formatRelativeTime, format
 import { useChatStore } from '../../store/chatStore';
 import { useCallStore } from '../../store/callStore';
 import { useAuthStore } from '../../store/authStore';
-import { useContacts, useMessages, useTags, useContactTags } from '../../lib/dataHooks';
+import { useContacts, useMessages, useTags, useContactTags, useStudent } from '../../lib/dataHooks';
 import { whatsappApi, notesApi, tagsApi } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { ENV } from '../../lib/env';
@@ -69,10 +71,10 @@ function ActionButton({ icon, label, onClick, disabled }) {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex w-[88px] flex-col items-center gap-2 rounded-lg border border-[#E9EDEF] px-2 pb-2.5 pt-3 transition-colors hover:bg-[#F5F6F6] disabled:opacity-50"
+      className="flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-xl border border-[#E9EDEF] bg-white px-2 pb-2.5 pt-3 text-[#111B21] transition-colors hover:bg-[#F5F6F6] active:bg-[#E9EDEF] disabled:opacity-50"
     >
       <Icon className="h-5 w-5 text-[#00A884]" />
-      <span className="text-[13px] text-[#111B21]">{label}</span>
+      <span className="truncate text-[13px] font-medium">{label}</span>
     </button>
   );
 }
@@ -118,6 +120,18 @@ export function ContactInfoPanel({ onClose }) {
     const ids = new Set(contactTagsQ.data.filter((ct) => contact.id && ct.contact_id === contact.id).map((ct) => ct.tag_id));
     return tagsQ.data.filter((tag) => ids.has(tag.id));
   }, [tagsQ.data, contactTagsQ.data, contact]);
+
+  // The LMS → tags sync applies an "Enrolled" label to students; surface it as a badge.
+  const enrolledTag = useMemo(
+    () => appliedTags.find((t) => /enrol/i.test(t.name || '')),
+    [appliedTags],
+  );
+
+  // LMS student record (course, sessions, notes, recordings) matched by phone.
+  // Inert/empty until the backend endpoint + LMS key are live; only shows for
+  // contacts that match an enrolled student.
+  const studentQ = useStudent(selectedWaId);
+  const student = studentQ.data?.found ? studentQ.data : null;
 
   const availableTags = useMemo(() => {
     const appliedIds = new Set(appliedTags.map((t) => t.id));
@@ -348,7 +362,7 @@ export function ContactInfoPanel({ onClose }) {
   const mediaToShow = showAllMedia ? shared.media : shared.media.slice(0, 3);
 
   return (
-    <div className="flex h-full w-[340px] flex-shrink-0 flex-col border-l border-[#E9EDEF] bg-[#F0F2F5]">
+    <div className="flex h-full w-full flex-shrink-0 flex-col border-l border-[#E9EDEF] bg-[#F0F2F5] sm:w-[340px]">
       <div className="flex h-[60px] shrink-0 items-center gap-6 bg-[#F0F2F5] px-4">
         {onClose ? (
           <button
@@ -412,6 +426,13 @@ export function ContactInfoPanel({ onClose }) {
           )}
           {displayPhone ? <div className="mt-1 text-[16px] text-[#667781]">{displayPhone}</div> : null}
 
+          {enrolledTag ? (
+            <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-[#E7FCE3] px-2.5 py-1 text-[13px] font-medium text-[#008069]">
+              <GraduationCap className="h-3.5 w-3.5" />
+              Enrolled student
+            </div>
+          ) : null}
+
           <div className="mt-5 flex gap-3">
             <ActionButton icon={Phone} label="Call" onClick={onCall} disabled={!contact} />
             <ActionButton
@@ -423,6 +444,92 @@ export function ContactInfoPanel({ onClose }) {
             <ActionButton icon={Search} label="Search" onClick={requestChatSearch} disabled={!contact} />
           </div>
         </Card>
+
+        {student ? (
+          <Card title="Course & sessions">
+            {(student.courses || []).map((c, i) => (
+              <InfoRow
+                key={i}
+                icon={GraduationCap}
+                label={c.subject || 'Course'}
+                value={
+                  <span>
+                    {c.course_type ? `${String(c.course_type).replace(/_/g, ' ')} · ` : ''}
+                    <span className={c.status === 'active' ? 'text-[#008069]' : 'text-[#667781]'}>
+                      {c.status || ''}
+                    </span>
+                  </span>
+                }
+              />
+            ))}
+            <div className="px-4 py-3">
+              <div className="flex items-center justify-between text-[13px]">
+                <span className="text-[#667781]">1-to-1 sessions</span>
+                <span className="font-medium text-[#111B21]">
+                  {student.sessions.used}/{student.sessions.quota} used · {student.sessions.remaining} left
+                </span>
+              </div>
+              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[#E9EDEF]">
+                <div
+                  className="h-full rounded-full bg-[#25D366]"
+                  style={{
+                    width: `${
+                      student.sessions.quota
+                        ? Math.min(100, Math.round((student.sessions.used / student.sessions.quota) * 100))
+                        : 0
+                    }%`,
+                  }}
+                />
+              </div>
+            </div>
+            {(student.recordings || []).length ? (
+              <div className="px-4 pb-3">
+                <div className="mb-1.5 text-[12px] font-medium uppercase tracking-wide text-[#8696A0]">
+                  Class recordings
+                </div>
+                <div className="space-y-1.5">
+                  {student.recordings.slice(0, 5).map((r, i) => (
+                    <a
+                      key={i}
+                      href={r.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-[13px] text-[#027EB5] hover:underline"
+                    >
+                      <Video className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">
+                        {r.date
+                          ? new Date(r.date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+                          : 'Session'}
+                        {r.tutor ? ` · ${r.tutor}` : ''}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {(student.notes || []).length ? (
+              <div className="px-4 pb-3">
+                <div className="mb-1.5 text-[12px] font-medium uppercase tracking-wide text-[#8696A0]">
+                  Session notes
+                </div>
+                <div className="space-y-1.5">
+                  {student.notes.slice(0, 2).map((n, i) => (
+                    <div key={i} className="rounded-lg bg-white p-2 text-[13px] text-[#111B21]">
+                      <div className="mb-0.5 text-[11px] text-[#8696A0]">
+                        {n.date
+                          ? new Date(n.date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+                          : ''}
+                        {n.tutor ? ` · ${n.tutor}` : ''}
+                      </div>
+                      {n.summary || n.note}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </Card>
+        ) : null}
 
         {/* Details */}
         <Card title="About">

@@ -9,7 +9,7 @@ export function ContactSidePanel({ contact, tags, onClose }) {
   const avatarCls = pastelClassFromString(contact.phone ?? contact.id);
 
   return (
-    <aside className="fixed right-0 top-16 h-[calc(100vh-64px)] w-[420px] border-l border-brand-border bg-white">
+    <aside className="fixed right-0 top-16 z-50 h-[calc(100vh-64px)] w-full border-l border-brand-border bg-white sm:w-[420px]">
       <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
         <div className="text-sm font-semibold text-gray-900">Contact</div>
         <button
