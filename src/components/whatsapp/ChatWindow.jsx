@@ -731,8 +731,8 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
           </div>
         </div>
       ) : null}
-      <div className="flex h-[60px] shrink-0 items-center justify-between border-l border-black/[0.08] bg-[#F0F2F5] px-3 sm:px-4">
-        <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex h-[60px] shrink-0 items-center justify-between gap-2 border-l border-black/[0.08] bg-[#F0F2F5] px-3 sm:px-4">
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
           {onBack && (
             <button
               type="button"
@@ -743,17 +743,24 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
               <ArrowLeft className="h-5 w-5" />
             </button>
           )}
-          <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold', avatarCls)}>
-            {initialsFromName(name)}
-          </div>
-          <div className="min-w-0">
-            <div className="truncate text-[16px] leading-5 text-[#111B21]">{name}</div>
-            {contact?.wa_id && contact?.name ? (
-              <div className="truncate text-[13px] leading-4 text-[#667781]">{formatPhone(contact.wa_id)}</div>
-            ) : null}
-          </div>
+          <button
+            type="button"
+            onClick={onToggleInfo}
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-lg p-1 text-left transition-colors hover:bg-black/[0.04] sm:gap-3"
+            title="View contact info"
+          >
+            <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold', avatarCls)}>
+              {initialsFromName(name)}
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-[16px] leading-5 text-[#111B21]">{name}</div>
+              {contact?.wa_id && contact?.name ? (
+                <div className="truncate text-[13px] leading-4 text-[#667781]">{formatPhone(contact.wa_id)}</div>
+              ) : null}
+            </div>
+          </button>
         </div>
-        <div className="flex items-center gap-0.5 text-[#54656F]">
+        <div className="flex shrink-0 items-center gap-0.5 text-[#54656F]">
           <HandoffControl waId={contact?.wa_id} />
           <button
             className={cn('rounded-full p-2 hover:bg-black/[0.06]', searchOpen && 'bg-black/[0.06]')}

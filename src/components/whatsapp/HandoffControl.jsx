@@ -60,10 +60,10 @@ export function HandoffControl({ waId }) {
       : 'The AI agent answers this chat';
 
   return (
-    <div className="mr-1 flex items-center gap-1.5" title={title}>
+    <div className="mr-1 flex shrink-0 items-center gap-1.5" title={title}>
       <span
         className={cn(
-          'hidden items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium sm:flex',
+          'hidden items-center gap-1 whitespace-nowrap rounded-full px-2 py-1 text-[11px] font-medium lg:flex',
           !human && 'bg-emerald-50 text-emerald-700',
           human && !s.sensitive && 'bg-amber-50 text-amber-800',
           human && s.sensitive && 'bg-red-50 text-red-700',
@@ -76,7 +76,7 @@ export function HandoffControl({ waId }) {
         type="button"
         disabled={busy}
         onClick={() => act(human ? 'return_to_ai' : 'take_over')}
-        className="rounded-full border border-black/10 bg-white px-2.5 py-1 text-[12px] font-medium text-[#111B21] hover:bg-black/[0.04] disabled:opacity-50"
+        className="whitespace-nowrap rounded-full border border-black/10 bg-white px-2.5 py-1 text-[12px] font-medium text-[#111B21] hover:bg-black/[0.04] disabled:opacity-50"
       >
         {human ? (s.sensitive ? 'Close & return to AI' : 'Return to AI') : 'Take over'}
       </button>
