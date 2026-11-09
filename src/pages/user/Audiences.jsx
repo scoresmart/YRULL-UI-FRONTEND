@@ -20,12 +20,12 @@ export function AudiencesPage() {
       </div>
 
       {audiencesQ.isLoading ? (
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <Skeleton className="h-40" />
           <Skeleton className="h-40" />
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           {(audiencesQ.data ?? []).map((a) => (
             <Card key={a.id}>
               <div className="flex items-start justify-between gap-4">

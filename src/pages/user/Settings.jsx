@@ -246,7 +246,7 @@ function ProfileTab() {
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-4">
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="col-span-2">
               <label className="text-xs font-medium uppercase tracking-wide text-gray-400">Full Name</label>
               <Input className="mt-2" value={fullName} onChange={(e) => setFullName(e.target.value)} />
@@ -483,7 +483,7 @@ function WorkspaceTab() {
               Save
             </Button>
           </div>
-          <div className="mt-6 grid grid-cols-2 gap-4">
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="col-span-2">
               <label className="text-xs font-medium uppercase tracking-wide text-gray-400">Workspace Name</label>
               <Input className="mt-2" value={name} onChange={(e) => setName(e.target.value)} />
