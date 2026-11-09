@@ -271,7 +271,7 @@ export function WhatsAppPage() {
 
   if (wa.loading && !wa.chooseNumberState) {
     return (
-      <div className="-mx-4 -my-4 flex h-[calc(100vh-56px)] items-center justify-center bg-brand-chatBg sm:-mx-6 sm:-my-6 sm:h-[calc(100vh-64px)] lg:-mx-8 lg:-my-8">
+      <div className="-mx-4 -my-4 flex h-[calc(100vh-56px-env(safe-area-inset-top))] items-center justify-center bg-brand-chatBg sm:-mx-6 sm:-my-6 sm:h-[calc(100vh-64px-env(safe-area-inset-top))] lg:-mx-8 lg:-my-8">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
           <span className="text-sm text-gray-500">Loading WhatsApp…</span>
@@ -282,7 +282,7 @@ export function WhatsAppPage() {
 
   if (!wa.connected) {
     return (
-      <div className="-mx-4 -my-4 h-[calc(100vh-56px)] sm:-mx-6 sm:-my-6 sm:h-[calc(100vh-64px)] lg:-mx-8 lg:-my-8">
+      <div className="-mx-4 -my-4 h-[calc(100vh-56px-env(safe-area-inset-top))] sm:-mx-6 sm:-my-6 sm:h-[calc(100vh-64px-env(safe-area-inset-top))] lg:-mx-8 lg:-my-8">
         <div className="flex h-full flex-col sm:flex-row">
           <div className="hidden h-full w-[320px] flex-col border-r border-brand-border bg-white sm:flex">
             <div className="p-4">
@@ -368,7 +368,7 @@ export function WhatsAppPage() {
   const showThread = isMobile ? !!selectedWaId : true;
 
   return (
-    <div className="-mx-4 -my-4 h-[calc(100vh-56px)] sm:-mx-6 sm:-my-6 sm:h-[calc(100vh-64px)] lg:-mx-8 lg:-my-8">
+    <div className="-mx-4 -my-4 h-[calc(100vh-56px-env(safe-area-inset-top))] sm:-mx-6 sm:-my-6 sm:h-[calc(100vh-64px-env(safe-area-inset-top))] lg:-mx-8 lg:-my-8">
       <div className="flex h-full">
         {!isMobile && (
           <LabelsSidebar
@@ -381,7 +381,7 @@ export function WhatsAppPage() {
           (isMobile ? (
             // Full-screen chat over the app bar on mobile (native-WhatsApp feel):
             // no double header; the chat header's back button returns to the list.
-            <div className="fixed inset-0 z-40 bg-white">
+            <div className="fixed inset-0 z-40 bg-white pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
               <ChatWindow
                 connected={wa.connected}
                 onBack={() => setSelectedWaId(null)}
@@ -398,7 +398,7 @@ export function WhatsAppPage() {
           ))}
         {showContactInfo &&
           (isMobile ? (
-            <div className="fixed inset-0 z-50 bg-white">
+            <div className="fixed inset-0 z-50 bg-white pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
               <ContactInfoPanel onClose={closeContactInfo} />
             </div>
           ) : (
