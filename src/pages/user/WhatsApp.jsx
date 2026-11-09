@@ -355,14 +355,25 @@ export function WhatsAppPage() {
           />
         )}
         {showList && <ConversationList className={isMobile ? 'w-full' : 'w-[320px]'} />}
-        {showThread && (
-          <ChatWindow
-            connected={wa.connected}
-            onBack={isMobile ? () => setSelectedWaId(null) : undefined}
-            onToggleInfo={() => setShowContactInfo((v) => !v)}
-            className="flex-1"
-          />
-        )}
+        {showThread &&
+          (isMobile ? (
+            // Full-screen chat over the app bar on mobile (native-WhatsApp feel):
+            // no double header; the chat header's back button returns to the list.
+            <div className="fixed inset-0 z-40 bg-white">
+              <ChatWindow
+                connected={wa.connected}
+                onBack={() => setSelectedWaId(null)}
+                onToggleInfo={() => setShowContactInfo((v) => !v)}
+                className="h-full w-full"
+              />
+            </div>
+          ) : (
+            <ChatWindow
+              connected={wa.connected}
+              onToggleInfo={() => setShowContactInfo((v) => !v)}
+              className="flex-1"
+            />
+          ))}
         {showContactInfo &&
           (isMobile ? (
             <div className="fixed inset-0 z-50 bg-white">
