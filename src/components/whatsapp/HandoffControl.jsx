@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bot, UserRound, ShieldAlert } from 'lucide-react';
+import { Bot, UserRound, ShieldAlert, MoreVertical } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { handoffApi } from '../../lib/api';
 import { cn } from '../../lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '../ui/dropdown-menu';
 
 const REASONS = {
   refund: 'refund',
@@ -29,7 +36,7 @@ const IN_USE_MS = 60_000;
  * Tells the backend you are active on this chat: once when it opens, then
  * every minute while the tab is visible and you have used the page (mouse,
  * keys, scroll, touch) in the last minute. Stops after "Return to AI" /
- * "Let AI reply now" until the chat is opened again.
+ * "Let the AI reply now" until the chat is opened again.
  */
 function useActiveHeartbeat(waId, releasedRef) {
   useEffect(() => {
@@ -57,7 +64,10 @@ function useActiveHeartbeat(waId, releasedRef) {
 
 /**
  * Who answers this chat: the AI agent or a person (support rules R26–R30).
- * Hidden for contacts the agent isn't switched on for.
+ * Rendered as a three-dot (⋮) overflow menu in the chat header — open it to
+ * turn the AI agent off (take over), hand the chat back, or, when the agent is
+ * paused because you are working on the chat, let it answer now. Hidden for
+ * contacts the agent isn't switched on for.
  */
 export function HandoffControl({ waId }) {
   const queryClient = useQueryClient();
@@ -76,6 +86,7 @@ export function HandoffControl({ waId }) {
 
   const human = s.status === 'HUMAN';
   const quietUntil = s.human_active_until ? new Date(s.human_active_until) : null;
+  const quiet = !human && quietUntil && quietUntil.getTime() > Date.now();
 
   async function act(action) {
     setBusy(true);
@@ -84,7 +95,11 @@ export function HandoffControl({ waId }) {
     try {
       const next = await handoffApi.set(waId, action);
       queryClient.setQueryData(['handoff', waId], next);
-      toast.success(action === 'take_over' ? 'You have this chat — the agent will stay quiet' : 'Handed back to the AI agent');
+      toast.success(
+        action === 'take_over'
+          ? 'You have this chat — the AI agent will stay quiet'
+          : 'Handed back to the AI agent',
+      );
     } catch (err) {
       toast.error(err.message || 'Could not change who handles this chat');
     } finally {
@@ -92,44 +107,79 @@ export function HandoffControl({ waId }) {
     }
   }
 
-  const title = human
-    ? `${s.sensitive ? 'Sensitive — only comes back when you close it' : s.resume_at ? `Back to the agent at ${new Date(s.resume_at).toLocaleString('en-AU', { weekday: 'short', hour: 'numeric', minute: '2-digit' })} if nobody hands it back` : ''}`
-    : quietUntil
-      ? `You're active on this chat, so the automation is paused for this student until ${quietUntil.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' })} (${s.idle_minutes || 15} minutes after your last activity)`
-      : 'The AI agent answers this chat';
+  const StateIcon = human ? (s.sensitive ? ShieldAlert : UserRound) : Bot;
+  const tint = human ? (s.sensitive ? 'text-red-600' : 'text-amber-600') : 'text-[#54656F]';
+  const dot = human ? (s.sensitive ? 'bg-red-500' : 'bg-amber-500') : quiet ? 'bg-emerald-500' : '';
+
+  const quietTime = quietUntil
+    ? quietUntil.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' })
+    : '';
+
+  const statusLabel = human
+    ? s.sensitive
+      ? 'A person has this chat (sensitive)'
+      : `A person has this chat · ${REASONS[s.reason] || 'taken over'}`
+    : quiet
+      ? 'AI agent · paused while you work'
+      : 'AI agent is answering';
+
+  const statusHint = human
+    ? s.sensitive
+      ? 'Comes back to the AI only when you close it'
+      : s.resume_at
+        ? `Back to the AI at ${new Date(s.resume_at).toLocaleString('en-AU', { weekday: 'short', hour: 'numeric', minute: '2-digit' })} if nobody hands it back`
+        : 'The AI stays quiet until you hand it back'
+    : quiet
+      ? `You're active on this chat, so the agent is paused until ${quietTime} (${s.idle_minutes || 15} min after your last activity)`
+      : null;
 
   return (
-    <div className="mr-1 flex shrink-0 items-center gap-1.5" title={title}>
-      <span
-        className={cn(
-          'hidden items-center gap-1 whitespace-nowrap rounded-full px-2 py-1 text-[11px] font-medium lg:flex',
-          !human && 'bg-emerald-50 text-emerald-700',
-          human && !s.sensitive && 'bg-amber-50 text-amber-800',
-          human && s.sensitive && 'bg-red-50 text-red-700',
-        )}
-      >
-        {human ? (s.sensitive ? <ShieldAlert className="h-3.5 w-3.5" /> : <UserRound className="h-3.5 w-3.5" />) : <Bot className="h-3.5 w-3.5" />}
-        {human ? `Person · ${REASONS[s.reason] || 'needs a person'}` : quietUntil ? 'AI · paused while you work' : 'AI agent'}
-      </span>
-      {!human && quietUntil && (
-        // Your recent message keeps the agent quiet; this lets it reply now.
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         <button
           type="button"
-          disabled={busy}
-          onClick={() => act('return_to_ai')}
-          className="rounded-full border border-black/10 bg-white px-2.5 py-1 text-[12px] font-medium text-[#111B21] hover:bg-black/[0.04] disabled:opacity-50"
+          aria-label="Chat automation options"
+          title={statusLabel}
+          className={cn('relative rounded-full p-2 hover:bg-black/[0.06]', tint)}
         >
-          Let AI reply now
+          <MoreVertical className="h-5 w-5" />
+          {dot ? (
+            <span className={cn('absolute right-1.5 top-1.5 h-2 w-2 rounded-full ring-2 ring-white', dot)} />
+          ) : null}
         </button>
-      )}
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => act(human ? 'return_to_ai' : 'take_over')}
-        className="whitespace-nowrap rounded-full border border-black/10 bg-white px-2.5 py-1 text-[12px] font-medium text-[#111B21] hover:bg-black/[0.04] disabled:opacity-50"
-      >
-        {human ? (s.sensitive ? 'Close & return to AI' : 'Return to AI') : 'Take over'}
-      </button>
-    </div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-[240px]">
+        <div className="px-3 py-2">
+          <div className="flex items-center gap-2 text-[13px] font-medium text-gray-900">
+            <StateIcon className={cn('h-4 w-4 shrink-0', tint)} />
+            {statusLabel}
+          </div>
+          {statusHint ? <div className="mt-1 text-[12px] leading-snug text-gray-500">{statusHint}</div> : null}
+        </div>
+        <DropdownMenuSeparator />
+        {human ? (
+          <DropdownMenuItem disabled={busy} onSelect={() => act('return_to_ai')}>
+            <Bot className="h-4 w-4 text-emerald-600" />
+            {s.sensitive ? 'Close & turn the AI agent back on' : 'Turn the AI agent back on'}
+          </DropdownMenuItem>
+        ) : quiet ? (
+          <>
+            <DropdownMenuItem disabled={busy} onSelect={() => act('return_to_ai')}>
+              <Bot className="h-4 w-4 text-emerald-600" />
+              Let the AI reply now
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={busy} onSelect={() => act('take_over')}>
+              <UserRound className="h-4 w-4 text-amber-600" />
+              Take over — turn the AI off
+            </DropdownMenuItem>
+          </>
+        ) : (
+          <DropdownMenuItem disabled={busy} onSelect={() => act('take_over')}>
+            <UserRound className="h-4 w-4 text-amber-600" />
+            Take over — turn the AI off
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

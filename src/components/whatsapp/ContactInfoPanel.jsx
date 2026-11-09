@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Calendar,
   Check,
   ChevronRight,
   Clock,
   FileText,
   GraduationCap,
   Link2,
+  Target,
   Megaphone,
   Pencil,
   Phone,
@@ -36,6 +38,71 @@ const WINDOW_MS = 24 * 60 * 60 * 1000;
 
 
 const SOURCE_LABEL = { META: 'Meta ad', TIKTOK: 'TikTok ad', manual: 'Added manually', ad: 'Ad' };
+
+// Friendly labels for the LMS course_type codes.
+const COURSE_TYPE_LABEL = {
+  smart_quad: 'Smart Quad',
+  quad: 'Quad',
+  one_to_one: 'One-to-One',
+  o2o: 'One-to-One',
+  group: 'Group',
+  self_study: 'Self Study',
+  crash: 'Crash Course',
+};
+
+function courseTypeLabel(code) {
+  if (!code) return '';
+  return COURSE_TYPE_LABEL[String(code).toLowerCase()] || String(code).replace(/_/g, ' ');
+}
+
+function fmtDay(d) {
+  if (!d) return '';
+  const dt = new Date(d);
+  if (Number.isNaN(dt.getTime())) return '';
+  return dt.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// One past/upcoming class row: date · subject · tutor · status, with the
+// recording, transcript and meeting links the tutor panel also shows.
+function SessionRow({ s }) {
+  const links = [
+    s.recording_link ? { href: s.recording_link, label: 'Recording', icon: Video } : null,
+    s.transcript_link ? { href: s.transcript_link, label: 'Transcript', icon: FileText } : null,
+    s.meet_link ? { href: s.meet_link, label: 'Join', icon: Link2 } : null,
+  ].filter(Boolean);
+  return (
+    <div className="rounded-lg bg-[#F5F6F6] px-2.5 py-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="truncate text-[13px] font-medium text-[#111B21]">
+          {fmtDay(s.date) || 'Session'}
+          {s.subject ? ` · ${s.subject}` : ''}
+        </span>
+        {s.status ? <span className="shrink-0 text-[11px] text-[#8696A0]">{s.status}</span> : null}
+      </div>
+      {s.tutor ? <div className="mt-0.5 text-[12px] text-[#667781]">with {s.tutor}</div> : null}
+      {s.summary ? <div className="mt-1 text-[12px] leading-snug text-[#3B4A54]">{s.summary}</div> : null}
+      {links.length ? (
+        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
+          {links.map((l, i) => {
+            const LinkIcon = l.icon;
+            return (
+              <a
+                key={i}
+                href={l.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[12px] text-[#027EB5] hover:underline"
+              >
+                <LinkIcon className="h-3.5 w-3.5" />
+                {l.label}
+              </a>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function Card({ title, action, children, className }) {
   return (
@@ -447,24 +514,68 @@ export function ContactInfoPanel({ onClose }) {
 
         {student ? (
           <Card title="Course & sessions">
-            {(student.courses || []).map((c, i) => (
-              <InfoRow
-                key={i}
-                icon={GraduationCap}
-                label={c.subject || 'Course'}
-                value={
-                  <span>
-                    {c.course_type ? `${String(c.course_type).replace(/_/g, ' ')} · ` : ''}
-                    <span className={c.status === 'active' ? 'text-[#008069]' : 'text-[#667781]'}>
-                      {c.status || ''}
+            {/* Courses: type, status, expiry and exam date */}
+            {(student.courses || []).map((c, i) => {
+              const expired = c.expiry && new Date(c.expiry).getTime() < Date.now();
+              return (
+                <div key={i} className="border-b border-[#F0F2F3] py-2.5 first:pt-0 last:border-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2 text-[15px] text-[#111B21]">
+                      <GraduationCap className="h-4 w-4 shrink-0 text-[#8696A0]" />
+                      <span className="truncate font-medium">
+                        {c.subject || 'Course'}
+                        {courseTypeLabel(c.course_type) ? ` · ${courseTypeLabel(c.course_type)}` : ''}
+                      </span>
+                    </div>
+                    <span
+                      className={cn(
+                        'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium',
+                        c.status === 'active' ? 'bg-[#E7FCE3] text-[#008069]' : 'bg-[#E9EDEF] text-[#667781]',
+                      )}
+                    >
+                      {c.status || '—'}
                     </span>
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 pl-6 text-[12px] text-[#667781]">
+                    {c.start_date ? <span>Started {fmtDay(c.start_date)}</span> : null}
+                    {c.expiry ? (
+                      <span className={expired ? 'font-medium text-[#E53935]' : ''}>
+                        {expired ? 'Expired' : 'Expires'} {fmtDay(c.expiry)}
+                      </span>
+                    ) : null}
+                    {c.exam_date ? <span>Exam {fmtDay(c.exam_date)}</span> : null}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Target / previous score and booked exam */}
+            {student.target_score || student.previous_score || student.exam_deadline ? (
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1 py-2.5 text-[13px] text-[#667781]">
+                {student.target_score ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Target className="h-3.5 w-3.5 text-[#8696A0]" />
+                    Target <b className="text-[#111B21]">{student.target_score}</b>
                   </span>
-                }
-              />
-            ))}
-            <div className="px-4 py-3">
+                ) : null}
+                {student.previous_score ? (
+                  <span>
+                    Previous <b className="text-[#111B21]">{student.previous_score}</b>
+                  </span>
+                ) : null}
+                {student.exam_deadline ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Calendar className="h-3.5 w-3.5 text-[#8696A0]" />
+                    Exam <b className="text-[#111B21]">{fmtDay(student.exam_deadline)}</b>
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+
+            {/* One-to-one session allowance */}
+            <div className="py-2.5">
               <div className="flex items-center justify-between text-[13px]">
-                <span className="text-[#667781]">1-to-1 sessions</span>
+                <span className="text-[#667781]">One-to-one sessions</span>
                 <span className="font-medium text-[#111B21]">
                   {student.sessions.used}/{student.sessions.quota} used · {student.sessions.remaining} left
                 </span>
@@ -481,14 +592,48 @@ export function ContactInfoPanel({ onClose }) {
                   }}
                 />
               </div>
+              {student.sessions.completed || student.sessions.booked ? (
+                <div className="mt-1 text-[12px] text-[#8696A0]">
+                  {student.sessions.completed ? `${student.sessions.completed} completed` : ''}
+                  {student.sessions.completed && student.sessions.booked ? ' · ' : ''}
+                  {student.sessions.booked ? `${student.sessions.booked} booked` : ''}
+                </div>
+              ) : null}
             </div>
-            {(student.recordings || []).length ? (
-              <div className="px-4 pb-3">
+
+            {/* Upcoming classes */}
+            {(student.upcoming_sessions || []).length ? (
+              <div className="py-2">
+                <div className="mb-1.5 text-[12px] font-medium uppercase tracking-wide text-[#8696A0]">
+                  Upcoming classes
+                </div>
+                <div className="space-y-1.5">
+                  {student.upcoming_sessions.slice(0, 5).map((s, i) => (
+                    <SessionRow key={i} s={s} />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {/* Past classes with recordings & transcripts */}
+            {(student.past_sessions || []).length ? (
+              <div className="py-2">
+                <div className="mb-1.5 text-[12px] font-medium uppercase tracking-wide text-[#8696A0]">
+                  Previous classes
+                </div>
+                <div className="space-y-1.5">
+                  {student.past_sessions.slice(0, 10).map((s, i) => (
+                    <SessionRow key={i} s={s} />
+                  ))}
+                </div>
+              </div>
+            ) : (student.recordings || []).length ? (
+              <div className="py-2">
                 <div className="mb-1.5 text-[12px] font-medium uppercase tracking-wide text-[#8696A0]">
                   Class recordings
                 </div>
                 <div className="space-y-1.5">
-                  {student.recordings.slice(0, 5).map((r, i) => (
+                  {student.recordings.slice(0, 10).map((r, i) => (
                     <a
                       key={i}
                       href={r.url}
@@ -498,9 +643,7 @@ export function ContactInfoPanel({ onClose }) {
                     >
                       <Video className="h-3.5 w-3.5 shrink-0" />
                       <span className="truncate">
-                        {r.date
-                          ? new Date(r.date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
-                          : 'Session'}
+                        {fmtDay(r.date) || 'Session'}
                         {r.tutor ? ` · ${r.tutor}` : ''}
                       </span>
                     </a>
@@ -508,21 +651,28 @@ export function ContactInfoPanel({ onClose }) {
                 </div>
               </div>
             ) : null}
+
+            {/* All session notes */}
             {(student.notes || []).length ? (
-              <div className="px-4 pb-3">
+              <div className="py-2">
                 <div className="mb-1.5 text-[12px] font-medium uppercase tracking-wide text-[#8696A0]">
                   Session notes
                 </div>
                 <div className="space-y-1.5">
-                  {student.notes.slice(0, 2).map((n, i) => (
-                    <div key={i} className="rounded-lg bg-white p-2 text-[13px] text-[#111B21]">
+                  {student.notes.slice(0, 10).map((n, i) => (
+                    <div key={i} className="rounded-lg bg-[#F5F6F6] p-2.5 text-[13px] text-[#111B21]">
                       <div className="mb-0.5 text-[11px] text-[#8696A0]">
-                        {n.date
-                          ? new Date(n.date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
-                          : ''}
+                        {fmtDay(n.date)}
+                        {n.subject ? ` · ${n.subject}` : ''}
                         {n.tutor ? ` · ${n.tutor}` : ''}
                       </div>
-                      {n.summary || n.note}
+                      {n.summary ? <div className="leading-snug">{n.summary}</div> : null}
+                      {n.note ? <div className="mt-0.5 leading-snug text-[#3B4A54]">{n.note}</div> : null}
+                      {n.next_steps ? (
+                        <div className="mt-1 text-[12px] text-[#667781]">
+                          <span className="font-medium">Next:</span> {n.next_steps}
+                        </div>
+                      ) : null}
                     </div>
                   ))}
                 </div>
