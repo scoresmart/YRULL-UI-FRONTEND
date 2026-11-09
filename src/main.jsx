@@ -12,6 +12,15 @@ import { supabase } from './lib/supabase';
 import { useAuthStore } from './store/authStore';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { checkEnvVars } from './lib/envCheck';
+import { registerServiceWorker } from './lib/push';
+
+// Register the service worker so the app can receive push notifications
+// (and so iOS treats it as an installed PWA). Best-effort; never blocks boot.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    registerServiceWorker();
+  });
+}
 
 // Validate env vars on startup
 const envResult = checkEnvVars();

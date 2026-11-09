@@ -42,6 +42,7 @@ import { useWhatsAppIntegration } from '../../hooks/useWhatsAppIntegration';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { supabase } from '../../lib/supabase';
 import { workspaceMembersApi, notificationPrefsApi, accountApi } from '../../lib/api';
+import { getPushState, enablePush, disablePush, isiOS, isStandalone } from '../../lib/push';
 import { ENV } from '../../lib/env';
 import { cn, initialsFromName, pastelClassFromString, formatRelativeTime } from '../../lib/utils';
 
@@ -696,13 +697,38 @@ function NotificationsTab() {
     onSuccess: () => toast.success('Preference updated', { id: 'notif-pref' }),
   });
 
-  const [pushEnabled, setPushEnabled] = useState(Notification.permission === 'granted');
+  const [push, setPush] = useState({ supported: true, subscribed: false, permission: 'default' });
+  const [pushBusy, setPushBusy] = useState(false);
+  const needsInstall = isiOS() && !isStandalone();
 
-  async function requestPush() {
-    const result = await Notification.requestPermission();
-    setPushEnabled(result === 'granted');
-    if (result === 'granted') toast.success('Browser notifications enabled');
-    else toast.error('Browser notifications were denied');
+  useEffect(() => {
+    getPushState().then(setPush);
+  }, []);
+
+  async function enablePushNotifications() {
+    setPushBusy(true);
+    try {
+      await enablePush();
+      setPush(await getPushState());
+      toast.success('Notifications on — you’ll be alerted to new messages');
+    } catch (err) {
+      toast.error(err.message || 'Could not enable notifications');
+    } finally {
+      setPushBusy(false);
+    }
+  }
+
+  async function disablePushNotifications() {
+    setPushBusy(true);
+    try {
+      await disablePush();
+      setPush(await getPushState());
+      toast.success('Notifications off on this device');
+    } catch (err) {
+      toast.error(err.message || 'Could not turn off notifications');
+    } finally {
+      setPushBusy(false);
+    }
   }
 
   if (isLoading)
@@ -741,21 +767,39 @@ function NotificationsTab() {
           );
         })}
 
-        {/* Browser push */}
+        {/* Push notifications to this device */}
         <div className="rounded-xl border border-gray-100 p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <Bell className="h-4 w-4 text-gray-400" />
-              <span className="text-sm font-medium text-gray-900">Browser push notifications</span>
+              <span className="text-sm font-medium text-gray-900">Push notifications on this device</span>
             </div>
-            {pushEnabled ? (
-              <Badge variant="success">Enabled</Badge>
+            {push.subscribed ? (
+              <div className="flex items-center gap-2">
+                <Badge variant="success">On</Badge>
+                <Button size="sm" variant="outline" onClick={disablePushNotifications} disabled={pushBusy}>
+                  Turn off
+                </Button>
+              </div>
             ) : (
-              <Button size="sm" variant="outline" onClick={requestPush}>
-                Enable
+              <Button size="sm" variant="outline" onClick={enablePushNotifications} disabled={pushBusy || needsInstall}>
+                {pushBusy ? 'Enabling…' : 'Enable'}
               </Button>
             )}
           </div>
+          {needsInstall ? (
+            <div className="mt-2 text-xs text-gray-500">
+              On iPhone: tap Share → “Add to Home Screen”, open the app from there, then enable notifications.
+            </div>
+          ) : push.permission === 'denied' ? (
+            <div className="mt-2 text-xs text-gray-500">
+              Notifications are blocked in your browser settings for this site — allow them there, then enable.
+            </div>
+          ) : (
+            <div className="mt-2 text-xs text-gray-500">
+              Get alerted on this device when a new message arrives.
+            </div>
+          )}
         </div>
       </div>
     </Card>
