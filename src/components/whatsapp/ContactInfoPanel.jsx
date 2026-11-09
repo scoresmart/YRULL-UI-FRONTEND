@@ -16,6 +16,7 @@ import {
   Search,
   Tag,
   Trash2,
+  Video,
   X,
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -24,7 +25,7 @@ import { cn, initialsFromName, pastelClassFromString, formatRelativeTime, format
 import { useChatStore } from '../../store/chatStore';
 import { useCallStore } from '../../store/callStore';
 import { useAuthStore } from '../../store/authStore';
-import { useContacts, useMessages, useTags, useContactTags } from '../../lib/dataHooks';
+import { useContacts, useMessages, useTags, useContactTags, useStudent } from '../../lib/dataHooks';
 import { whatsappApi, notesApi, tagsApi } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { ENV } from '../../lib/env';
@@ -125,6 +126,12 @@ export function ContactInfoPanel({ onClose }) {
     () => appliedTags.find((t) => /enrol/i.test(t.name || '')),
     [appliedTags],
   );
+
+  // LMS student record (course, sessions, notes, recordings) matched by phone.
+  // Inert/empty until the backend endpoint + LMS key are live; only shows for
+  // contacts that match an enrolled student.
+  const studentQ = useStudent(selectedWaId);
+  const student = studentQ.data?.found ? studentQ.data : null;
 
   const availableTags = useMemo(() => {
     const appliedIds = new Set(appliedTags.map((t) => t.id));
@@ -437,6 +444,92 @@ export function ContactInfoPanel({ onClose }) {
             <ActionButton icon={Search} label="Search" onClick={requestChatSearch} disabled={!contact} />
           </div>
         </Card>
+
+        {student ? (
+          <Card title="Course & sessions">
+            {(student.courses || []).map((c, i) => (
+              <InfoRow
+                key={i}
+                icon={GraduationCap}
+                label={c.subject || 'Course'}
+                value={
+                  <span>
+                    {c.course_type ? `${String(c.course_type).replace(/_/g, ' ')} · ` : ''}
+                    <span className={c.status === 'active' ? 'text-[#008069]' : 'text-[#667781]'}>
+                      {c.status || ''}
+                    </span>
+                  </span>
+                }
+              />
+            ))}
+            <div className="px-4 py-3">
+              <div className="flex items-center justify-between text-[13px]">
+                <span className="text-[#667781]">1-to-1 sessions</span>
+                <span className="font-medium text-[#111B21]">
+                  {student.sessions.used}/{student.sessions.quota} used · {student.sessions.remaining} left
+                </span>
+              </div>
+              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[#E9EDEF]">
+                <div
+                  className="h-full rounded-full bg-[#25D366]"
+                  style={{
+                    width: `${
+                      student.sessions.quota
+                        ? Math.min(100, Math.round((student.sessions.used / student.sessions.quota) * 100))
+                        : 0
+                    }%`,
+                  }}
+                />
+              </div>
+            </div>
+            {(student.recordings || []).length ? (
+              <div className="px-4 pb-3">
+                <div className="mb-1.5 text-[12px] font-medium uppercase tracking-wide text-[#8696A0]">
+                  Class recordings
+                </div>
+                <div className="space-y-1.5">
+                  {student.recordings.slice(0, 5).map((r, i) => (
+                    <a
+                      key={i}
+                      href={r.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-[13px] text-[#027EB5] hover:underline"
+                    >
+                      <Video className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">
+                        {r.date
+                          ? new Date(r.date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+                          : 'Session'}
+                        {r.tutor ? ` · ${r.tutor}` : ''}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {(student.notes || []).length ? (
+              <div className="px-4 pb-3">
+                <div className="mb-1.5 text-[12px] font-medium uppercase tracking-wide text-[#8696A0]">
+                  Session notes
+                </div>
+                <div className="space-y-1.5">
+                  {student.notes.slice(0, 2).map((n, i) => (
+                    <div key={i} className="rounded-lg bg-white p-2 text-[13px] text-[#111B21]">
+                      <div className="mb-0.5 text-[11px] text-[#8696A0]">
+                        {n.date
+                          ? new Date(n.date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+                          : ''}
+                        {n.tutor ? ` · ${n.tutor}` : ''}
+                      </div>
+                      {n.summary || n.note}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </Card>
+        ) : null}
 
         {/* Details */}
         <Card title="About">

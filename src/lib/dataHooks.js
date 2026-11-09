@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { ENV } from './env';
 import { supabase } from './supabase';
 import { mockDb } from './mockData';
-import { tagsApi, instagramApi, conversationsApi } from './api';
+import { tagsApi, instagramApi, conversationsApi, studentApi } from './api';
 import { useAuthStore } from '../store/authStore';
 
 async function fromSupabase(table, opts = {}) {
@@ -227,6 +227,17 @@ export function useMessages(waId) {
 
       return result;
     },
+  });
+}
+
+export function useStudent(waId) {
+  return useQuery({
+    queryKey: ['student', waId],
+    enabled: Boolean(waId),
+    staleTime: 300000, // LMS data changes slowly; cache 5 min
+    gcTime: 600000,
+    retry: 1,
+    queryFn: () => studentApi.get(waId),
   });
 }
 
