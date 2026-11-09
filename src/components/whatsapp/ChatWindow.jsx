@@ -3,9 +3,7 @@ import {
   Send,
   Tag,
   Phone,
-  PhoneIncoming,
   ArrowLeft,
-  Info,
   Mic,
   StopCircle,
   FileText,
@@ -761,7 +759,6 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
           </button>
         </div>
         <div className="flex shrink-0 items-center gap-0.5 text-[#54656F]">
-          <HandoffControl waId={contact?.wa_id} />
           <button
             className={cn('rounded-full p-2 hover:bg-black/[0.06]', searchOpen && 'bg-black/[0.06]')}
             type="button"
@@ -781,21 +778,8 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
           >
             <Phone className="h-5 w-5" />
           </button>
-          {/* Sends a tappable call button so THEY can call us — needed when the
-              contact hasn't granted permission for us to call them. */}
-          <button
-            className={cn(
-              'rounded-full p-2 hover:bg-black/[0.06]',
-              callingUser && 'animate-pulse cursor-wait text-[#25D366]',
-            )}
-            type="button"
-            aria-label="Send call button"
-            title="Send a call button so they can call you"
-            onClick={onSendCallButton}
-            disabled={callingUser}
-          >
-            <PhoneIncoming className="h-5 w-5" />
-          </button>
+          {/* The "send a call button so they can call you" action lives in the
+              composer + menu, so it isn't duplicated here. */}
           <button
             className="rounded-full p-2 hover:bg-black/[0.06]"
             type="button"
@@ -811,16 +795,6 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
           >
             <Tag className="h-5 w-5" />
           </button>
-          {onToggleInfo && (
-            <button
-              className="rounded-full p-2 hover:bg-black/[0.06]"
-              type="button"
-              aria-label="Contact info"
-              onClick={onToggleInfo}
-            >
-              <Info className="h-5 w-5" />
-            </button>
-          )}
         </div>
       </div>
 
@@ -1062,6 +1036,7 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
             </div>
           ) : null}
           <div className="flex items-end gap-1 px-3 py-2 text-[#54656F]">
+            <HandoffControl waId={contact?.wa_id} />
             <EmojiButton onPick={insertEmoji} disabled={recording} />
             <AttachButton
               to={contact?.wa_id}
