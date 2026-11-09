@@ -89,11 +89,9 @@ function SessionCard({ s }) {
   ].filter(Boolean);
   const hasDetail = Boolean(s.summary || s.note || s.next_steps || links.length);
   const time = s.time || fmtTime(s.date);
-  const sub = [s.tutor ? `with ${s.tutor}` : '', s.status || '']
-    .filter(Boolean)
-    .join(' · ');
+  const isCancelled = s.kind === 'cancelled';
   return (
-    <div className="rounded-lg bg-[#F5F6F6]">
+    <div className={cn('rounded-lg bg-[#F5F6F6]', isCancelled && 'opacity-90')}>
       <button
         type="button"
         onClick={() => hasDetail && setOpen((o) => !o)}
@@ -124,7 +122,15 @@ function SessionCard({ s }) {
             {fmtDay(s.date) || 'Session'}
             {time ? ` · ${time}` : ''}
           </span>
-          {sub ? <span className="block truncate text-[11px] text-[#667781]">{sub}</span> : null}
+          {s.tutor || s.status ? (
+            <span className="block truncate text-[11px] text-[#667781]">
+              {s.tutor ? `with ${s.tutor}` : ''}
+              {s.tutor && s.status ? ' · ' : ''}
+              {s.status ? (
+                <span className={isCancelled ? 'font-medium text-[#E53935]' : ''}>{s.status}</span>
+              ) : null}
+            </span>
+          ) : null}
         </span>
         {hasDetail ? (
           <ChevronRight
@@ -679,11 +685,15 @@ export function ContactInfoPanel({ onClose }) {
                   }}
                 />
               </div>
-              {student.sessions.completed || student.sessions.booked ? (
+              {student.sessions.completed || student.sessions.booked || student.sessions.cancelled ? (
                 <div className="mt-1 text-[12px] text-[#8696A0]">
-                  {student.sessions.completed ? `${student.sessions.completed} completed` : ''}
-                  {student.sessions.completed && student.sessions.booked ? ' · ' : ''}
-                  {student.sessions.booked ? `${student.sessions.booked} booked` : ''}
+                  {[
+                    student.sessions.completed ? `${student.sessions.completed} completed` : '',
+                    student.sessions.booked ? `${student.sessions.booked} booked` : '',
+                    student.sessions.cancelled ? `${student.sessions.cancelled} cancelled` : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </div>
               ) : null}
             </div>
