@@ -566,6 +566,14 @@ export const studentApi = {
   get: (waId) => apiJSON('GET', `/api/students/${encodeURIComponent(waId)}`),
 };
 
+// Web Push (PWA notifications). vapidKey is public; subscribe/unsubscribe are
+// workspace-scoped (require sign-in).
+export const pushApi = {
+  vapidKey: () => apiJSON('GET', '/api/push/vapid-key'),
+  subscribe: (subscription) => apiJSON('POST', '/api/push/subscribe', { body: JSON.stringify(subscription) }),
+  unsubscribe: (endpoint) => apiJSON('POST', '/api/push/unsubscribe', { body: JSON.stringify({ endpoint }) }),
+};
+
 // -- Instagram API ------------------------------------------------------------
 
 export const instagramApi = {
