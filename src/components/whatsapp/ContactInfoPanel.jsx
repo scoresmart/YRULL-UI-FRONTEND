@@ -261,6 +261,8 @@ export function ContactInfoPanel({ onClose }) {
   // contacts that match an enrolled student.
   const studentQ = useStudent(selectedWaId);
   const student = studentQ.data?.found ? studentQ.data : null;
+  // First load with nothing cached yet — show a skeleton instead of a blank gap.
+  const studentLoading = Boolean(selectedWaId) && studentQ.isLoading && !studentQ.data;
 
   const availableTags = useMemo(() => {
     const appliedIds = new Set(appliedTags.map((t) => t.id));
@@ -576,6 +578,24 @@ export function ContactInfoPanel({ onClose }) {
             <ActionButton icon={Search} label="Search" onClick={requestChatSearch} disabled={!contact} />
           </div>
         </Card>
+
+        {studentLoading ? (
+          <Card title="Course & sessions">
+            <div className="animate-pulse space-y-3 py-1">
+              <div className="flex items-center justify-between">
+                <div className="h-4 w-20 rounded bg-[#E9EDEF]" />
+                <div className="h-4 w-14 rounded-full bg-[#E9EDEF]" />
+              </div>
+              <div className="h-3 w-40 rounded bg-[#E9EDEF]" />
+              <div className="h-3 w-32 rounded bg-[#E9EDEF]" />
+              <div className="mt-2 h-1.5 w-full rounded-full bg-[#E9EDEF]" />
+              <div className="space-y-1.5 pt-2">
+                <div className="h-11 w-full rounded-lg bg-[#F0F2F3]" />
+                <div className="h-11 w-full rounded-lg bg-[#F0F2F3]" />
+              </div>
+            </div>
+          </Card>
+        ) : null}
 
         {student ? (
           <Card title="Course & sessions">

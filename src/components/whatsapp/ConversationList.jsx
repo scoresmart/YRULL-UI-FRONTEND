@@ -207,7 +207,10 @@ const ConversationRow = memo(function ConversationRow({
                 'rounded-full p-0.5 transition-opacity',
                 isFavourite
                   ? 'text-[#F5B700] opacity-100'
-                  : 'text-[#8696A0] opacity-0 group-hover:opacity-100',
+                  : // Hidden until hover on desktop, but always shown on touch
+                    // devices: a hover-revealed clickable child makes iOS need a
+                    // second tap to open the chat.
+                    'text-[#8696A0] opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100',
               )}
             >
               <Star className="h-3.5 w-3.5" fill={isFavourite ? 'currentColor' : 'none'} />
