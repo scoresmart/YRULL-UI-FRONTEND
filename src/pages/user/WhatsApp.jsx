@@ -9,11 +9,21 @@ import { useRealtime } from '../../hooks/useRealtime';
 import { useWhatsAppIntegration } from '../../hooks/useWhatsAppIntegration';
 import { useIsMobile, useIsDesktop } from '../../hooks/useMediaQuery';
 import { ENV } from '../../lib/env';
+import toast from 'react-hot-toast';
 import { useChatStore } from '../../store/chatStore';
 import { useContacts, useTags, useContactTags } from '../../lib/dataHooks';
-import { cn } from '../../lib/utils';
+import { cn, formatPhone } from '../../lib/utils';
 import { tagDot } from '../../lib/tagColors';
 import { MessageSquare, Loader2, ChevronLeft, ChevronRight, Users, UserCheck, Clock, Plus } from 'lucide-react';
+
+const MEDIA_PREVIEW = {
+  image: '📷 Photo',
+  audio: '🎤 Voice message',
+  video: '🎥 Video',
+  document: '📄 Document',
+  sticker: 'Sticker',
+  location: '📍 Location',
+};
 
 
 function LabelsSidebar({ collapsed, onToggle }) {
@@ -219,6 +229,43 @@ export function WhatsAppPage() {
           setTimeout(() => {
             processingMessages.current.delete(msgKey);
           }, 1000);
+
+          // WhatsApp-style in-app banner: a new inbound message from a chat you
+          // are NOT currently viewing shows a tappable toast. Only while the app
+          // is on screen — when it's backgrounded or closed, the push
+          // notification covers it instead (so you never get both).
+          const openChat = useChatStore.getState().selectedWaId;
+          if (
+            newMsg.direction === 'inbound' &&
+            typeof document !== 'undefined' &&
+            document.visibilityState === 'visible' &&
+            openChat &&
+            waId !== openChat
+          ) {
+            const contactsData = queryClient.getQueryData(['whatsapp_contacts']);
+            const list = Array.isArray(contactsData) ? contactsData : contactsData?.contacts || [];
+            const name = list.find((c) => c.wa_id === waId)?.name || formatPhone(waId) || waId;
+            const preview =
+              newMsg.message_type && newMsg.message_type !== 'text'
+                ? MEDIA_PREVIEW[newMsg.message_type] || 'New message'
+                : (newMsg.body || '').trim() || 'New message';
+            toast(
+              (t) => (
+                <button
+                  type="button"
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    useChatStore.getState().setSelectedWaId(waId);
+                  }}
+                  className="flex w-full flex-col items-start gap-0.5 text-left"
+                >
+                  <span className="text-[13px] font-semibold">{name}</span>
+                  <span className="line-clamp-2 text-[12px] opacity-90">{preview}</span>
+                </button>
+              ),
+              { id: `wa-inapp-${waId}`, duration: 4000 },
+            );
+          }
 
           queryClient.setQueryData(['whatsapp_messages', waId], (oldData) => {
             if (!oldData) return [newMsg];
