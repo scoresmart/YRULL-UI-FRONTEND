@@ -24,8 +24,8 @@ export function TopNav() {
   const avatarCls = pastelClassFromString(email);
 
   return (
-    <header className="sticky top-0 z-30 h-14 border-b border-brand-border bg-white sm:h-16">
-      <div className="flex h-full items-center justify-between px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-30 border-b border-brand-border bg-white pt-[env(safe-area-inset-top)]">
+      <div className="flex h-14 items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
           {!isDesktop && (
             <button
