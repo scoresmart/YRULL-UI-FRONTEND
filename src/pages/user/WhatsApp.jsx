@@ -184,6 +184,28 @@ export function WhatsAppPage() {
     setSelectedWaId(chat || null);
   }, [setSelectedWaId]);
 
+  // Mobile: the phone/browser Back button should close the contact panel first
+  // (returning to the chat), not jump straight back to the dashboard. Push a
+  // history entry while the panel is open and close it on Back.
+  useEffect(() => {
+    if (!isMobile || !showContactInfo) return undefined;
+    window.history.pushState({ waPanel: true }, '');
+    const onPop = () => setShowContactInfo(false);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [isMobile, showContactInfo]);
+
+  // Close the panel through history on mobile so the pushed entry is consumed;
+  // directly on desktop.
+  const closeContactInfo = () => {
+    if (isMobile && window.history.state?.waPanel) window.history.back();
+    else setShowContactInfo(false);
+  };
+  const toggleContactInfo = () => {
+    if (showContactInfo) closeContactInfo();
+    else setShowContactInfo(true);
+  };
+
   useRealtime({
     enabled: !ENV.USE_MOCK && wa.connected,
     onMessage: (payload) => {
@@ -363,24 +385,24 @@ export function WhatsAppPage() {
               <ChatWindow
                 connected={wa.connected}
                 onBack={() => setSelectedWaId(null)}
-                onToggleInfo={() => setShowContactInfo((v) => !v)}
+                onToggleInfo={toggleContactInfo}
                 className="h-full w-full"
               />
             </div>
           ) : (
             <ChatWindow
               connected={wa.connected}
-              onToggleInfo={() => setShowContactInfo((v) => !v)}
+              onToggleInfo={toggleContactInfo}
               className="flex-1"
             />
           ))}
         {showContactInfo &&
           (isMobile ? (
             <div className="fixed inset-0 z-50 bg-white">
-              <ContactInfoPanel onClose={() => setShowContactInfo(false)} />
+              <ContactInfoPanel onClose={closeContactInfo} />
             </div>
           ) : (
-            <ContactInfoPanel onClose={() => setShowContactInfo(false)} />
+            <ContactInfoPanel onClose={closeContactInfo} />
           ))}
       </div>
       <IncomingCallNotification />

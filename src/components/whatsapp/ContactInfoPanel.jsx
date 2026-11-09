@@ -46,6 +46,29 @@ function fmtDay(d) {
   return dt.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+// Scores can be a plain value ("79") or a per-skill JSON string
+// ({"speaking":"90",...}). Show one number when every skill is equal,
+// otherwise a compact "S90 R90 W79 L90".
+function fmtScore(v) {
+  if (v == null || v === '') return '';
+  if (typeof v === 'number') return String(v);
+  const s = String(v).trim();
+  if (!s.startsWith('{')) return s;
+  try {
+    const o = JSON.parse(s);
+    const vals = Object.values(o).map((x) => String(x));
+    if (!vals.length) return '';
+    if (vals.every((x) => x === vals[0])) return vals[0];
+    const order = ['speaking', 'reading', 'writing', 'listening'];
+    return Object.keys(o)
+      .sort((a, b) => order.indexOf(a) - order.indexOf(b))
+      .map((k) => `${k[0].toUpperCase()}${o[k]}`)
+      .join(' ');
+  } catch {
+    return s;
+  }
+}
+
 function fmtTime(d) {
   if (!d || !String(d).includes('T')) return '';
   const dt = new Date(d);
@@ -65,7 +88,7 @@ function SessionCard({ s }) {
     s.meet_link ? { href: s.meet_link, label: 'Join', icon: Link2 } : null,
   ].filter(Boolean);
   const hasDetail = Boolean(s.summary || s.note || s.next_steps || links.length);
-  const time = fmtTime(s.date);
+  const time = s.time || fmtTime(s.date);
   const sub = [s.tutor ? `with ${s.tutor}` : '', s.subject || '', s.status || '']
     .filter(Boolean)
     .join(' · ');
@@ -76,14 +99,26 @@ function SessionCard({ s }) {
         onClick={() => hasDetail && setOpen((o) => !o)}
         className={cn('flex w-full items-center gap-2.5 px-2 py-1.5 text-left', !hasDetail && 'cursor-default')}
       >
-        <span
-          className={cn(
-            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold',
-            pastelClassFromString(s.tutor || 'Tutor'),
-          )}
-        >
-          {initialsFromName(s.tutor || '·')}
-        </span>
+        {s.tutor_avatar ? (
+          <img
+            src={s.tutor_avatar}
+            alt={s.tutor || 'Tutor'}
+            className="h-8 w-8 shrink-0 rounded-full object-cover"
+            loading="lazy"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+        ) : (
+          <span
+            className={cn(
+              'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold',
+              pastelClassFromString(s.tutor || 'Tutor'),
+            )}
+          >
+            {initialsFromName(s.tutor || '·')}
+          </span>
+        )}
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[13px] font-medium text-[#111B21]">
             {fmtDay(s.date) || 'Session'}
@@ -444,7 +479,7 @@ export function ContactInfoPanel({ onClose }) {
         message: `Hi ${contact.name || ''}! Tap below to call us on WhatsApp.`.trim(),
         displayText: 'Call ScoreSmart',
       });
-      toast.success('Call button sent');
+      toast.success('Call button sent — they can call you from it', { duration: 2500 });
       queryClient.invalidateQueries({ queryKey: ['whatsapp_messages', selectedWaId] });
     } catch {
       // sendCallButton already shows the error
@@ -452,6 +487,10 @@ export function ContactInfoPanel({ onClose }) {
       setSendingCallButton(false);
     }
   };
+
+  // One button for both: if they've accepted calls we place the call, otherwise
+  // we send them the tappable call button so they can call us.
+  const onCallSmart = () => (permission?.can_call ? onCall() : onSendCallButton());
 
   const mediaToShow = showAllMedia ? shared.media : shared.media.slice(0, 3);
 
@@ -528,11 +567,10 @@ export function ContactInfoPanel({ onClose }) {
           ) : null}
 
           <div className="mt-5 flex gap-3">
-            <ActionButton icon={Phone} label="Call" onClick={onCall} disabled={!contact} />
             <ActionButton
-              icon={PhoneIncoming}
-              label={sendingCallButton ? 'Sending…' : 'Call link'}
-              onClick={onSendCallButton}
+              icon={Phone}
+              label={sendingCallButton ? 'Sending…' : 'Call'}
+              onClick={onCallSmart}
               disabled={!contact || sendingCallButton}
             />
             <ActionButton icon={Search} label="Search" onClick={requestChatSearch} disabled={!contact} />
@@ -581,15 +619,15 @@ export function ContactInfoPanel({ onClose }) {
             {/* Desired / previous score and exam date — one compact line */}
             {student.target_score || student.previous_score || student.exam_deadline || student.courses?.[0]?.exam_date ? (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2 text-[13px] text-[#667781]">
-                {student.target_score ? (
+                {fmtScore(student.target_score) ? (
                   <span className="inline-flex items-center gap-1">
                     <Target className="h-3.5 w-3.5 text-[#8696A0]" />
-                    Target <b className="text-[#111B21]">{student.target_score}</b>
+                    Target <b className="text-[#111B21]">{fmtScore(student.target_score)}</b>
                   </span>
                 ) : null}
-                {student.previous_score ? (
+                {fmtScore(student.previous_score) ? (
                   <span>
-                    Previous <b className="text-[#111B21]">{student.previous_score}</b>
+                    Previous <b className="text-[#111B21]">{fmtScore(student.previous_score)}</b>
                   </span>
                 ) : null}
                 {student.exam_deadline || student.courses?.[0]?.exam_date ? (
