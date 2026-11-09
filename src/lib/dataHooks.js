@@ -166,11 +166,14 @@ export function useMessages(waId) {
   return useQuery({
     queryKey: ['whatsapp_messages', waId],
     enabled: Boolean(waId),
-    // Real-time subscription handles new messages instantly via useRealtime.
-    // Only poll as a safety fallback every 30s.
-    refetchInterval: 30000,
+    // Real-time subscription (useRealtime) streams new messages into this exact
+    // cache key instantly, so this poll is only a slow safety net for a dropped
+    // socket. 120s (was 30s) cuts message-table reads ~4x and, critically, stops
+    // the ConversationList cache-listener from re-running a 500-row list fetch
+    // every 30s.
+    refetchInterval: 120000,
     refetchIntervalInBackground: false, // Don't poll when tab is in background
-    staleTime: 10000,
+    staleTime: 60000,
     gcTime: 300000, // Keep in cache for 5 minutes
     queryFn: async () => {
       if (!waId) return [];

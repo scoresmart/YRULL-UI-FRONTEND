@@ -15,6 +15,8 @@ import {
   Unplug,
   Phone,
   Building2,
+  Hash,
+  CalendarDays,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { integrationsApi } from '../../lib/api';
@@ -74,6 +76,18 @@ function WhatsAppIntegrationCard({ integration }) {
                 <div className="flex items-center gap-2 text-sm text-gray-500">
                   <Building2 className="h-3.5 w-3.5 text-gray-400" />
                   {wa.status.verified_name}
+                </div>
+              )}
+              {wa.status.phone_number_id && (
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <Hash className="h-3.5 w-3.5 text-gray-400" />
+                  {wa.status.phone_number_id}
+                </div>
+              )}
+              {wa.status.connected_at && (
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <CalendarDays className="h-3.5 w-3.5 text-gray-400" />
+                  Since {new Date(wa.status.connected_at).toLocaleDateString()}
                 </div>
               )}
             </div>

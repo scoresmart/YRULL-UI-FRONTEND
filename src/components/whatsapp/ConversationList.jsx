@@ -1,6 +1,7 @@
 import { memo, useCallback, useMemo, useEffect, useState, useRef } from 'react';
 import {
   ArrowDownUp,
+  Star,
   Camera,
   Check,
   CheckCheck,
@@ -157,6 +158,8 @@ const ConversationRow = memo(function ConversationRow({
   onSelect,
   tags,
   contactTags,
+  isFavourite,
+  onToggleFavourite,
 }) {
   const name = contact?.name || formatPhone(contact?.wa_id) || 'Unknown';
   const avatarCls = pastelClassFromString(contact?.wa_id ?? contact?.id);
@@ -189,13 +192,32 @@ const ConversationRow = memo(function ConversationRow({
       <div className="min-w-0 flex-1 border-b border-[#E9EDEF] py-3 pr-4">
         <div className="flex items-baseline justify-between gap-2">
           <div className="truncate text-[16px] leading-[21px] text-[#111B21]">{name}</div>
-          <div
-            className={cn(
-              'shrink-0 text-[12px] leading-[14px]',
-              unreadCount > 0 ? 'font-medium text-[#1DAA61]' : 'text-[#667781]',
-            )}
-          >
-            {time}
+          <div className="flex shrink-0 items-center gap-1.5">
+            <span
+              role="button"
+              tabIndex={-1}
+              aria-label={isFavourite ? 'Remove from favourites' : 'Add to favourites'}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavourite?.(contact.wa_id);
+              }}
+              className={cn(
+                'rounded-full p-0.5 transition-opacity',
+                isFavourite
+                  ? 'text-[#F5B700] opacity-100'
+                  : 'text-[#8696A0] opacity-0 group-hover:opacity-100',
+              )}
+            >
+              <Star className="h-3.5 w-3.5" fill={isFavourite ? 'currentColor' : 'none'} />
+            </span>
+            <span
+              className={cn(
+                'text-[12px] leading-[14px]',
+                unreadCount > 0 ? 'font-medium text-[#1DAA61]' : 'text-[#667781]',
+              )}
+            >
+              {time}
+            </span>
           </div>
         </div>
         <div className="mt-0.5 flex items-center justify-between gap-2">
@@ -239,6 +261,8 @@ export function ConversationList({ className }) {
   const setSelectedWaId = useChatStore((s) => s.setSelectedWaId);
   const setFilter = useChatStore((s) => s.setFilter);
   const setSort = useChatStore((s) => s.setSort);
+  const favouriteWaIds = useChatStore((s) => s.favouriteWaIds);
+  const toggleFavourite = useChatStore((s) => s.toggleFavourite);
   const queryClient = useQueryClient();
 
   const contactsQ = useContacts();
@@ -296,7 +320,7 @@ export function ConversationList({ className }) {
       if (contactsQ.data?.length && !document.hidden) {
         refreshUnreadCounts();
       }
-    }, 60000);
+    }, 120000);
     const onVisible = () => {
       if (!document.hidden && contactsQ.data?.length) refreshUnreadCounts();
     };
@@ -347,8 +371,9 @@ export function ConversationList({ className }) {
     // Filter by filter type
     if (filter === 'unread') {
       list = list.filter((c) => (unreadCounts[c.wa_id] ?? 0) > 0);
+    } else if (filter === 'favourites') {
+      list = list.filter((c) => favouriteWaIds.has(c.wa_id));
     }
-    // Note: 'assigned' and 'resolved' filters don't apply (no such fields in schema)
 
     // Filter by label/tag
     if (tagFilter) {
@@ -380,7 +405,7 @@ export function ConversationList({ className }) {
     });
 
     return list;
-  }, [contactsQ.data, debouncedSearch, filter, unreadCounts, lastMessages, sort, tagFilter, contactTagsQ.data]);
+  }, [contactsQ.data, debouncedSearch, filter, unreadCounts, lastMessages, sort, tagFilter, contactTagsQ.data, favouriteWaIds]);
 
   const totalUnreadChats = useMemo(
     () => Object.values(unreadCounts).filter((n) => n > 0).length,
@@ -426,8 +451,10 @@ export function ConversationList({ className }) {
           {[
             { value: 'all', label: 'All' },
             { value: 'unread', label: 'Unread' },
+            { value: 'favourites', label: 'Favourites' },
           ].map((opt) => {
-            const active = opt.value === 'unread' ? filter === 'unread' : filter !== 'unread';
+            const active =
+              opt.value === 'all' ? filter !== 'unread' && filter !== 'favourites' : filter === opt.value;
             return (
               <button
                 key={opt.value}
@@ -497,6 +524,8 @@ export function ConversationList({ className }) {
                 onSelect={onSelect}
                 tags={tagsQ.data ?? []}
                 contactTags={contactTagsQ.data ?? []}
+                isFavourite={favouriteWaIds.has(contact.wa_id)}
+                onToggleFavourite={toggleFavourite}
               />
             ))}
           </div>

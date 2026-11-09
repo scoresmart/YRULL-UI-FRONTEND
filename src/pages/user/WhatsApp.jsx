@@ -164,6 +164,9 @@ function LabelsSidebar({ collapsed, onToggle }) {
 export function WhatsAppPage() {
   const queryClient = useQueryClient();
   const processingMessages = useRef(new Set());
+  // Coalesce conversation-list invalidations: a burst of inbound messages should
+  // refetch the (1000-row) contact list once, not once per message.
+  const contactsInvalidateTimer = useRef(null);
   const selectedWaId = useChatStore((s) => s.selectedWaId);
   const setSelectedWaId = useChatStore((s) => s.setSelectedWaId);
   const wa = useWhatsAppIntegration();
@@ -224,7 +227,12 @@ export function WhatsAppPage() {
               return true;
             });
           });
-          queryClient.invalidateQueries({ queryKey: ['whatsapp_contacts'] });
+          if (!contactsInvalidateTimer.current) {
+            contactsInvalidateTimer.current = setTimeout(() => {
+              contactsInvalidateTimer.current = null;
+              queryClient.invalidateQueries({ queryKey: ['whatsapp_contacts'] });
+            }, 1500);
+          }
         }
       } catch (error) {
         console.error('Error processing real-time message:', error);
@@ -337,9 +345,7 @@ export function WhatsAppPage() {
 
   return (
     <div className="-mx-4 -my-4 h-[calc(100vh-56px)] sm:-mx-6 sm:-my-6 sm:h-[calc(100vh-64px)] lg:-mx-8 lg:-my-8">
-      <WhatsAppConnectionCard wa={wa} compact />
-
-      <div className="flex h-[calc(100%-56px)]">
+      <div className="flex h-full">
         {!isMobile && (
           <LabelsSidebar
             collapsed={sidebarCollapsed}

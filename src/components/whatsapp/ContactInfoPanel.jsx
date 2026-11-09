@@ -4,6 +4,7 @@ import {
   ChevronRight,
   Clock,
   FileText,
+  GraduationCap,
   Link2,
   Megaphone,
   Pencil,
@@ -118,6 +119,12 @@ export function ContactInfoPanel({ onClose }) {
     const ids = new Set(contactTagsQ.data.filter((ct) => contact.id && ct.contact_id === contact.id).map((ct) => ct.tag_id));
     return tagsQ.data.filter((tag) => ids.has(tag.id));
   }, [tagsQ.data, contactTagsQ.data, contact]);
+
+  // The LMS → tags sync applies an "Enrolled" label to students; surface it as a badge.
+  const enrolledTag = useMemo(
+    () => appliedTags.find((t) => /enrol/i.test(t.name || '')),
+    [appliedTags],
+  );
 
   const availableTags = useMemo(() => {
     const appliedIds = new Set(appliedTags.map((t) => t.id));
@@ -411,6 +418,13 @@ export function ContactInfoPanel({ onClose }) {
             </button>
           )}
           {displayPhone ? <div className="mt-1 text-[16px] text-[#667781]">{displayPhone}</div> : null}
+
+          {enrolledTag ? (
+            <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-[#E7FCE3] px-2.5 py-1 text-[13px] font-medium text-[#008069]">
+              <GraduationCap className="h-3.5 w-3.5" />
+              Enrolled student
+            </div>
+          ) : null}
 
           <div className="mt-5 flex gap-3">
             <ActionButton icon={Phone} label="Call" onClick={onCall} disabled={!contact} />
