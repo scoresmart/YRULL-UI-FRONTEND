@@ -48,6 +48,7 @@ import {
   PLACEHOLDER_RE,
   RECORD_TYPES,
   captionOf,
+  documentTypeLabel,
   failureReason,
   messagePreview,
   parseLocation,
@@ -360,6 +361,25 @@ export function MediaThumb({ msg, className }) {
   );
 }
 
+// A WhatsApp-style photo album: several photos/videos sent as one group. Meta
+// delivers them as individual image messages (no album id), so ChatWindow
+// correlates them and hands us the list; we lay them out in a grid that mirrors
+// WhatsApp — two across, with a wide lead tile when there are exactly three.
+function AlbumMessage({ items }) {
+  const n = items.length;
+  return (
+    <div className="grid w-[330px] max-w-full grid-cols-2 gap-[3px] overflow-hidden rounded-md">
+      {items.map((m, i) => (
+        <MediaThumb
+          key={m.id || m.wa_message_id || i}
+          msg={m}
+          className={cn('w-full', n === 3 && i === 0 ? 'col-span-2 aspect-[2/1]' : 'aspect-square')}
+        />
+      ))}
+    </div>
+  );
+}
+
 function PhotoMessage({ src, loading, sticker }) {
   const [open, setOpen] = useState(false);
   const [broken, setBroken] = useState(false);
@@ -395,7 +415,7 @@ function VideoMessage({ src, loading }) {
 }
 
 function DocumentMessage({ msg, src, loading }) {
-  const ext = (msg.media_mime_type || '').split('/').pop()?.split(';')[0]?.toUpperCase();
+  const label = documentTypeLabel(msg.media_mime_type);
   return (
     <div className="flex w-72 max-w-full items-center gap-3 rounded-md bg-black/[0.04] p-2.5">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white text-[#128C7E] shadow-sm">
@@ -403,8 +423,8 @@ function DocumentMessage({ msg, src, loading }) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[13px] font-medium text-gray-900">{captionOf(msg) || 'Document'}</div>
-        <div className="text-[11px] text-gray-500">
-          {loading ? 'Loading…' : src ? ext || 'File' : 'Unavailable'}
+        <div className="truncate text-[11px] text-gray-500">
+          {loading ? 'Loading…' : src ? label : 'Unavailable'}
         </div>
       </div>
       {src ? (
@@ -570,7 +590,8 @@ function Label({ icon, children }) {
   );
 }
 
-function MessageContent({ msg, inbound, media, spacer }) {
+function MessageContent({ msg, inbound, media, spacer, album }) {
+  if (album) return <AlbumMessage items={album} />;
   const type = msg.message_type || 'text';
   const caption = captionOf(msg);
 
@@ -893,16 +914,20 @@ export const MessageBubble = memo(function MessageBubble({
   highlight = '',
   activeMatch = false,
   quoted = null,
+  album = null,
 }) {
   const media = useMediaSrc(msg);
   const actions = useContext(MessageActionsContext);
   if (!msg) return null;
 
+  const isAlbum = Array.isArray(album) && album.length > 0;
   const inbound = msg.direction === 'inbound';
   const isAiReply = msg.ai_intent?.startsWith('reply_to_');
   const type = msg.message_type || 'text';
   const visual =
-    (['image', 'video', 'sticker'].includes(type) && (media.src || media.loading)) || type === 'location';
+    isAlbum ||
+    (['image', 'video', 'sticker'].includes(type) && (media.src || media.loading)) ||
+    type === 'location';
   const sticker = type === 'sticker' && media.src;
   const caption = captionOf(msg);
   const overlayTime = visual && !caption && type !== 'location';
@@ -968,7 +993,7 @@ export const MessageBubble = memo(function MessageBubble({
           </div>
         ) : null}
         <HighlightContext.Provider value={highlight}>
-          <MessageContent msg={msg} inbound={inbound} media={media} spacer={spacer} />
+          <MessageContent msg={msg} inbound={inbound} media={media} spacer={spacer} album={album} />
         </HighlightContext.Provider>
 
         <div
