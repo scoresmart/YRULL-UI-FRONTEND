@@ -27,7 +27,7 @@ import { useContacts, useMessages, useTags, useContactTags } from '../../lib/dat
 import { whatsappApi, tagsApi, templatesApi } from '../../lib/api';
 import { MessageBubble, QuotedMessage } from './MessageBubble';
 import { tagDot } from '../../lib/tagColors';
-import { MessageActionsContext, messagePreview } from './messageHelpers';
+import { MessageActionsContext, groupAlbums, messagePreview } from './messageHelpers';
 import { ForwardDialog, MessageInfoDialog } from './MessageDialogs';
 import { AttachButton, EmojiButton } from './ComposerExtras';
 import { HandoffControl } from './HandoffControl';
@@ -455,6 +455,10 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
     }
     return result;
   }, [messagesQ.data]);
+
+  // Fold WhatsApp albums (a group of photos) into one gridded bubble: the empty
+  // "album" stub plus the media messages that follow it.
+  const albums = useMemo(() => groupAlbums(deduplicatedMessages), [deduplicatedMessages]);
 
   /* ── Message menu: reply, react, forward, star, pin, delete, info ── */
   const byWaId = useMemo(() => {
@@ -924,17 +928,23 @@ export function ChatWindow({ connected = true, onBack, onToggleInfo, className }
                 .map((day) => (
                   <section key={messageKey(day.items[0].m, day.items[0].idx)}>
                     {day.label ? <DateSeparator label={day.label} /> : null}
-                    {day.items.map(({ m, idx, groupStart }) => (
-                      <div key={messageKey(m, idx)} data-msg-key={messageKey(m, idx)}>
-                        <MessageBubble
-                          msg={m}
-                          groupStart={groupStart}
-                          highlight={query}
-                          activeMatch={activeMatchKey === messageKey(m, idx) || flashKey === messageKey(m, idx)}
-                          quoted={m.reply_to ? byWaId.get(m.reply_to) || null : null}
-                        />
-                      </div>
-                    ))}
+                    {day.items.map(({ m, idx, groupStart }) => {
+                      // A photo folded into an album is shown inside its grid, not on its own.
+                      if (albums.memberIds.has(m.id)) return null;
+                      const album = albums.stubItems.get(m.id) || null;
+                      return (
+                        <div key={messageKey(m, idx)} data-msg-key={messageKey(m, idx)}>
+                          <MessageBubble
+                            msg={m}
+                            album={album}
+                            groupStart={groupStart}
+                            highlight={query}
+                            activeMatch={activeMatchKey === messageKey(m, idx) || flashKey === messageKey(m, idx)}
+                            quoted={m.reply_to ? byWaId.get(m.reply_to) || null : null}
+                          />
+                        </div>
+                      );
+                    })}
                   </section>
                 ))}
             </div>

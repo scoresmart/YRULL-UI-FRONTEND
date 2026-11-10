@@ -59,6 +59,43 @@ export function failureReason(msg) {
   return 'Not delivered';
 }
 
+// Friendly short labels for the common document MIME types. Office formats
+// have long subtypes (…wordprocessingml.document), so the raw subtype is
+// useless as a label — map the ones we see, fall back to a cleaned subtype.
+const MIME_LABELS = {
+  'application/pdf': 'PDF',
+  'application/msword': 'DOC',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+  'application/vnd.ms-excel': 'XLS',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',
+  'application/vnd.ms-powerpoint': 'PPT',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PPTX',
+  'application/vnd.oasis.opendocument.text': 'ODT',
+  'application/vnd.oasis.opendocument.spreadsheet': 'ODS',
+  'text/plain': 'TXT',
+  'text/csv': 'CSV',
+  'application/rtf': 'RTF',
+  'application/zip': 'ZIP',
+  'application/x-zip-compressed': 'ZIP',
+  'application/vnd.rar': 'RAR',
+  'application/x-7z-compressed': '7Z',
+  'application/json': 'JSON',
+};
+
+/** A short, clean file-type label from a document's MIME type (e.g. "DOCX"). */
+export function documentTypeLabel(mime) {
+  const m = (mime || '').split(';')[0].trim().toLowerCase();
+  if (!m) return 'File';
+  if (MIME_LABELS[m]) return MIME_LABELS[m];
+  // Fall back to the subtype, stripped of the vendor/encoding noise. Only use
+  // it when it is short and simple; otherwise it is the long ugly string.
+  const sub = (m.split('/').pop() || '')
+    .replace(/^x-/, '')
+    .replace(/^vnd\..*\./, '')
+    .replace(/\+.*/, '');
+  return /^[a-z0-9]{1,5}$/.test(sub) ? sub.toUpperCase() : 'File';
+}
+
 const PREVIEW_BY_TYPE = {
   audio: [Mic, 'Voice message'],
   image: [Camera, 'Photo'],
@@ -91,6 +128,58 @@ export function unsupportedInfo(msg) {
       ? 'Ask the contact to send it again as a normal message.'
       : 'Usually a view-once photo, a poll or an edited message. Ask the contact to send it again as a normal message.',
   };
+}
+
+// A WhatsApp "album" (several photos/videos sent as one group) is delivered to
+// business apps as an empty unsupported "album" stub followed by the individual
+// image/video messages — Meta gives no album id, so we correlate the stub with
+// the run of same-direction media that immediately follows it. A genuinely
+// withheld message (view-once, poll, edit) has no media after it, so it never
+// groups and still shows its "didn't share" notice.
+const ALBUM_WINDOW_MS = 60000;
+const ALBUM_MEDIA_TYPES = new Set(['image', 'video']);
+
+/** True for the empty stub that marks the start of an album. */
+export function isAlbumStub(msg) {
+  return (
+    msg?.message_type === 'unsupported' &&
+    /^\[unsupported(_album)?\]$/.test((msg.body || '').trim())
+  );
+}
+
+/**
+ * Collapse WhatsApp albums in a chronological message list. Returns:
+ *  - stubItems: Map(stub.id -> [media messages]) — one entry per album
+ *  - memberIds: Set of ids of the media messages folded into an album
+ * The caller hides members and renders the album grid in the stub's place.
+ */
+export function groupAlbums(messages) {
+  const stubItems = new Map();
+  const memberIds = new Set();
+  for (let i = 0; i < messages.length; i++) {
+    const stub = messages[i];
+    if (!isAlbumStub(stub)) continue;
+    const explicit = (stub.body || '').trim() === '[unsupported_album]';
+    const items = [];
+    let last = new Date(stub.created_at).getTime();
+    for (let j = i + 1; j < messages.length; j++) {
+      const n = messages[j];
+      if (n.direction !== stub.direction || !ALBUM_MEDIA_TYPES.has(n.message_type)) break;
+      if (memberIds.has(n.id)) break;
+      const t = new Date(n.created_at).getTime();
+      if (Number.isFinite(t) && t - last > ALBUM_WINDOW_MS) break;
+      items.push(n);
+      if (Number.isFinite(t)) last = t;
+    }
+    // An explicit album stub groups even a single trailing photo; a legacy
+    // plain "[unsupported]" stub needs at least two, so a view-once notice
+    // followed by one unrelated photo is never mistaken for an album.
+    if (items.length >= (explicit ? 1 : 2)) {
+      stubItems.set(stub.id, items);
+      for (const it of items) memberIds.add(it.id);
+    }
+  }
+  return { stubItems, memberIds };
 }
 
 /** A one-line summary of a message, for quotes, the reply bar and pins. */
